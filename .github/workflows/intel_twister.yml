@@ -1,0 +1,86 @@
+name: Run Intel Twister
+on:
+  schedule:
+    - cron:  '15 14 * * *' # once daily @ 0615 PT, 1415 UTC
+  pull_request:
+    branches:
+      - main-intel
+  workflow_dispatch:
+
+jobs:
+  runTwister:
+    defaults:
+      run:
+        shell: bash
+    runs-on: uzdo128
+    container:
+      image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main
+      options: -v/opt/toolchains:/opt/toolchains
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: [1, 2, 3]
+        batch_total: [ 3 ] 
+    timeout-minutes: 45
+    steps:
+      - name: Clean
+        run: |
+          shopt -s dotglob
+          rm -rf *
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+      - name: 1rtos-ci
+        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }} "--integration"
+      - name: log artifacts
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: twisterLog_${{ matrix.batch }}of${{ matrix.batch_total }}
+          path: |
+            zephyrproject/zephyr/twister-out/twister.log
+            zephyrproject/zephyr/twister-out/twister.xml
+          retention-days: 1            
+        
+  publish-test-results:
+    name: "Publish GCC Twister Results"
+    needs: [ runTwister ]
+    runs-on: fmos-ubuntu-latest
+    continue-on-error: true
+    if: always()
+    steps:
+      - run: env
+      - name: Clean
+        run: |
+          rm -rf artifacts
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: inline CVE scan for external action
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
+        with:
+          container-url: 'ghcr.io/enricomi/publish-unit-test-result-action:latest'
+          cve-level: 'CRITICAL'
+          exit-code: '0'
+          dockerio-user: ${{ secrets.DOCKERIO_USER }}
+          dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          files: "artifacts/**/twister.xml"
+          check_name: "GCC Twister Results"
+          comment_mode: off
+          compare_to_earlier_commit: false
+
+# "Intel-CI-Passed" is our exit job that matches branch-protection status-check
+# settings for PR workflow. Make sure all required tests are prereqs to this job.
+# For this build workflow, no actions are taken by Intel-CI-Passed, just status
+# echo.
+  Intel-CI-Passed:
+    needs: [ runTwister ]
+    runs-on: fmos-ubuntu-latest
+    steps:
+      - name: Post run steps
+        run: echo "Intel-CI-Passed"

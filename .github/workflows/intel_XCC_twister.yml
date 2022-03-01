@@ -1,0 +1,118 @@
+name: Run twister with XCC
+on:
+  push:
+    branches:
+      - main-intel
+  pull_request:
+    branches:
+      - main-intel
+      - v3.0-branch-intel
+  workflow_dispatch:
+
+jobs:
+  xcc-twister-build:
+    defaults:
+      run:
+        shell: bash
+    runs-on: uzdo128
+    container:
+      image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main
+      options: -v/opt/toolchains:/opt/toolchains
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - platform: 'intel_adsp_cavs15'
+            toolchain: 'RG-2017.8-linux'
+            xtensa_core: 'X4H3I16w2D48w3a_2017_8'
+            log_name: 'CAVS15'
+          - platform: 'intel_adsp_cavs18'
+            toolchain: 'RG-2017.8-linux'
+            xtensa_core: 'X6H3CNL_2017_8'
+            log_name: 'CAVS18'
+          - platform: 'intel_adsp_cavs20'
+            toolchain: 'RG-2017.8-linux'
+            xtensa_core: 'X6H3CNL_2017_8'
+            log_name: 'CAVS20'
+          - platform: 'intel_adsp_cavs25'
+            toolchain: 'RG-2017.8-linux'
+            xtensa_core: 'cavs2x_LX6HiFi3_2017_8'
+            log_name: 'CAVS25'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+      - name: west
+        run: |
+          cd zephyrproject
+          if [ ! -d .west ]; then
+            west init -l zephyr
+          fi
+          west update
+          cd -
+      - name: xt-xcc twister run
+        env:
+          TOOLCHAIN: ${{ matrix.toolchain }}
+          XTENSACORE: ${{ matrix.xtensa_core }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          export ZEPHYR_BASE=$GITHUB_WORKSPACE/zephyrproject/zephyr
+
+          export ZEPHYR_TOOLCHAIN_VARIANT=xcc
+          export XTENSA_TOOLCHAIN_PATH=/opt/toolchains/xcc/install/tools/
+          export TOOLCHAIN_VER=$TOOLCHAIN
+          echo "export TOOLCHAIN_VER=$TOOLCHAIN"
+
+          export XTENSA_CORE=$XTENSA_CORE
+          echo "export XTENSA_CORE=$XTENSA_CORE"
+
+          export XTENSA_SYSTEM=/opt/toolchains/xcc/install/tools/$TOOLCHAIN/XtensaTools/config/
+          echo "export XTENSA_SYSTEM=/opt/toolchains/xcc/install/tools/$TOOLCHAIN/XtensaTools/config/"
+          export XTENSA_BUILD_DIR=/opt/toolchains/xcc/install/builds/$TOOLCHAIN/
+          echo "export XTENSA_BUILD_DIR=/opt/toolchains/xcc/install/builds/$TOOLCHAIN/"
+          export XTENSA_BUILD_PATHS=/opt/toolchains/xcc/install/builds/
+                    
+          cd $GITHUB_WORKSPACE/zephyrproject/zephyr       
+          scripts/twister -M -W -p $PLATFORM -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60
+
+      - name: log artifacts
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: twisterLog_${{ matrix.log_name }}
+          path: |
+            zephyrproject/zephyr/twister-out/twister.log
+            zephyrproject/zephyr/twister-out/twister.xml
+          retention-days: 1
+
+  publish-test-results:
+    name: 'Publish XCC Twister Results'
+    needs: [xcc-twister-build]
+    runs-on: fmos-ubuntu-latest
+    continue-on-error: true
+    if: always()
+    steps:
+      - name: Clean
+        run: |
+          rm -rf artifacts
+      - run: env
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: inline CVE scan for external action
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
+        with:
+          container-url: 'ghcr.io/enricomi/publish-unit-test-result-action:latest'
+          cve-level: 'CRITICAL'
+          exit-code: '0'
+          dockerio-user: ${{ secrets.DOCKERIO_USER }}
+          dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          files: 'artifacts/**/twister.xml'
+          check_name: 'XCC Twister Results'
+          comment_mode: off
+          compare_to_earlier_commit: false
