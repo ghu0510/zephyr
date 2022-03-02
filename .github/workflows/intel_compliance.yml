@@ -1,0 +1,108 @@
+# intel_compliance.yml
+# PR project compliance Workflow - PR Event
+#
+# 1. Sets up environment. Installing required deps and clearing out old files
+# 2. Checks out code from internal PR and performs a rebase and west update
+# 3. Runs various compliance checks just like upstream project except we omit the codeowners check internally
+# 4. If any checks fails returns what has failed as well as uploads the .xml file as an artifact to the job
+
+name: Intel Compliance Checks
+
+on: pull_request
+
+jobs:
+  check_compliance:
+    runs-on: fmos-ubuntu-latest
+    name: Run compliance checks on patch series (PR)
+    steps:
+      # Cleans out any files from previous builds (as well as any .west files)
+      - name: Clean
+        shell: bash
+        continue-on-error: true
+        run: |
+          echo $PWD
+          shopt -s dotglob
+          rm -rfv /home/zephyr/ar/intel-innersource/001/_work/os.rtos.zephyr.devops.zephyr-ci-staging/.west
+          rm -rfv /home/zephyr/ar/intel-innersource/001/_work/os.rtos.zephyr.devops.zephyr-ci-staging/zephyrproject/.west
+          rm -rfv /home/zephyr/ar/intel-innersource/001/_work/os.rtos.zephyr.devops.zephyr-ci-staging/zephyrproject/zephyr/.west
+          rm -rf *
+
+      - name: Update PATH for west
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      # Checkout code from open internal PR
+      - name: Checkout the code
+        uses: actions/checkout@v2
+        with:
+          path: 'zephyrproject/zephyr'
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      # Install required dependencies to run the compliance checks
+      - name: Install python dependencies
+        run: |
+          pip3 install setuptools
+          pip3 install wheel
+          pip3 install python-magic junitparser==1.6.3 gitlint pylint pykwalify
+          pip3 install west
+
+      # Rebase on origin and run west init->update
+      - name: west setup
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          cd zephyrproject/zephyr
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+          git remote -v
+          git rebase origin/${BASE_REF}
+          # debug
+          git log  --pretty=oneline | head -n 10
+          west init -l . || true
+          west update 2>&1 1> west.update.log || west update 2>&1 1> west.update2.log
+
+      # Run ./scripts/ci/check_compliance.py (maintained upstream) with the same checkers as the project except for codeowners as this will not apply internally
+      - name: Run Compliance Tests
+        continue-on-error: true
+        id: compliance
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          cd zephyrproject/zephyr
+          export ZEPHYR_BASE=$PWD
+          # debug
+          ls -la
+          git log  --pretty=oneline | head -n 10
+          ./scripts/ci/check_compliance.py -m Devicetree -m Gitlint -m Identity -m Nits -m pylint -m checkpatch -m Kconfig -c origin/${BASE_REF}..
+
+      # Upload compliance.xml file to workflow run capturing any errors from the compliance check
+      - name: upload-results
+        uses: actions/upload-artifact@master
+        continue-on-error: True
+        with:
+          name: compliance.xml
+          path: zephyrproject/zephyr/compliance.xml
+
+      # If there are no compliance errors then this step will pass, if failing then will also publish which errors were caught during the check
+      - name: check-warns
+        run: |
+          cd zephyrproject/zephyr
+          if [[ ! -s "compliance.xml" ]]; then
+            exit 1;
+          fi
+
+          for file in Nits.txt checkpatch.txt Identity.txt Gitlint.txt pylint.txt Devicetree.txt Kconfig.txt Codeowners.txt; do
+            if [[ -s $file ]]; then
+              errors=$(cat $file)
+              errors="${errors//'%'/'%25'}"
+              errors="${errors//$'\n'/'%0A'}"
+              errors="${errors//$'\r'/'%0D'}"
+              echo "::error file=${file}::$errors"
+              exit=1
+            fi
+          done
+
+          if [ "${exit}" == "1" ]; then
+            exit 1;
+          fi
