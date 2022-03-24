@@ -20,7 +20,7 @@ jobs:
       options: -v/opt/toolchains:/opt/toolchains
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 4
       matrix:
         include:
           - platform: 'intel_adsp_cavs15'
@@ -74,7 +74,7 @@ jobs:
           export XTENSA_BUILD_PATHS=/opt/toolchains/xcc/install/builds/
                     
           cd $GITHUB_WORKSPACE/zephyrproject/zephyr       
-          scripts/twister -M -W -p $PLATFORM -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60
+          scripts/twister -M -W -p $PLATFORM -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60 --retry-build-errors
 
       - name: log artifacts
         if: always()
