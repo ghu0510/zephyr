@@ -1,0 +1,9 @@
+- scenarios:
+    - libraries.icmsg
+  platforms:
+    - intel_adsp_cavs15
+    - intel_adsp_cavs18
+    - intel_adsp_cavs20
+    - intel_adsp_cavs25
+  comment: 'Test is not compatible with adsp platforms with xcc.
+    Will revisit once upstream updates test if this entry no longer required'

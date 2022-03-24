@@ -74,7 +74,11 @@ jobs:
           export XTENSA_BUILD_PATHS=/opt/toolchains/xcc/install/builds/
                     
           cd $GITHUB_WORKSPACE/zephyrproject/zephyr       
-          scripts/twister -M -W -p $PLATFORM -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60 --retry-build-errors
+                    scripts/twister -M -W -x=USE_CCACHE=0 -N \
+                  --inline-logs -v --retry-build-errors --retry-failed 3 --retry-interval 60 \
+                  --quarantine-list $GITHUB_WORKSPACE/zephyrproject/zephyr/.github/workflows/xcc-twister-quarantine.yml \
+                  --build-only \
+                  -p $PLATFORM
 
       - name: log artifacts
         if: always()
