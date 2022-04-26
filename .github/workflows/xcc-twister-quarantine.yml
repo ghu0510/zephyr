@@ -1,5 +1,5 @@
 - scenarios:
-    - libraries.icmsg
+    - subsys.ipc.icmsg_buf
   platforms:
     - intel_adsp_cavs15
     - intel_adsp_cavs18
