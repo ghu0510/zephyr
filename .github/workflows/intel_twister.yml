@@ -1,7 +1,5 @@
 name: Run Intel Twister
 on:
-  schedule:
-    - cron:  '15 14 * * *' # once daily @ 0615 PT, 1415 UTC
   pull_request:
     branches:
       - main-intel

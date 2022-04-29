@@ -1,0 +1,136 @@
+name: Intel Daily CI-HW Test
+on:
+  schedule:
+    - cron:  '15 13 * * *' # once daily @ 1315 UTC
+  workflow_dispatch:
+
+jobs:
+  # git-west-deploy - acquire sources and deploy to infrastructure
+  #   uses actions/checkout to clone repo
+  #   executes on ubuntu runner with testhead mounted to receive workspace
+  git-west-deploy:
+    name: "Clone source & run west"
+    defaults:
+      run:
+        shell: bash
+    runs-on: fmos-ubuntu-latest
+    container:
+      # executing steps in container with testhead workspace mounted writable
+      image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main-hwtest
+      options: -v/opt/toolchains:/opt/toolchains -v/testhead/workspace:/workspace
+    timeout-minutes: 15
+    steps:
+      - name: clean
+        run: rm -rf *
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: 'zephyr'
+      # call container west-deploy wrapper that:
+      #   1. detects zephyr vs zephyr-intel
+      #   2. runs west init followed by west update with path-cache enabled
+      #   3. syncronizes workspace on testhead
+      # see also: sdk-docker-intel/fmos/west-deploy.sh
+      - name: west-deploy
+        run: /fmos/west-deploy.sh
+
+  # ci - parallel execute twister build+qemu on high-performance build agents
+  #   container-run with testhead archive mounted to receive output
+  ci:
+    name: "Run Twister build & QEMU tests"
+    needs: [ west-deploy ]
+    defaults:
+      run:
+        shell: bash
+    runs-on: uzdo128
+    container:
+      image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main-hwtest
+      options: -v/opt/toolchains:/opt/toolchains -v/testhead/archive:/archive -v/testhead/workspace/ci:/workdir -w/workdir
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: [1, 2, 3]
+        batch_total: [ 3 ]
+    timeout-minutes: 60
+    steps:
+      # call container run-ci wrapper that:
+      #   1. detects zephyr vs zephyr-intel
+      #   2. implements testcase quarantine if ./twister-quarantine-list exists
+      #   3. parallel executes twister with options:
+      #      -M -x=USE_CCACHE=0 -N --inline-logs -v --retry-failed 3 --retry-interval 60
+      #   4. archives output to testhead for downstream consumption
+      #   5. returns twister status code to workflow
+      # see also: sdk-docker-intel/fmos/run-ci.sh
+      - name: run-ci
+        run: /fmos/run-ci.sh ${{ matrix.batch }} ${{ matrix.batch_total }}
+      - name: log artifacts
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ci-log-${{ matrix.batch }}of${{ matrix.batch_total }}
+          path: |
+            zephyrproject/twister-out/twister.log
+            zephyrproject/twister-out/twister.xml
+          retention-days: 1
+
+  # hwtest - run device-testing on FMOS infrastructure via testhead API
+  #   shell-run as user jenkins testhead
+  hwtest:
+    name: "Run device-testing on hardware"
+    needs: [ west-deploy, ci ]
+    defaults:
+      run:
+        shell: bash
+    runs-on: testhead
+    strategy:
+      fail-fast: false
+      matrix:
+        site: [JF, SH, HF]
+    timeout-minutes: 180
+    steps:
+      # Execute site-specific device-testing by calling testhead method
+      #   fmos-hwtest <container tag> <site label>
+      #
+      # see testhead:<site>/src/fmos-hwtest.sh for specific operation
+      - name: call fmos-hwtest site runner
+        run: /srv/zephyr-testhead/src/fmos-hwtest.sh main-daily ${{ matrix.site }}
+      - name: log artifacts
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: hwtest-log-${{ matrix.site }}
+          path: |
+            /srv/testhead/archive/hwtest/**/twister-out/twister.log
+            /srv/testhead/archive/hwtest/**/twister-out/twister.xml
+          retention-days: 1
+
+  publish-test-results:
+    name: "Publish GCC Twister Results"
+    needs: [ ci, hwtest ]
+    runs-on: fmos-ubuntu-latest
+    continue-on-error: true
+    if: always()
+    steps:
+      - run: env
+      - name: Clean
+        run: |
+          rm -rf artifacts
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: inline CVE scan for external action
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
+        with:
+          container-url: 'ghcr.io/enricomi/publish-unit-test-result-action:latest'
+          cve-level: 'CRITICAL'
+          exit-code: '0'
+          dockerio-user: ${{ secrets.DOCKERIO_USER }}
+          dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          files: "artifacts/**/twister.xml"
+          check_name: "GCC Twister Results"
+          comment_mode: off
+          compare_to_earlier_commit: false
