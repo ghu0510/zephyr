@@ -1,0 +1,6 @@
+- scenarios:
+    - kernel.timer.monotonic
+  platforms:
+    - qemu_arc_hs6x
+  comment: "qemu_arc_hs6 tests/kernel/timer/timer_monotonic/kernel.timer.monotonic fails consistently on 0.14.1. This may be failing internally and not upstream because we use --integration for twister checks. Similar to this issue
+  ustream on qemu_arc_hs6: https://github.com/zephyrproject-rtos/zephyr-testing/commit/adf5d791508f5b64bea1431eea54c2ef2add68cb"
