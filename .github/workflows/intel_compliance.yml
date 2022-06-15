@@ -20,11 +20,7 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          echo $PWD
           shopt -s dotglob
-          rm -rfv /home/zephyr/ar/intel-innersource/001/_work/os.rtos.zephyr.devops.zephyr-ci-staging/.west
-          rm -rfv /home/zephyr/ar/intel-innersource/001/_work/os.rtos.zephyr.devops.zephyr-ci-staging/zephyrproject/.west
-          rm -rfv /home/zephyr/ar/intel-innersource/001/_work/os.rtos.zephyr.devops.zephyr-ci-staging/zephyrproject/zephyr/.west
           rm -rf *
 
       - name: Update PATH for west
