@@ -23,6 +23,10 @@ jobs:
       max-parallel: 4
       matrix:
         include:
+          - platform: 'intel_adsp_ace15_mtpm_sim'
+            toolchain: 'RG-2019.12-linux'
+            xtensa_core: 'ace10_LX7HiFi4'
+            log_name: 'intel_adsp_ace15_mtpm_sim'
           - platform: 'intel_adsp_cavs15'
             toolchain: 'RG-2017.8-linux'
             xtensa_core: 'X4H3I16w2D48w3a_2017_8'
@@ -85,7 +89,8 @@ jobs:
                   --build-only \
                   -p $PLATFORM \
                   --force-color \
-                  --no-skipped-report
+                  --no-skipped-report \
+                  -e nanopb # exclude via tag for now, will look into blacklisting module long-term.
 
       - name: log artifacts
         if: always()
