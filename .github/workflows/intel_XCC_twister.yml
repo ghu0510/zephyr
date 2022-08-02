@@ -18,6 +18,8 @@ jobs:
     container:
       image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main
       options: -v/opt/toolchains:/opt/toolchains
+      env:
+        TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -55,6 +57,12 @@ jobs:
       - name: west
         run: |
           cd zephyrproject
+          touch $HOME/.git-credentials
+          touch $HOME/.gitconfig
+          git config --global user.email "sys_tmbuild@intel.com"
+          git config --global user.name "Github Builder CI"
+          git config --global credential.helper 'store --file=$HOME/.git-credentials'
+          echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/os.rtos.zephyr.zephyr-intel\nhttps://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
           if [ ! -d .west ]; then
             west init -l zephyr
           fi
@@ -81,7 +89,7 @@ jobs:
           export XTENSA_BUILD_DIR=/opt/toolchains/xcc/install/builds/$TOOLCHAIN/
           echo "export XTENSA_BUILD_DIR=/opt/toolchains/xcc/install/builds/$TOOLCHAIN/"
           export XTENSA_BUILD_PATHS=/opt/toolchains/xcc/install/builds/
-                    
+
           cd $GITHUB_WORKSPACE/zephyrproject/zephyr
                     scripts/twister -M -W -x=USE_CCACHE=0 -N \
                   --inline-logs -v --retry-build-errors --retry-failed 3 --retry-interval 60 \

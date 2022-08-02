@@ -14,11 +14,13 @@ jobs:
     container:
       image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main
       options: -v/opt/toolchains:/opt/toolchains
+      env:
+        TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
         batch: [1, 2, 3]
-        batch_total: [ 3 ] 
+        batch_total: [ 3 ]
     timeout-minutes: 45
     steps:
       - name: Clean
@@ -29,6 +31,14 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: 'zephyrproject/zephyr'
+      - name: Set Creds for internal repos
+        run: |
+           touch $HOME/.git-credentials
+           touch $HOME/.gitconfig
+           git config --global user.email "sys_tmbuild@intel.com"
+           git config --global user.name "Github Builder CI"
+           git config --global credential.helper 'store --file=$HOME/.git-credentials'
+           echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/os.rtos.zephyr.zephyr-intel\nhttps://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
       - name: 1rtos-ci
         run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }} "--integration --force-color --no-skipped-report"
       - name: log artifacts
@@ -39,8 +49,9 @@ jobs:
           path: |
             zephyrproject/zephyr/twister-out/twister.log
             zephyrproject/zephyr/twister-out/twister.xml
-          retention-days: 1            
-        
+            zephyrproject/zephyr/twister_report.xml
+          retention-days: 1
+
   publish-test-results:
     name: "Publish GCC Twister Results"
     needs: [ runTwister ]
