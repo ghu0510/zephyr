@@ -13,6 +13,7 @@
 #include <zephyr/arch/xtensa/cache.h>
 #include <adsp_shim.h>
 #include <adsp_memory.h>
+#include <adsp_boot.h>
 #include <cpu_init.h>
 #include "manifest.h"
 
@@ -138,6 +139,15 @@ extern void lp_sram_init(void);
 
 __imr void boot_core0(void)
 {
+#ifdef CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM
+	int prid;
+
+	prid = arch_proc_id();
+	if (prid != 0) {
+		((void (*)(void))DFDSPBRCP.bootctl[prid].baddr)();
+	}
+#endif
+
 	cpu_early_init();
 
 #ifdef CONFIG_ADSP_DISABLE_L2CACHE_AT_BOOT
