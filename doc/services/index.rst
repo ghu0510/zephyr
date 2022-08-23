@@ -25,6 +25,7 @@ OS Services
    settings/index.rst
    smf/index.rst
    storage/index.rst
+   senss/index.rst
    task_wdt/index.rst
    tfm/index
    usb/index.rst
