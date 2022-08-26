@@ -10,28 +10,8 @@ set -ex
 
 export XTENSA_CORE=ace30_LX7HiFi4
 
-XTLIBS=$(readelf -d sim_prebuilt/dsp_fw_sim  | fgrep RUNPATH \
-         | sed 's/.*\[//' | sed 's/\].*//' | sed 's/:/\n/g'  \
-         | fgrep '/XtDevTools/install/tools/' | head -1)
-VER=$(echo $XTLIBS | sed 's/.*\/XtDevTools\/install\/tools\///' | sed 's/\/.*//')
-TOOLS=$(echo $XTLIBS | sed "s/\/$VER\/.*//")
-
-# The user may have an existing Xtensa installation.  Check there
-# first before using the path from the binary.
-if [ ! -z "$XTENSA_TOOLS_DIR" ]; then
-    SDK=$(dirname "$XTENSA_TOOLS_DIR")
-elif [ ! -z "$XTENSA_BUILDS_DIR" ]; then
-    SDK=$(dirname "$XTENSA_BUILDS_DIR")
-fi
-if [ ! -z "$SDK" -a -e "$SDK/XtDevTools/install/tools/$VER" ]; then
-    TOOLS="$SDK/XtDevTools/install/tools"
-fi
-
-
-# if we have a toolchain used for building Zephyr.
-if [ -n "$XTENSA_TOOLCHAIN_PATH"  -a -e "$XTENSA_TOOLCHAIN_PATH/$VER" ]; then
-    TOOLS=$XTENSA_TOOLCHAIN_PATH
-fi
+VER=$XTENSA_TOOLS_VERSION
+TOOLS=$XTENSA_TOOLS_DIR
 
 export XTENSA_TOOLS_VERSION="$VER"
 export XTENSA_BUILDS_DIR=$(dirname "$TOOLS")/builds
