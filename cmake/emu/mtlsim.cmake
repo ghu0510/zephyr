@@ -6,10 +6,34 @@ find_program(
   )
 set(MTLSIM ${BOARD_DIR}/support/mtlsim.py)
 
+# The MTL_SIM_DIR environment variable specifies the directory
+# where the simulator was put, it is $HOME/mtlsim by default
+# if MTL_SIM_DIR is not assign.
+if(DEFINED ENV{MTL_SIM_DIR})
+  set(SIM_DIR $ENV{MTL_SIM_DIR})
+else()
+  set(SIM_DIR "$ENV{HOME}/mtlsim")
+endif()
+
+if(NOT EXISTS "${SIM_DIR}")
+  message(FATAL_ERROR "Cannot find the directory ${SIM_DIR}.
+Please make sure the MTL simulator was installed correctly.\n")
+endif()
+
+set(ROM_FILE ${SIM_DIR}/bin/dsp_rom_mtl_sim.hex)
+if(NOT EXISTS "${ROM_FILE}")
+	message(FATAL_ERROR "Cannot find ROM: ${ROM_FILE} . Abort.")
+endif()
+
+set(SIM_WRAP ${SIM_DIR}/dsp_fw_sim.wrapper)
+if(NOT EXISTS "${SIM_WRAP}")
+  message(FATAL_ERROR "Cannot find simulator wrapper: ${SIM_WRAP} . Abort.")
+endif()
+
 set(MTLSIM_FLAGS
-	--rom ${BOARD_DIR}/support/dsp_rom_mtl_sim.hex
-	--sim ${BOARD_DIR}/support/dsp_fw_sim
-	--rimage ${APPLICATION_BINARY_DIR}/zephyr/zephyr.ri
+  --rom ${ROM_FILE}
+  --sim ${SIM_WRAP}
+  --rimage ${APPLICATION_BINARY_DIR}/zephyr/zephyr.ri
   )
 
 add_custom_target(run_mtlsim
