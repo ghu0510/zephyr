@@ -136,7 +136,8 @@ async def sim_output(stream):
         m = re.match(r'PREBUILT: xt-bin-path: (.*)', s.rstrip())
         if m:
             state.gdb = os.path.join(m.group(1), "xt-gdb")
-        m = re.match(r'NOTE\s+core(\d+)\s.*Debug info:.*port=(\d+)', s)
+        m = re.match(r'.*core(\d+).*[SOCKET:|port=](\d+).*', s)
+
         if m:
             # Launch a background gdb to start the core
             port = int(m.group(2))
