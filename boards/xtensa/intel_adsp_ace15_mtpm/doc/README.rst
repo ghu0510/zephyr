@@ -80,6 +80,28 @@ A few environment variables are needed to tell Zephyr where the toolchain is:
 Additionally, you might need to define the license server for XCC, this can be
 setup using the environment variable `XTENSAD_LICENSE_FILE`
 
+Install the prebuilt simulator and ROM
+======================================
+
+The simulator team has release version of prebuilt simulators we can
+leverage to run zephry on it. The zephyr team has already customized
+the available prebuilt binary package for you. You can download it
+from our shared folder. It is often named "mtlsim_2019.12.tar.bz2" or
+"mtlsim_2022_ww36.tar.bz2". After downloading it, you can start the
+installation by:
+
+.. code-block:: console
+
+   tar xvf mtlsim_2019.12.tar.bz2 -C ~/
+
+Then the simulator and the ROM are installed completely. Also, if you
+want to run on other version of simulator, run the same command with
+different file name. Ex.
+
+.. code-block:: console
+
+   tar xvf mtlsim_2022.ww36.tar.bz2 -C ~/
+
 
 Using Docker
 ============
@@ -525,3 +547,51 @@ script in the container:
        -e buildenvs/buildenv_sim_rom.sh \
        -e buildenvs/buildenv_local.sh
    cp /z/cavs_fw/artifacts/FW/bin/mtl/rom/sim/dsp_rom_mtl_sim.hex /z/zephyr-ace #FIXME
+
+
+How to customize the prebuilt simulator package
+###############################################
+
+The simulator team has release version of prebuilt simulators we can
+leverage to run zephry on it without building it our own. Once a new
+version of simulator is being released, we will customize it this way:
+
+First, download the prebuilt simulator from:
+
+https://github.com/intel-innersource/applications.audio.simulator.std-sim/releases
+
+It is compressed in tar file, often named like "std_sim_linux_mtl_ww36_v2733.zip".
+After downloading this tar file, you can uncompress it by:
+
+.. code-block:: console
+
+   mkdir mtlsim
+   unzip std_sim_linux_mtl_ww36_v2733.zip -d mtlsim
+   cd mtlsim
+
+In this directory, use "ls" to see if there is a "build_linux_mtl.tar.gz" tar file.
+If yes, please also uncompress it by:
+
+.. code-block:: console
+
+   tar xvf build_linux_mtl.tar.gz
+
+If no, skip the above tar command. The simulator vesrion before 2022 ww36 will
+not have this file. This file contains XCC shared library which is using by
+simulator.
+
+The second step is we have to copy the simulator wrapper script from the shared
+folder. It is named "dsp_fw_sim.wrapper". This wrapper script is use to deal
+with some shared library path issue in order to be able to run in a native
+enviornment, this is, without docker.
+
+After you get "dsp_fw_sim.wrapper", please put it into the "mtlsim.ww.36"
+directory. Then enter the "mtlsim.ww36" directory and run:
+
+.. code-block:: console
+
+   chmod +x dsp_fw_sim.wrapper
+   tar cvf mtlsim_2022.ww36.tar.bz2 mtlsim
+
+Now you successfully customized the prebuilt simulator package, and the ROM
+file or shared libraries are already in it.
