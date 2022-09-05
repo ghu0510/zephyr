@@ -101,4 +101,6 @@ config SENSS_MGMT_THREAD_PRIORITY
 	  This is the thread priority for sensor management thread
 	  Typical values are 8
 
+source "subsys/senss/sensor/phy_acc/Kconfig"
+
 endif # SENSS

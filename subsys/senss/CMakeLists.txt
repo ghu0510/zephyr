@@ -14,3 +14,5 @@ if (CONFIG_SENSS)
   senss_api.c
   )
 endif()
+
+add_subdirectory_ifdef(CONFIG_SENSS_SENSOR_PHY_ACC sensor/phy_acc)
