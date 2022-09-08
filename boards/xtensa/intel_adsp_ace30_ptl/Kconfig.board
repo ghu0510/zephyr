@@ -5,5 +5,5 @@
 
 config  BOARD_INTEL_ADSP_ACE30_PTL_SIM
 	bool "Intel ADSP ACE 3.0 Panther Lake Simulator"
-	depends on SOC_SERIES_INTEL_ACE1X
+	depends on SOC_SERIES_INTEL_ACE
 
