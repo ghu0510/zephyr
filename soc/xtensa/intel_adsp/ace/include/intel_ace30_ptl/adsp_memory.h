@@ -47,7 +47,7 @@
 
 
 /* L1 init */
-#define ADSP_L1CC_ADDR                       (0x1FE80080)
+#define ADSP_L1CC_ADDR                       (0x3FE80080)
 #define ADSP_CxL1CCAP_ADDR                   (ADSP_L1CC_ADDR + 0x0000)
 #define ADSP_CxL1CCFG_ADDR                   (ADSP_L1CC_ADDR + 0x0004)
 #define ADSP_CxL1PCFG_ADDR                   (ADSP_L1CC_ADDR + 0x0008)
