@@ -54,6 +54,9 @@ config SYS_CLOCK_TICKS_PER_SEC
 	default 1000 if BOARD_INTEL_ADSP_ACE15_MTPM_SIM
 	default 50000
 
+config INTEL_ADSP_TIMER
+	default y
+
 config DYNAMIC_INTERRUPTS
 	default y
 

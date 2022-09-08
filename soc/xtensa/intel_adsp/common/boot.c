@@ -139,7 +139,8 @@ extern void lp_sram_init(void);
 
 __imr void boot_core0(void)
 {
-#ifdef CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM
+#if defined(CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM) || \
+	defined(CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM)
 	int prid;
 
 	prid = arch_proc_id();

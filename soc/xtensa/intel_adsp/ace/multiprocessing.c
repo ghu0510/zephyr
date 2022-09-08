@@ -59,7 +59,8 @@ SYS_INIT(soc_num_cpus_init, EARLY, 1);
 
 void soc_mp_init(void)
 {
-#ifdef CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM
+#if defined(CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM) || \
+	defined(CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM)
 	/* BADDR stores the Xtensa LX7 AltResetVec input */
 	for (int i = 0; i < soc_num_cpus; i++) {
 		DFDSPBRCP.bootctl[i].baddr = (uint32_t) z_soc_mp_asm_entry;
@@ -86,7 +87,8 @@ void soc_mp_init(void)
 
 void soc_start_core(int cpu_num)
 {
-#ifndef CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM
+#if !defined(CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM) && \
+	!defined(CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM)
 	int retry = CORE_POWER_CHECK_NUM;
 
 	if (cpu_num > 0) {
@@ -118,7 +120,8 @@ void soc_start_core(int cpu_num)
 
 	DSPCS.capctl[cpu_num].ctl |= DSPCS_CTL_SPA;
 
-#ifndef CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM
+#if !defined(CONFIG_BOARD_INTEL_ADSP_ACE15_MTPM_SIM) && \
+	!defined(CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM)
 	/* Waiting for power up */
 	while (((DSPCS.capctl[cpu_num].ctl & DSPCS_CTL_CPA) != DSPCS_CTL_CPA) &&
 	       (retry > 0)) {

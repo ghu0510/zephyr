@@ -8,6 +8,9 @@ choice
 		bool "ACE 1.5 Meteor PCH M"
 		depends on SOC_SERIES_INTEL_ACE
 
+	config SOC_INTEL_ACE30_PTL
+		bool "ACE 3.0 Panther Lake"
+		depends on SOC_SERIES_INTEL_ACE
 endchoice
 
 config SOC_INTEL_COMM_WIDGET
