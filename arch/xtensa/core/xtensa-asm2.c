@@ -215,12 +215,15 @@ static inline DEF_INT_C_HANDLER(1)
 void *xtensa_excint1_c(int *interrupted_stack)
 {
 	int cause, vaddr, *bsa = *(int **)interrupted_stack;
+	uint32_t ps;
+	void *pc;
 
 	__asm__ volatile("rsr.exccause %0" : "=r"(cause));
 
-	if (cause == EXCCAUSE_LEVEL1_INTERRUPT) {
+	switch (cause) {
+	case EXCCAUSE_LEVEL1_INTERRUPT:
 		return xtensa_int1_c(interrupted_stack);
-	} else if (cause == EXCCAUSE_SYSCALL) {
+	case EXCCAUSE_SYSCALL:
 		/* Just report it to the console for now */
 		LOG_ERR(" ** SYSCALL PS %p PC %p",
 			(void *)bsa[BSA_PS_OFF/4], (void *)bsa[BSA_PC_OFF/4]);
@@ -231,9 +234,18 @@ void *xtensa_excint1_c(int *interrupted_stack)
 		 * else it will just loop forever
 		 */
 		bsa[BSA_PC_OFF/4] += 3;
-	} else {
-		uint32_t ps = bsa[BSA_PS_OFF/4];
-		void *pc = (void *)bsa[BSA_PC_OFF/4];
+		break;
+	/* TODO: Implement proper exception handler for MMU exceptions. */
+	case EXCCAUSE_ITLB_MISS:
+	case EXCCAUSE_ITLB_MULTIHIT:
+	case EXCCAUSE_INSTR_RING:
+	case EXCCAUSE_INSTR_PROHIBITED:
+	case EXCCAUSE_DTLB_MISS:
+	case EXCCAUSE_DTLB_MULTIHIT:
+	case EXCCAUSE_LOAD_STORE_RING:
+	default:
+		ps = bsa[BSA_PS_OFF/4];
+		pc = (void *)bsa[BSA_PC_OFF/4];
 
 		__asm__ volatile("rsr.excvaddr %0" : "=r"(vaddr));
 
@@ -278,6 +290,7 @@ void *xtensa_excint1_c(int *interrupted_stack)
 		 */
 		z_xtensa_fatal_error(reason,
 				     (void *)interrupted_stack);
+		break;
 	}
 
 	return return_to(interrupted_stack);
