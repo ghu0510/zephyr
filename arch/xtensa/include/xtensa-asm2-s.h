@@ -333,7 +333,10 @@ _not_l1:
 	 * INTLEVEL, so this is safe.
 	 */
 	rsr.PS a0
-	movi a3, ~(PS_EXCM_MASK)
+	/* Since we are unmasking EXCM, we need to set RING bits to kernel
+	 * mode, otherwise we won't be able to run the exception handler in C.
+	 */
+	movi a3, ~(PS_EXCM_MASK) & ~(PS_RING_MASK)
 	and a0, a0, a3
 	wsr.PS a0
 	rsync
