@@ -14,6 +14,11 @@ config SOC_FAMILY
 	string
 	default "intel_adsp"
 
+config INTEL_ADSP_SIM
+	bool "Intel ADSP Simulator"
+	help
+	  Running this SoC family in a simulator.
+
 # Select SoC Part No. and configuration options
 source "soc/xtensa/intel_adsp/*/Kconfig.soc"
 
