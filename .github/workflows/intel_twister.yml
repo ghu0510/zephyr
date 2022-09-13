@@ -5,6 +5,10 @@ on:
       - main-intel
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   runTwister:
     defaults:
@@ -20,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         batch: [1, 2, 3]
-        batch_total: [ 3 ]
+        batch_total: [3]
     timeout-minutes: 45
     steps:
       - name: Clean
@@ -33,12 +37,12 @@ jobs:
           path: 'zephyrproject/zephyr'
       - name: Set Creds for internal repos
         run: |
-           touch $HOME/.git-credentials
-           touch $HOME/.gitconfig
-           git config --global user.email "sys_tmbuild@intel.com"
-           git config --global user.name "Github Builder CI"
-           git config --global credential.helper 'store --file=$HOME/.git-credentials'
-           echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/os.rtos.zephyr.zephyr-intel\nhttps://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
+          touch $HOME/.git-credentials
+          touch $HOME/.gitconfig
+          git config --global user.email "sys_tmbuild@intel.com"
+          git config --global user.name "Github Builder CI"
+          git config --global credential.helper 'store --file=$HOME/.git-credentials'
+          echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/os.rtos.zephyr.zephyr-intel\nhttps://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
       - name: 1rtos-ci
         run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }} "--integration --force-color --no-skipped-report"
       - name: log artifacts
@@ -53,8 +57,8 @@ jobs:
           retention-days: 1
 
   publish-test-results:
-    name: "Publish GCC Twister Results"
-    needs: [ runTwister ]
+    name: 'Publish GCC Twister Results'
+    needs: [runTwister]
     runs-on: fmos-ubuntu-latest
     continue-on-error: true
     if: always()
@@ -78,17 +82,17 @@ jobs:
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         with:
-          files: "artifacts/**/twister.xml"
-          check_name: "GCC Twister Results"
+          files: 'artifacts/**/twister.xml'
+          check_name: 'GCC Twister Results'
           comment_mode: off
           compare_to_earlier_commit: false
 
-# "Intel-CI-Passed" is our exit job that matches branch-protection status-check
-# settings for PR workflow. Make sure all required tests are prereqs to this job.
-# For this build workflow, no actions are taken by Intel-CI-Passed, just status
-# echo.
+  # "Intel-CI-Passed" is our exit job that matches branch-protection status-check
+  # settings for PR workflow. Make sure all required tests are prereqs to this job.
+  # For this build workflow, no actions are taken by Intel-CI-Passed, just status
+  # echo.
   Intel-CI-Passed:
-    needs: [ runTwister ]
+    needs: [runTwister]
     runs-on: fmos-ubuntu-latest
     steps:
       - name: Post run steps

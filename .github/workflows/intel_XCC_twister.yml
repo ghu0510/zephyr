@@ -9,6 +9,10 @@ on:
       - v3.0-branch-intel
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   xcc-twister-build:
     defaults:
