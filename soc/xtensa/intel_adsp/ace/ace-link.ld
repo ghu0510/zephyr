@@ -235,7 +235,6 @@ SECTIONS {
 
   .text : ALIGN(4096)
   {
-    _text_start = .;
     __text_region_start = .;
     _image_ram_start = .;
     z_mapped_start = .;
@@ -249,7 +248,7 @@ SECTIONS {
     *(.fini.literal)
     KEEP(*(.fini))
     *(.gnu.version)
-    _text_end = .;
+    __text_region_end = .;
   } >ram
 
   .rodata : ALIGN(4096)
