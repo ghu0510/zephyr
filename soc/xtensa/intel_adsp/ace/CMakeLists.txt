@@ -19,3 +19,12 @@ zephyr_library_sources_ifdef(CONFIG_SOC_INTEL_COMM_WIDGET comm_widget_messages.c
 if (CONFIG_XTENSA_MMU)
   zephyr_library_sources_ifdef(CONFIG_SOC_INTEL_ACE30_PTL mmu_ptl.c)
 endif()
+
+if (NOT CONFIG_SOF AND NOT CONFIG_INTEL_ADSP_SIM)
+  # SOF does their own firmware ready message so
+  # there is no need to do it on the Zephyr side.
+  #
+  # And simulator does not understand this message
+  # and will be confused. So skip it on simulator.
+  zephyr_library_sources(fw_ready.c)
+endif()
