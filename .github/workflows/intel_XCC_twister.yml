@@ -1,8 +1,5 @@
 name: Run twister with XCC
 on:
-  push:
-    branches:
-      - main-intel
   pull_request:
     branches:
       - main-intel
