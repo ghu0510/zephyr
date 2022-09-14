@@ -235,6 +235,9 @@ SECTIONS {
 
   .text : {
     _text_start = .;
+    __text_region_start = .;
+    _image_ram_start = .;
+    z_mapped_start = .;
     *(.iram1 .iram1.*)
     *(.entry.text)
     *(.init.literal)
@@ -412,6 +415,8 @@ SECTIONS {
   . = L2_SRAM_BASE + L2_SRAM_SIZE;
   . = SEGSTART_UNCACHED;
   _heap_sentry = .;
+  _image_ram_end = .;
+  z_mapped_end = .;
 
   /* dma buffers */
   .lpbuf (NOLOAD): {
