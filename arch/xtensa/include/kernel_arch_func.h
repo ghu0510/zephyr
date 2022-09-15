@@ -14,6 +14,7 @@
 #include <kernel_internal.h>
 #include <string.h>
 #include <zephyr/arch/xtensa/cache.h>
+#include <zephyr/arch/xtensa/xtensa_mmu.h>
 #include <zsr.h>
 
 #ifdef __cplusplus
@@ -55,6 +56,10 @@ static ALWAYS_INLINE void arch_kernel_init(void)
 #ifdef CONFIG_INIT_STACKS
 	memset(Z_KERNEL_STACK_BUFFER(z_interrupt_stacks[0]), 0xAA,
 	       K_KERNEL_STACK_SIZEOF(z_interrupt_stacks[0]));
+#endif
+
+#ifdef CONFIG_MMU
+	z_xtensa_mmu_init();
 #endif
 }
 

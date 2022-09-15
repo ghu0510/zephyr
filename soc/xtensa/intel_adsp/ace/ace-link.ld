@@ -233,7 +233,8 @@ SECTIONS {
     _DoubleExceptionVector_text_end = .;
   } >vector_double_text
 
-  .text : {
+  .text : ALIGN(4096)
+  {
     _text_start = .;
     __text_region_start = .;
     _image_ram_start = .;
