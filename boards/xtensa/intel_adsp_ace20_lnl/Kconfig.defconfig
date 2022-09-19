@@ -1,0 +1,17 @@
+# Copyright (c) 2022 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_INTEL_ADSP_ACE20_LNL
+
+config BOARD
+	default "intel_adsp_ace20_lnl"
+
+endif # BOARD_INTEL_ADSP_ACE20_LNL
+
+if BOARD_INTEL_ADSP_ACE20_LNL_SIM
+
+config BOARD
+	default "intel_adsp_ace20_lnl_sim"
+
+endif # BOARD_INTEL_ADSP_ACE20_LNL_SIM

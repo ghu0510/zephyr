@@ -1,0 +1,13 @@
+identifier: intel_adsp_ace20_lnl
+name: ACE 2.0 LNL Audio DSP
+type: mcu
+arch: xtensa
+toolchain:
+  - zephyr
+  - xcc
+supported:
+  - dma
+testing:
+  only_tags:
+     - kernel
+     - sof
