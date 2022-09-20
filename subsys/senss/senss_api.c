@@ -33,6 +33,15 @@ int senss_close_sensor(int handle)
 
 	LOG_INF("%s, handle:%d", __func__, handle);
 
+	/* if sensor later config is needed, wait until sensor is configured */
+	if (!sys_slist_is_empty(&ctx->cfg_list)) {
+		LOG_INF("%s, config list is not empty yet, take sem", __func__);
+		k_sem_reset(&ctx->snr_later_cfg_sem);
+		k_sem_take(&ctx->snr_later_cfg_sem, K_FOREVER);
+	} else {
+		LOG_INF("%s, config list is already empty", __func__);
+	}
+
 	return close_sensor(conn);
 }
 

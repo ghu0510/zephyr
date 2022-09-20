@@ -35,6 +35,7 @@ extern "C" {
 #define SENSOR_INTERVAL_MAX UINT32_MAX
 #define SENSOR_SENSITIVITY_MAX UINT32_MAX
 #define EXEC_TIME_INIT 0
+#define EXEC_TIME_OFF UINT64_MAX
 
 #define SENSS_SENSOR_TYPE_COLOR_ALS 0x141
 
@@ -168,6 +169,7 @@ struct senss_mgmt_context {
 	uint16_t count;
 	struct senss_sensor *sensor_db[MAX_SENSOR_COUNT];
 	struct connection *conns[MAX_HANDLE_COUNT];
+	struct k_sem snr_later_cfg_sem;
 	struct k_sem mgmt_sem;
 	struct k_sem event_sem;
 	atomic_t event_flag;
@@ -228,6 +230,11 @@ static inline bool is_virtual_sensor(struct senss_sensor *sensor)
 	return sensor->dt_info->reporter_num > 0;
 }
 
+static inline struct senss_sensor *get_sensor_by_dev(const struct device *dev)
+{
+	return dev ? (struct senss_sensor *)((struct senss_sensor_ctx *)dev->data)->priv_ptr : NULL;
+}
+
 static inline struct connection *get_connection_by_handle(struct senss_mgmt_context *ctx,
 							  int handle)
 {
@@ -236,23 +243,6 @@ static inline struct connection *get_connection_by_handle(struct senss_mgmt_cont
 	}
 
 	return ctx->conns[handle];
-}
-
-/* this function is used to decide whether filtering sensitivity checking
- * for example: filter sensitivity checking if sensitivity value is 0.
- */
-static inline bool is_filtering_sensitivity(struct sensor_config *cfg)
-{
-	bool filtering = false;
-
-	for (int i = 0; i < MAX_SENSITIVITY_COUNT; i++) {
-		if (cfg->sensitivity[i] != 0) {
-			filtering = true;
-			break;
-		}
-	}
-
-	return filtering;
 }
 
 static inline int find_first_free_connection(struct senss_mgmt_context *ctx)
@@ -281,6 +271,24 @@ static inline bool cfg_list_has_sensor(struct senss_mgmt_context *ctx,
 
 	return false;
 }
+
+/* this function is used to decide whether filtering sensitivity checking
+ * for example: filter sensitivity checking if sensitivity value is 0.
+ */
+static inline bool is_filtering_sensitivity(struct sensor_config *cfg)
+{
+	bool filtering = false;
+
+	for (int i = 0; i < MAX_SENSITIVITY_COUNT; i++) {
+		if (cfg->sensitivity[i] != 0) {
+			filtering = true;
+			break;
+		}
+	}
+
+	return filtering;
+}
+
 
 static inline bool is_sensor_state_ready(struct senss_sensor *sensor)
 {
