@@ -27,6 +27,39 @@ static struct senss_mgmt_context senss_ctx = {0};
 K_THREAD_STACK_DEFINE(runtime_stack, RUNTIME_STACK_SIZE);
 K_THREAD_STACK_DEFINE(mgmt_stack, MGMT_STACK_SIZE);
 
+static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
+{
+	struct sensor_data_headar header;
+	struct connection *conn;
+	uint8_t buf[MAX_SENSOR_DATA_SIZE];
+	int ret = 0;
+
+	while (ring_buf_size_get(&ctx->sensor_ring_buf) > 0) {
+		/* get sensor_data_header first in order to get sensor data size */
+		ring_buf_get(&ctx->sensor_ring_buf, (uint8_t *)&header, sizeof(header));
+
+		if (header.data_size > MAX_SENSOR_DATA_SIZE ||
+				header.conn_index >= MAX_HANDLE_COUNT) {
+			LOG_ERR("invalid data size:%d or conn_index:%d",
+					header.data_size, header.conn_index);
+			return -EINVAL;
+		}
+		ring_buf_get(&ctx->sensor_ring_buf, buf, header.data_size);
+		conn = ctx->conns[header.conn_index];
+		if (!conn) {
+			LOG_ERR("invalid connection");
+			return -EINVAL;
+		}
+		LOG_INF("%s(%d), data_size:%d, conn_index:%d",
+				__func__, __LINE__, header.data_size, header.conn_index);
+
+		ret = conn->data_evt_cb((int)header.conn_index,
+							buf, header.data_size, conn->cb_param);
+	}
+
+	return ret;
+}
+
 static void senss_mgmt_thread(void *p1, void *p2, void *p3)
 {
 	struct senss_mgmt_context *ctx = p1;
@@ -35,6 +68,8 @@ static void senss_mgmt_thread(void *p1, void *p2, void *p3)
 
 	do {
 		k_sem_take(&ctx->mgmt_sem, K_FOREVER);
+
+		fetch_data_and_dispatch(ctx);
 	} while (1);
 }
 
@@ -415,6 +450,8 @@ int senss_init(void)
 
 	sensor_event_init(ctx);
 
+	ring_buf_init(&ctx->sensor_ring_buf, sizeof(ctx->buf), ctx->buf);
+
 	ctx->senss_initialized = true;
 
 	/* sensor subsystem runtime thread: sensor scheduling and sensor data processing */
@@ -678,3 +715,7 @@ int get_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state *state
 	return 0;
 }
 
+void sensor_later_config(struct senss_mgmt_context *ctx)
+{
+
+}

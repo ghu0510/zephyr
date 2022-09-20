@@ -29,9 +29,12 @@ extern "C" {
 #define RUNTIME_THREAD_PRIORITY CONFIG_SENSS_RUNTIME_THREAD_PRIORITY
 #define MGMT_THREAD_PRIORITY CONFIG_SENSS_MGMT_THREAD_PRIORITY
 
+/* indicates that this sensor is not polling yet */
+#define EXEC_TIME_OFF UINT64_MAX
+/* indicates sensor is opened now */
 #define SENSOR_INTERVAL_MAX UINT32_MAX
 #define SENSOR_SENSITIVITY_MAX UINT32_MAX
-#define EXEC_TIME_INIT (0)
+#define EXEC_TIME_INIT 0
 
 #define SENSS_SENSOR_TYPE_COLOR_ALS 0x141
 
@@ -173,8 +176,14 @@ struct senss_mgmt_context {
 	struct k_thread runtime_thread;
 	struct k_thread mgmt_thread;
 	sys_slist_t cfg_list;
+	struct ring_buf sensor_ring_buf;
 	uint8_t buf[MAX_SENSOR_DATA_BUF_SIZE];
 };
+
+struct sensor_data_headar {
+	uint16_t data_size;
+	uint16_t conn_index;
+} __packed;
 
 struct senss_mgmt_context *get_senss_ctx(void);
 void senss_runtime_thread(void *p1, void *p2, void *p3);
@@ -190,6 +199,12 @@ int register_data_event_callback(struct connection *conn,
 				 senss_data_event_t callback,
 				 void *param);
 int read_sample(struct senss_sensor *sensor, void *buf, int size);
+void sensor_later_config(struct senss_mgmt_context *ctx);
+
+static inline uint64_t get_us(void)
+{
+	return k_cycle_get_64() * USEC_PER_SEC / CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC;
+}
 
 static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context *ctx,
 						       struct senss_sensor *sensor,
@@ -208,6 +223,11 @@ static inline bool is_phy_sensor(struct senss_sensor *sensor)
 	return sensor->dt_info->reporter_num == 0;
 }
 
+static inline bool is_virtual_sensor(struct senss_sensor *sensor)
+{
+	return sensor->dt_info->reporter_num > 0;
+}
+
 static inline struct connection *get_connection_by_handle(struct senss_mgmt_context *ctx,
 							  int handle)
 {
@@ -216,6 +236,23 @@ static inline struct connection *get_connection_by_handle(struct senss_mgmt_cont
 	}
 
 	return ctx->conns[handle];
+}
+
+/* this function is used to decide whether filtering sensitivity checking
+ * for example: filter sensitivity checking if sensitivity value is 0.
+ */
+static inline bool is_filtering_sensitivity(struct sensor_config *cfg)
+{
+	bool filtering = false;
+
+	for (int i = 0; i < MAX_SENSITIVITY_COUNT; i++) {
+		if (cfg->sensitivity[i] != 0) {
+			filtering = true;
+			break;
+		}
+	}
+
+	return filtering;
 }
 
 static inline int find_first_free_connection(struct senss_mgmt_context *ctx)
@@ -243,6 +280,41 @@ static inline bool cfg_list_has_sensor(struct senss_mgmt_context *ctx,
 	}
 
 	return false;
+}
+
+static inline bool is_sensor_state_ready(struct senss_sensor *sensor)
+{
+	return (sensor->state == SENSS_SENOSR_STATE_READY);
+}
+
+/* when reporter post data to client, new_data_arrive flag will be set,
+ * indicates sensor has new data arrive
+ */
+static inline bool sensor_has_new_data(const struct senss_sensor *sensor)
+{
+	for (int i = 0; i < sensor->conns_num; i++) {
+		if (sensor->conns[i].new_data_arrive)
+			return true;
+	}
+
+	return false;
+}
+
+/* if client has requested data from reporter, interval should be set first */
+static inline bool is_client_request_data(struct connection *conn)
+{
+	return conn->interval != 0;
+}
+
+static inline bool is_sensor_opened(struct senss_sensor *sensor)
+{
+	return sensor->cfg.interval != 0;
+}
+
+/* sensor not in polling mode, meanwhile data ready arrived from phyisal driver */
+static inline bool is_sensor_data_ready(struct senss_sensor *sensor)
+{
+	return sensor->mode == SENSOR_TRIGGER_MODE_DATA_READY;
 }
 
 static inline int get_max_valid_index(int32_t type)

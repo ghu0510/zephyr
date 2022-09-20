@@ -5,6 +5,7 @@ config SENSS
 	bool "Sensor Subsystem"
 	default y
 	depends on DT_HAS_ZEPHYR_SENSS_ENABLED
+	select RING_BUFFER
 	help
 	  Enable Sensor Subsystem.
 
@@ -57,6 +58,16 @@ config MAX_SENSOR_DATA_BUF_SIZE
 	  This is the maximum sensor data buf to store sensor data that
 	  will be posted to application
 	  Typical values are 16 * 1024
+
+config SENSS_MAX_SENSOR_DATA_SIZE
+	int "maximum sensor data size"
+	depends on SENSS
+	default 64
+	help
+	  This is the maximum sensor data size senss could support
+	  when sensor is posting data to client, sensor management would
+	  get no more than SENSS_MAX_SENSOR_DATA_SIZE sensor count from ring buffer
+	  Typical values are 64
 
 config SENSS_RUNTIME_THREAD_STACK_SIZE
 	int "stack size for sensor runtime thread"
