@@ -10,5 +10,6 @@ zephyr_library_compile_definitions_ifdef(
 if (CONFIG_SENSS)
   zephyr_library_sources(
   sensor_mgmt.c
+  runtime.c
   )
 endif()

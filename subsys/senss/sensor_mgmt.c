@@ -6,6 +6,7 @@
 #include <zephyr/sys/__assert.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/device.h>
+#include <zephyr/kernel.h>
 #include <zephyr/senss/senss.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
@@ -23,9 +24,16 @@ static struct senss_sensor_dt_info sensors_dt[] = {
 };
 static struct senss_mgmt_context senss_ctx = {0};
 
-struct senss_mgmt_context *get_senss_ctx(void)
+K_THREAD_STACK_DEFINE(runtime_stack, RUNTIME_STACK_SIZE);
+K_THREAD_STACK_DEFINE(mgmt_stack, MGMT_STACK_SIZE);
+
+static void senss_mgmt_thread(void *p1, void *p2, void *p3)
 {
-	return &senss_ctx;
+	struct senss_mgmt_context *ctx = p1;
+
+	do {
+		k_sem_take(&ctx->mgmt_sem, K_FOREVER);
+	} while (1);
 }
 
 /* allocate memory for struct senss_sensor
@@ -247,6 +255,19 @@ static int set_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state
 	return 0;
 }
 
+static void sensor_event_init(struct senss_mgmt_context *ctx)
+{
+	/* initial semaphore */
+	k_sem_init(&ctx->mgmt_sem, 0, K_SEM_MAX_LIMIT);
+	k_sem_init(&ctx->event_sem, 0, K_SEM_MAX_LIMIT);
+
+	/* initial events */
+	k_mutex_init(&ctx->rpt_mutex);
+	k_mutex_init(&ctx->cfg_mutex);
+
+	sys_slist_init(&ctx->cfg_list);
+}
+
 int senss_init(void)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
@@ -292,5 +313,24 @@ int senss_init(void)
 		}
 	}
 
+	sensor_event_init(ctx);
+
+	ctx->senss_initialized = true;
+
+	/* sensor subsystem runtime thread: sensor scheduling and sensor data processing */
+	k_thread_create(&ctx->runtime_thread, runtime_stack, RUNTIME_STACK_SIZE,
+			(k_thread_entry_t) senss_runtime_thread, ctx, NULL, NULL,
+			K_PRIO_COOP(RUNTIME_THREAD_PRIORITY), 0, K_NO_WAIT);
+
+	/* sensor management thread: get sensor data from senss and dispatch data */
+	k_thread_create(&ctx->mgmt_thread, mgmt_stack, MGMT_STACK_SIZE,
+			(k_thread_entry_t) senss_mgmt_thread, ctx, NULL, NULL,
+			K_PRIO_COOP(MGMT_THREAD_PRIORITY), 0, K_NO_WAIT);
+
 	return ret;
+}
+
+struct senss_mgmt_context *get_senss_ctx(void)
+{
+	return &senss_ctx;
 }

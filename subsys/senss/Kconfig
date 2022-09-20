@@ -49,4 +49,45 @@ config SENSS_MAX_HANDLE_COUNT
 	  be created for each hanle
 	  Typical values are 256
 
+config MAX_SENSOR_DATA_BUF_SIZE
+	int "maximum sensor data buf size"
+	depends on SENSS
+	default 16384
+	help
+	  This is the maximum sensor data buf to store sensor data that
+	  will be posted to application
+	  Typical values are 16 * 1024
+
+config SENSS_RUNTIME_THREAD_STACK_SIZE
+	int "stack size for sensor runtime thread"
+	depends on SENSS
+	default 4096
+	help
+	  This is the stack size for sensor runtime thread
+	  Typical values are 4096
+
+config SENSS_MGMT_THREAD_STACK_SIZE
+	int "stack size for sensor management thread"
+	depends on SENSS
+	default 1024
+	help
+	  This is the stack size for sensor management thread
+	  Typical values are 1024
+
+config SENSS_RUNTIME_THREAD_PRIORITY
+	int "priority for sensor subsysterm runtime thread"
+	depends on SENSS
+	default 7
+	help
+	  This is the thread priority for sensor subsysterm runtim thread
+	  Typical values are 7
+
+config SENSS_MGMT_THREAD_PRIORITY
+	int "priority for sensor management thread"
+	depends on SENSS
+	default 8
+	help
+	  This is the thread priority for sensor management thread
+	  Typical values are 8
+
 endif # SENSS

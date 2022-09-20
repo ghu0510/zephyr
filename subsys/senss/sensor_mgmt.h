@@ -8,6 +8,7 @@
 #define SENSOR_MGMT_H_
 
 #include <senss/senss_datatypes.h>
+#include <senss_sensor.h>
 #include <sys/slist.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <string.h>
@@ -20,6 +21,14 @@ extern "C" {
 #define MAX_REPORTER_COUNT CONFIG_SENSS_MAX_REPORTER_COUNT
 #define MAX_SENSITIVITY_COUNT CONFIG_SENSS_MAX_SENSITIVITY_COUNT
 #define MAX_HANDLE_COUNT CONFIG_SENSS_MAX_HANDLE_COUNT
+#define MAX_SENSOR_DATA_BUF_SIZE CONFIG_MAX_SENSOR_DATA_BUF_SIZE
+#define MAX_SENSOR_DATA_SIZE CONFIG_SENSS_MAX_SENSOR_DATA_SIZE
+
+#define RUNTIME_STACK_SIZE CONFIG_SENSS_RUNTIME_THREAD_STACK_SIZE
+#define MGMT_STACK_SIZE CONFIG_SENSS_MGMT_THREAD_STACK_SIZE
+#define RUNTIME_THREAD_PRIORITY CONFIG_SENSS_RUNTIME_THREAD_PRIORITY
+#define MGMT_THREAD_PRIORITY CONFIG_SENSS_MGMT_THREAD_PRIORITY
+
 
 #define SENSOR_INTERVAL_MAX UINT32_MAX
 #define SENSOR_SENSITIVITY_MAX UINT32_MAX
@@ -46,6 +55,9 @@ extern "C" {
 #define for_each_sensor_connection(i, sensor, conn)			\
 	for (i = 0; i < sensor->conns_num &&				\
 		(conn = &sensor->conns[i]) != NULL; i++)		\
+
+#define for_each_sensor_client(sensor, client)				\
+	SYS_SLIST_FOR_EACH_CONTAINER(&sensor->client_list, client, snode)
 
 enum sensor_trigger_mode {
 	SENSOR_TRIGGER_MODE_POLLING = 1,
@@ -137,9 +149,18 @@ struct senss_mgmt_context {
 	uint16_t count;
 	struct senss_sensor *sensor_db[MAX_SENSOR_COUNT];
 	struct connection *conns[MAX_HANDLE_COUNT];
+	struct k_sem mgmt_sem;
+	struct k_sem event_sem;
+	struct k_mutex rpt_mutex;
+	struct k_mutex cfg_mutex;
+	struct k_thread runtime_thread;
+	struct k_thread mgmt_thread;
+	sys_slist_t cfg_list;
+	uint8_t buf[MAX_SENSOR_DATA_BUF_SIZE];
 };
 
 struct senss_mgmt_context *get_senss_ctx(void);
+void senss_runtime_thread(void *p1, void *p2, void *p3);
 
 static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context *ctx,
 						       struct senss_sensor *sensor,
