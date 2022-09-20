@@ -29,9 +29,10 @@ extern "C" {
 #define RUNTIME_THREAD_PRIORITY CONFIG_SENSS_RUNTIME_THREAD_PRIORITY
 #define MGMT_THREAD_PRIORITY CONFIG_SENSS_MGMT_THREAD_PRIORITY
 
-
 #define SENSOR_INTERVAL_MAX UINT32_MAX
 #define SENSOR_SENSITIVITY_MAX UINT32_MAX
+#define EXEC_TIME_INIT (0)
+
 #define SENSS_SENSOR_TYPE_COLOR_ALS 0x141
 
 #define SENSS_SENSOR_INFO(node)						\
@@ -59,11 +60,18 @@ extern "C" {
 #define for_each_sensor_client(sensor, client)				\
 	SYS_SLIST_FOR_EACH_CONTAINER(&sensor->client_list, client, snode)
 
+#define for_each_sensor_config(ctx, sensor, tmp)			\
+	SYS_SLIST_FOR_EACH_CONTAINER_SAFE(&ctx->cfg_list, sensor, tmp, cfg_node)
+
 enum sensor_trigger_mode {
 	SENSOR_TRIGGER_MODE_POLLING = 1,
 	SENSOR_TRIGGER_MODE_DATA_READY = 2,
 };
 
+enum {
+	EVENT_DATA_READY,
+	EVENT_CONFIG_READY,
+};
 /**
  * @struct senss_sensor_dt_info
  * @brief Sensor device tree data structure
@@ -103,11 +111,18 @@ struct connection {
 	int sensitivity[MAX_SENSITIVITY_COUNT];
 	/* copy sample to connection from reporter */
 	struct sensor_sample sample;
+	/* client(sink) next consume time */
+	uint64_t next_consume_time;
+	/* when new data arrive, set flag to true, after data processing, clear the flag */
+	bool new_data_arrive;
 	sys_snode_t snode;
 	/* dynamic false: connection created during initial according to device tree
 	 * dynamic true: connection created/closed from applcation: HID, CHRE, etc
 	 */
 	bool dynamic;
+	/* post data to application */
+	senss_data_event_t data_evt_cb;
+	void *cb_param;
 };
 
 /**
@@ -132,6 +147,7 @@ struct senss_sensor {
 	int clients_count;
 	sys_slist_t client_list;
 	struct sensor_config cfg;
+	sys_snode_t cfg_node;
 	enum senss_sensor_state state;
 	enum sensor_trigger_mode mode;
 	/* runtime info */
@@ -151,6 +167,7 @@ struct senss_mgmt_context {
 	struct connection *conns[MAX_HANDLE_COUNT];
 	struct k_sem mgmt_sem;
 	struct k_sem event_sem;
+	atomic_t event_flag;
 	struct k_mutex rpt_mutex;
 	struct k_mutex cfg_mutex;
 	struct k_thread runtime_thread;
@@ -161,6 +178,18 @@ struct senss_mgmt_context {
 
 struct senss_mgmt_context *get_senss_ctx(void);
 void senss_runtime_thread(void *p1, void *p2, void *p3);
+int open_sensor(int type, int instance);
+int close_sensor(struct connection *conn);
+int set_interval(struct connection *conn, uint32_t value);
+int get_interval(struct connection *con, uint32_t *value);
+int set_sensitivity(struct connection *conn, int index, uint32_t value);
+int get_sensitivity(struct connection *con, int index, uint32_t *value);
+int get_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state *state);
+const struct senss_sensor_info *get_sensor_info(struct senss_sensor *sensor);
+int register_data_event_callback(struct connection *conn,
+				 senss_data_event_t callback,
+				 void *param);
+int read_sample(struct senss_sensor *sensor, void *buf, int size);
 
 static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context *ctx,
 						       struct senss_sensor *sensor,
@@ -173,19 +202,54 @@ static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context
 
 	return ctx->sensor_db[sensor->dt_info->reporters[index]];
 }
+
 static inline bool is_phy_sensor(struct senss_sensor *sensor)
 {
 	return sensor->dt_info->reporter_num == 0;
 }
+
+static inline struct connection *get_connection_by_handle(struct senss_mgmt_context *ctx,
+							  int handle)
+{
+	if (handle >= MAX_HANDLE_COUNT) {
+		return NULL;
+	}
+
+	return ctx->conns[handle];
+}
+
+static inline int find_first_free_connection(struct senss_mgmt_context *ctx)
+{
+	int i;
+
+	for (i = ctx->fixed_connection_count; i < MAX_SENSOR_COUNT; i++) {
+		if (!ctx->conns[i]) {
+			break;
+		}
+	}
+
+	return i;
+}
+
+static inline bool cfg_list_has_sensor(struct senss_mgmt_context *ctx,
+				       struct senss_sensor *sensor)
+{
+	struct senss_sensor *tmp_sensor, *tmp;
+
+	for_each_sensor_config(ctx, tmp_sensor, tmp) {
+		if (!memcmp(tmp_sensor, sensor, sizeof(struct senss_sensor))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static inline int get_max_valid_index(int32_t type)
 {
 	int max_valid_index = 1;
 
 	switch (type) {
-	case SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D:
-	case SENSS_SENSOR_TYPE_MOTION_GYROMETER_3D:
-		max_valid_index = 3;
-		break;
 	case SENSS_SENSOR_TYPE_COLOR_ALS:
 		max_valid_index = 5;
 		break;

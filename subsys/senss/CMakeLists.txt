@@ -11,5 +11,6 @@ if (CONFIG_SENSS)
   zephyr_library_sources(
   sensor_mgmt.c
   runtime.c
+  senss_api.c
   )
 endif()
