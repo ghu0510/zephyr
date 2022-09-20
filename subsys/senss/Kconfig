@@ -1,0 +1,25 @@
+# Copyright (c) 2022 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+config SENSS
+	bool "Sensor Subsystem"
+	default y
+	depends on DT_HAS_ZEPHYR_SENSS_ENABLED
+	help
+	  Enable Sensor Subsystem.
+
+if SENSS
+
+module = SENSS
+module-str = senss
+source "subsys/logging/Kconfig.template.log_config"
+
+config SENSS_MAX_REPORTER_COUNT
+	int "maximum reporters count for an client sensor"
+	depends on SENSS
+	default 10
+	help
+	  This is the maximum sensor reporeters count supported for a sensor
+	  Typical values are 10
+
+endif # SENSS
