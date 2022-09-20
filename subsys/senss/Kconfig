@@ -14,6 +14,14 @@ module = SENSS
 module-str = senss
 source "subsys/logging/Kconfig.template.log_config"
 
+config SENSS_MAX_SENSOR_COUNT
+	int "maximum sensor count for senss"
+	depends on SENSS
+	default 128
+	help
+	  This is the maximum sensor count supported for senss
+	  Typical values are 128
+
 config SENSS_MAX_REPORTER_COUNT
 	int "maximum reporters count for an client sensor"
 	depends on SENSS
@@ -21,5 +29,24 @@ config SENSS_MAX_REPORTER_COUNT
 	help
 	  This is the maximum sensor reporeters count supported for a sensor
 	  Typical values are 10
+
+config SENSS_MAX_SENSITIVITY_COUNT
+	int "maximum sensitivity count one sensor could support"
+	depends on SENSS
+	default 6
+	help
+	  This is the maximum sensitivity count one sensor could support
+	  Typical values are 6
+
+config SENSS_MAX_HANDLE_COUNT
+	int "maximum handle count"
+	depends on SENSS
+	default 256
+	help
+	  This is the maximum handle count senss could support
+	  when sensor is opened by applcaiton, senss_open_sensor()
+	  is called, handle count will accumulate. Sensor connection will
+	  be created for each hanle
+	  Typical values are 256
 
 endif # SENSS
