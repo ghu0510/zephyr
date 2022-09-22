@@ -1,17 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 
-find_program(
-  MTLSIM
-  mtlsim
-  )
-set(MTLSIM ${BOARD_DIR}/support/mtlsim.py)
-
 # The MTL_SIM_DIR environment variable specifies the directory
 # where the simulator was put, it is $HOME/mtlsim by default
 # if MTL_SIM_DIR is not assign.
 if(DEFINED ENV{MTL_SIM_DIR})
   set(SIM_DIR $ENV{MTL_SIM_DIR})
+endif()
 
+find_program(
+  MTLSIM
+  PATHS ${SIM_DIR}
+  NO_DEFAULT_PATH
+  NAMES mtlsim.py
+  )
+
+if(DEFINED SIM_DIR)
 set(ROM_FILE ${SIM_DIR}/bin/dsp_rom_mtl_sim.hex)
 if(NOT EXISTS "${ROM_FILE}")
 	message(FATAL_ERROR "Cannot find ROM: ${ROM_FILE} . Abort.")
