@@ -11,14 +11,6 @@ set(MTLSIM ${BOARD_DIR}/support/mtlsim.py)
 # if MTL_SIM_DIR is not assign.
 if(DEFINED ENV{MTL_SIM_DIR})
   set(SIM_DIR $ENV{MTL_SIM_DIR})
-else()
-  set(SIM_DIR "$ENV{HOME}/mtlsim")
-endif()
-
-if(NOT EXISTS "${SIM_DIR}")
-  message(FATAL_ERROR "Cannot find the directory ${SIM_DIR}.
-Please make sure the MTL simulator was installed correctly.\n")
-endif()
 
 set(ROM_FILE ${SIM_DIR}/bin/dsp_rom_mtl_sim.hex)
 if(NOT EXISTS "${ROM_FILE}")
@@ -28,6 +20,7 @@ endif()
 set(SIM_WRAP ${SIM_DIR}/dsp_fw_sim.wrapper)
 if(NOT EXISTS "${SIM_WRAP}")
   message(FATAL_ERROR "Cannot find simulator wrapper: ${SIM_WRAP} . Abort.")
+endif()
 endif()
 
 set(MTLSIM_FLAGS
