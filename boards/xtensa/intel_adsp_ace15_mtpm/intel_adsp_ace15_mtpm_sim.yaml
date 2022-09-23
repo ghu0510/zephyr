@@ -1,6 +1,6 @@
 identifier: intel_adsp_ace15_mtpm_sim
 name: ACE 1.5 Meteor Lake M Audio DSP
-type: mcu
+type: sim
 simulation: xt-sim
 arch: xtensa
 toolchain:
