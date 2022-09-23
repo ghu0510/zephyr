@@ -19,7 +19,6 @@ __imr void hp_sram_init(uint32_t memory_size)
 {
 	ARG_UNUSED(memory_size);
 
-#if !defined(CONFIG_INTEL_ADSP_SIM)
 	uint32_t hpsram_ebb_quantity = ace_hpsram_get_bank_count();
 	volatile uint32_t *l2hsbpmptr = (volatile uint32_t *)ACE_L2MM->l2hsbpmptr;
 	volatile uint8_t *status = (volatile uint8_t *)l2hsbpmptr + 4;
@@ -34,12 +33,10 @@ __imr void hp_sram_init(uint32_t memory_size)
 	}
 
 	bbzero((void *)L2_SRAM_BASE, L2_SRAM_SIZE);
-#endif
 }
 
 __imr void lp_sram_init(void)
 {
-#if !defined(CONFIG_INTEL_ADSP_SIM)
 	uint32_t lpsram_ebb_quantity = ace_lpsram_get_bank_count();
 	volatile uint32_t *l2usbpmptr = (volatile uint32_t *)ACE_L2MM->l2usbpmptr;
 	volatile uint8_t *status = (volatile uint8_t *)l2usbpmptr + 4;
@@ -54,5 +51,4 @@ __imr void lp_sram_init(void)
 	}
 
 	bbzero((void *)LP_SRAM_BASE, LP_SRAM_SIZE);
-#endif
 }
