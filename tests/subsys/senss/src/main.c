@@ -16,6 +16,13 @@ LOG_MODULE_REGISTER(test_senss, LOG_LEVEL_INF);
 #define INTERVAL_20HZ (50 * USEC_PER_MSEC)
 #define INVALID_INTERVAL_US 1 /* 1 us is smaller than the minimal interval */
 
+struct senss_tests_fixture {
+	atomic_t acc_0_samples;
+	atomic_t acc_1_samples;
+	atomic_t user_0_samples;
+	atomic_t user_1_samples;
+};
+
 /**
  * @brief Senss Tests setup
  *
@@ -23,9 +30,11 @@ LOG_MODULE_REGISTER(test_senss, LOG_LEVEL_INF);
  */
 static void *setup(void)
 {
+	static struct senss_tests_fixture fixture;
+
 	zassert_equal(senss_init(), 0, "senss_init failed");
 
-	return NULL;
+	return &fixture;
 }
 
 /**
@@ -192,4 +201,316 @@ ZTEST(senss_tests, test_senss_set_interval)
 
 	ret = senss_close_sensor(handle);
 	zassert_equal(ret, 0, "Close ACC 0 failed");
+}
+
+static int acc_0_callback(int handle, void *buf, int size, void *param)
+{
+	const struct senss_sensor_info *info = senss_get_sensor_info(handle);
+	struct senss_tests_fixture *fixture = param;
+
+	ARG_UNUSED(buf);
+	ARG_UNUSED(size);
+
+	zassert_equal(info->type, SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D,
+			"Sensor type mismatch");
+	zassert_equal(info->sensor_index, 0, "Sensor index mismatch");
+
+	atomic_inc(&fixture->acc_0_samples);
+
+	return 0;
+}
+
+/**
+ * @brief Test ACC 0
+ *
+ * This test verifies the ACC 0
+ */
+ZTEST_F(senss_tests, test_acc_0)
+{
+	int handle;
+	int interval;
+	int elapse;
+	int expect;
+	int ret;
+
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&handle);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	ret = senss_register_data_event_callback(handle, acc_0_callback,
+			fixture);
+	zassert_equal(ret, 0, "ACC 0 register callback failed");
+
+	/* Test 10 Hz */
+	interval = INTERVAL_10HZ;
+	atomic_set(&fixture->acc_0_samples, 0);
+	ret = senss_set_interval(handle, interval);
+	zassert_equal(ret, 0, "ACC 0 set interval failed");
+
+	elapse = 10 * USEC_PER_SEC;
+	expect = elapse / interval;
+	k_sleep(K_SECONDS(10));
+
+	LOG_INF("ACC 0 Samples: %d expect: %d",
+			atomic_get(&fixture->acc_0_samples), expect);
+	zassert_within(atomic_get(&fixture->acc_0_samples), expect,
+			1, "ACC 0 samples num out of range");
+
+	/* Test 20 Hz */
+	interval = INTERVAL_20HZ;
+	atomic_set(&fixture->acc_0_samples, 0);
+	ret = senss_set_interval(handle, interval);
+	zassert_equal(ret, 0, "ACC 0 set interval failed");
+
+	elapse = 10 * USEC_PER_SEC;
+	expect = elapse / interval;
+	k_sleep(K_SECONDS(10));
+
+	LOG_INF("ACC 0 Samples: %d expect: %d",
+			atomic_get(&fixture->acc_0_samples), expect);
+	zassert_within(atomic_get(&fixture->acc_0_samples), expect,
+			1, "ACC 0 samples num out of range");
+
+	ret = senss_set_interval(handle, 0);
+	zassert_equal(ret, 0, "ACC 0 stop steaming failed");
+
+	ret = senss_close_sensor(handle);
+	zassert_equal(ret, 0, "Close ACC 0 failed");
+}
+
+static int acc_1_callback(int handle, void *buf, int size, void *param)
+{
+	const struct senss_sensor_info *info = senss_get_sensor_info(handle);
+	struct senss_tests_fixture *fixture = param;
+
+	ARG_UNUSED(buf);
+	ARG_UNUSED(size);
+
+	zassert_equal(info->type, SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D,
+			"Sensor type mismatch");
+	zassert_equal(info->sensor_index, 1, "Sensor index mismatch");
+
+	atomic_inc(&fixture->acc_1_samples);
+
+	return 0;
+}
+
+/**
+ * @brief Test ACC 0 and 1 parallel
+ *
+ * This test verifies the ACC 0 and 1 run parallel
+ */
+ZTEST_F(senss_tests, test_acc_0_and_acc_1)
+{
+	int acc_0, acc_1;
+	int interval_0, interval_1;
+	int elapse_0, elapse_1;
+	int expect_0, expect_1;
+	int ret;
+
+	/* Open ACC 0 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&acc_0);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	ret = senss_register_data_event_callback(acc_0, acc_0_callback,
+			fixture);
+	zassert_equal(ret, 0, "ACC 0 register callback failed");
+
+	/* Open ACC 1 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 1,
+			&acc_1);
+	zassert_equal(ret, 0, "Open ACC 1 failed");
+
+	ret = senss_register_data_event_callback(acc_1, acc_1_callback,
+			fixture);
+	zassert_equal(ret, 0, "ACC 1 register callback failed");
+
+	/* Test 10 Hz */
+	interval_0 = INTERVAL_10HZ;
+	atomic_set(&fixture->acc_0_samples, 0);
+	ret = senss_set_interval(acc_0, interval_0);
+	zassert_equal(ret, 0, "ACC 0 set interval failed");
+
+	elapse_0 = 10 * USEC_PER_SEC;
+	expect_0 = elapse_0 / interval_0;
+	k_sleep(K_SECONDS(10));
+
+	LOG_INF("ACC 0 Samples: %d expect: %d",
+			atomic_get(&fixture->acc_0_samples), expect_0);
+	zassert_within(atomic_get(&fixture->acc_0_samples), expect_0,
+			1, "ACC 0 samples num out of range");
+
+	/* Test 20 Hz */
+	interval_1 = INTERVAL_20HZ;
+	atomic_set(&fixture->acc_1_samples, 0);
+	ret = senss_set_interval(acc_1, interval_1);
+	zassert_equal(ret, 0, "ACC 1 set interval failed");
+
+	elapse_1 = 10 * USEC_PER_SEC;
+	expect_1 = elapse_1 / interval_1;
+	elapse_0 += 10 * USEC_PER_SEC;
+	expect_0 = elapse_0 / interval_0;
+	k_sleep(K_SECONDS(10));
+
+	LOG_INF("ACC 0 Samples: %d expect: %d",
+			atomic_get(&fixture->acc_0_samples), expect_0);
+	zassert_within(atomic_get(&fixture->acc_0_samples), expect_0,
+			1, "ACC 0 samples num out of range");
+
+	LOG_INF("ACC 1 Samples: %d expect: %d",
+			atomic_get(&fixture->acc_1_samples), expect_1);
+	zassert_within(atomic_get(&fixture->acc_1_samples), expect_1,
+			1, "ACC 0 samples num out of range");
+
+	ret = senss_set_interval(acc_0, 0);
+	zassert_equal(ret, 0, "ACC 0 stop steaming failed");
+
+	ret = senss_close_sensor(acc_0);
+	zassert_equal(ret, 0, "Close ACC 0 failed");
+
+	ret = senss_set_interval(acc_1, 0);
+	zassert_equal(ret, 0, "ACC 1 stop steaming failed");
+
+	ret = senss_close_sensor(acc_1);
+	zassert_equal(ret, 0, "Close ACC 1 failed");
+
+	k_sleep(K_SECONDS(2));
+
+	LOG_INF("ACC 0 Samples: %d expect: %d",
+			atomic_get(&fixture->acc_0_samples), expect_0);
+	zassert_within(atomic_get(&fixture->acc_0_samples), expect_0,
+			1, "ACC 0 samples num out of range");
+
+	LOG_INF("ACC 1 Samples: %d expect: %d",
+			atomic_get(&fixture->acc_1_samples), expect_1);
+	zassert_within(atomic_get(&fixture->acc_1_samples), expect_1,
+			1, "ACC 0 samples num out of range");
+}
+
+static int user_0_callback(int handle, void *buf, int size, void *param)
+{
+	const struct senss_sensor_info *info = senss_get_sensor_info(handle);
+	struct senss_tests_fixture *fixture = param;
+
+	ARG_UNUSED(buf);
+	ARG_UNUSED(size);
+
+	zassert_equal(info->type, SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D,
+			"Sensor type mismatch");
+	zassert_equal(info->sensor_index, 0, "Sensor index mismatch");
+
+	atomic_inc(&fixture->user_0_samples);
+
+	return 0;
+}
+
+static int user_1_callback(int handle, void *buf, int size, void *param)
+{
+	const struct senss_sensor_info *info = senss_get_sensor_info(handle);
+	struct senss_tests_fixture *fixture = param;
+
+	ARG_UNUSED(buf);
+	ARG_UNUSED(size);
+
+	zassert_equal(info->type, SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D,
+			"Sensor type mismatch");
+	zassert_equal(info->sensor_index, 0, "Sensor index mismatch");
+
+	atomic_inc(&fixture->user_1_samples);
+
+	return 0;
+}
+
+/**
+ * @brief Test multiple instanses of ACC 0
+ *
+ * This test verifies two users use acc 0 at the same time.
+ */
+ZTEST_F(senss_tests, test_acc_0_with_2_users)
+{
+	int user_0, user_1;
+	int interval_0, interval_1;
+	int elapse_0, elapse_1;
+	int expect_0, expect_1;
+	int ret;
+
+	/* User 0 Open ACC 0 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&user_0);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	ret = senss_register_data_event_callback(user_0, user_0_callback,
+			fixture);
+	zassert_equal(ret, 0, "ACC 0 register callback failed");
+
+	/* User 1 Open ACC 0 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&user_1);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	ret = senss_register_data_event_callback(user_1, user_1_callback,
+			fixture);
+	zassert_equal(ret, 0, "ACC 0 register callback failed");
+
+	/* Test 10 Hz */
+	interval_0 = INTERVAL_10HZ;
+	atomic_set(&fixture->user_0_samples, 0);
+	ret = senss_set_interval(user_0, interval_0);
+	zassert_equal(ret, 0, "User 0 set interval failed");
+
+	elapse_0 = 10 * USEC_PER_SEC;
+	expect_0 = elapse_0 / interval_0;
+	k_sleep(K_SECONDS(10));
+
+	LOG_INF("User 0 Samples: %d expect: %d",
+			atomic_get(&fixture->user_0_samples), expect_0);
+	zassert_within(atomic_get(&fixture->user_0_samples), expect_0,
+			1, "Samples num out of range");
+
+	/* Test 20 Hz */
+	interval_1 = INTERVAL_20HZ;
+	atomic_set(&fixture->user_1_samples, 0);
+	ret = senss_set_interval(user_1, interval_1);
+	zassert_equal(ret, 0, "User 1 set interval failed");
+
+	elapse_1 = 10 * USEC_PER_SEC;
+	expect_1 = elapse_1 / interval_1;
+	elapse_0 += 10 * USEC_PER_SEC;
+	expect_0 = elapse_0 / interval_0;
+	k_sleep(K_SECONDS(10));
+
+	LOG_INF("User 0 Samples: %d expect: %d",
+			atomic_get(&fixture->user_0_samples), expect_0);
+	zassert_within(atomic_get(&fixture->user_0_samples), expect_0,
+			1, "Samples num out of range");
+
+	LOG_INF("User 1 Samples: %d expect: %d",
+			atomic_get(&fixture->user_1_samples), expect_1);
+	zassert_within(atomic_get(&fixture->user_1_samples), expect_1,
+			1, "Samples num out of range");
+
+	ret = senss_set_interval(user_0, 0);
+	zassert_equal(ret, 0, "User 0 stop steaming failed");
+
+	ret = senss_close_sensor(user_0);
+	zassert_equal(ret, 0, "Close user 0 failed");
+
+	ret = senss_set_interval(user_1, 0);
+	zassert_equal(ret, 0, "User 1 stop steaming failed");
+
+	ret = senss_close_sensor(user_1);
+	zassert_equal(ret, 0, "Close user 1 failed");
+
+	k_sleep(K_SECONDS(2));
+
+	LOG_INF("User 0 Samples: %d expect: %d",
+			atomic_get(&fixture->user_0_samples), expect_0);
+	zassert_within(atomic_get(&fixture->user_0_samples), expect_0,
+			1, "Samples num out of range");
+
+	LOG_INF("User 1 Samples: %d expect: %d",
+			atomic_get(&fixture->user_1_samples), expect_1);
+	zassert_within(atomic_get(&fixture->user_1_samples), expect_1,
+			1, "Samples num out of range");
 }
