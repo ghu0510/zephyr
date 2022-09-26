@@ -1,0 +1,4 @@
+tests:
+  subsys.senss:
+    platform_allow: native_posix
+    tags: senss
