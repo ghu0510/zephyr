@@ -1,0 +1,15 @@
+sample:
+  description: A sensor framework sample
+  name: senss sample
+common:
+  tags: senss
+  integration_platforms:
+    - native_posix
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - "no sensor created yet"
+tests:
+  sample.subsys.senss:
+    tags: senss
