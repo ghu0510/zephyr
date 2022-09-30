@@ -37,14 +37,14 @@ the toolchain can be setup as follows.
    mkdir -p ~/xtensa/install/tools
    mkdir -p ~/xtensa/install/builds
    # Set up the configuration-independent Xtensa Tool:
-   tar zxvf XtensaTools_RG_2021_8_linux.tgz -C ~/xtensa/install/tools
+   tar zxvf XtensaTools_RI_2021_8_linux.tgz -C ~/xtensa/install/tools
    # Set up the configuration-specific core files:
    tar zxvf ace30_LX7HiFi4_linux.tgz -C ~/xtensa/install/builds
    # Install the Xtensa development toolchain:
    cd ~/xtensa/install
-   ./builds/RG-2021.8-linux/ace30_LX7HiFi4/install \
-   --xtensa-tools ./tools/RG-2021.8-linux/XtensaTools/ \
-   --registry  ./tools/RG-2021.8-linux/XtensaTools/config/
+   ./builds/RI-2021.8-linux/ace30_LX7HiFi4/install \
+   --xtensa-tools ./tools/RI-2021.8-linux/XtensaTools/ \
+   --registry  ./tools/RI-2021.8-linux/XtensaTools/config/
 
 You might need to install some 32-bit libraries to run this command and some of
 the binaries included in the toolchain. Install all needed 32 bit packages:
@@ -63,8 +63,10 @@ A few environment variables are needed to tell Zephyr where the toolchain is:
 
    export ZEPHYR_TOOLCHAIN_VARIANT=xcc-clang
 
-   export XTENSA_TOOLS_VERSION=RG-2021.8-linux
+   export XTENSA_CORE=ace30_LX7HiFi4
+   export XTENSA_TOOLS_VERSION=RI-2021.8-linux
    export XTENSA_TOOLS_DIR=$HOME/xtensa/install/tools
+   export XTENSA_BUILDS_DIR=$HOME/xtensa/install/builds
    export XTENSA_TOOLCHAIN_PATH=$XTENSA_TOOLS_DIR/$XTENSA_TOOLS_VERSION
 
 Additionally, you might need to define the license server for XCC, this can be
@@ -89,6 +91,13 @@ Run in the Simulator
 Invocation of the simulator itself is somewhat involved, so the
 details are now handled by a wrapper script (mtlsim.py) which is
 integrated as a zephyr native emulator.
+
+PTL simulator is still being distributed inside this repository, so
+one just need to set the MTL_SIM_DIR environment variable to:
+
+.. code-block:: console
+
+   export MTL_SIM_DIR=$ZEPHYR_BASE/boards/xtensa/intel_adsp_ace30_ptl/support/sim_prebuilt
 
 After build with west, call
 
