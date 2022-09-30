@@ -43,6 +43,7 @@ struct intel_adsp_ipc {
  * must be cleared (!), not set (in contrary to CAVS SoC family boards).
  * This clears BUSY on the other side of the connection in IDR register.
  */
+#define INTEL_ADSP_IPC_ACE1X_TDA_DONE 0
 #define INTEL_ADSP_IPC_BUSY BIT(31)
 #define INTEL_ADSP_IPC_DONE 0
 
