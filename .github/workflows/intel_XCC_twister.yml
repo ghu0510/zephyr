@@ -126,16 +126,8 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: artifacts
-      - name: inline CVE scan for external action
-        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/trivy-cve-scan@main
-        with:
-          container-url: 'ghcr.io/enricomi/publish-unit-test-result-action:latest'
-          cve-level: 'CRITICAL'
-          exit-code: '0'
-          dockerio-user: ${{ secrets.DOCKERIO_USER }}
-          dockerio-pass: ${{ secrets.DOCKERIO_PASSWD }}
       - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/results-publisher@main
         with:
           files: 'artifacts/**/twister.xml'
           check_name: 'XCC Twister Results'
