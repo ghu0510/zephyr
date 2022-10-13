@@ -15,5 +15,5 @@ common:
       - "Sensor motion-detector data:"
       - "Sensor hinge-angle data:"
 tests:
-  sample.subsys.senss:
+  sample.subsys.senss.simple:
     tags: senss

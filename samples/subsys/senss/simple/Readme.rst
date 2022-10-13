@@ -28,7 +28,7 @@ Building and Running
 This application can be built and executed on native_posix as follows:
 
 .. zephyr-app-commands::
-   :zephyr-app: samples/subsys/senss
+   :zephyr-app: samples/subsys/senss/simple
    :host-os: unix
    :board: native_posix
    :goals: run
