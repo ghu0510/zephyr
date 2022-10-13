@@ -1,0 +1,81 @@
+/*
+ * Copyright (c) 2022 Intel Corporation
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&i2c0 {
+	bmi160_i2c: bmi@68 {
+		compatible = "bosch,bmi160";
+		reg = <0x68>;
+	};
+};
+
+&spi0 {
+	bmi160_spi: bmi@3 {
+		compatible = "bosch,bmi160";
+		spi-max-frequency = <50000000>;
+		reg = <0x3>;
+	};
+};
+
+/ {
+	senss: senss-node {
+		compatible = "zephyr,senss";
+		status = "okay";
+
+		base_accel: base-accel {
+			compatible = "zephyr,senss-phy-accel";
+			status = "okay";
+			sensor-type = <0x73>;
+			sensor-index = <0>;
+			vendor = "VND";
+			model = "Test";
+			friendly-name = "Base Accelerometer Sensor";
+			minimal-interval = <625>;
+			rotation-matrix = <0 1 0
+					   1 0 0
+					   0 0 (-1)>;
+			underlying-device = <&bmi160_i2c>;
+		};
+
+		lid_accel: lid-accel {
+			compatible = "zephyr,senss-phy-accel";
+			status = "okay";
+			sensor-type = <0x73>;
+			sensor-index = <1>;
+			vendor = "VND";
+			model = "Test";
+			friendly-name = "Lid Accelerometer Sensor";
+			minimal-interval = <625>;
+			rotation-matrix = <1 0 0
+					   0 1 0
+					   0 0 (-1)>;
+			underlying-device = <&bmi160_spi>;
+		};
+
+		motion_detector: motion-detector {
+			compatible = "zephyr,senss-motion-detector";
+			status = "okay";
+			sensor-type = <0x77>;
+			sensor-index = <0>;
+			vendor = "VND";
+			model = "Test";
+			friendly-name = "Motion Detector Sensor";
+			reporters = <&lid_accel>;
+			minimal-interval = <100000>;
+		};
+
+		hinge_angle: hinge-angle {
+			compatible = "zephyr,senss-hinge-angle";
+			status = "okay";
+			sensor-type = <0x20B>;
+			sensor-index = <0>;
+			vendor = "VND";
+			model = "Test";
+			friendly-name = "Hinge Angle Sensor";
+			reporters = <&base_accel &lid_accel>;
+			minimal-interval = <100000>;
+		};
+	};
+};
