@@ -29,7 +29,8 @@ manifest:
       revision: dec12fa3f0d790cafa8414a4c2930ea71ab72ffd
       path: modules/lib/canopennode
     - name: chre
-      revision: b7955c27e50485b7dafdc3888d7d6afdc2ac6d96
+      url: https://github.com/intel-innersource/os.rtos.zephyr.modules.chre
+      revision: 8758931bbd461d1b1c99898677dbcd81a7d4c181
       path: modules/lib/chre
     - name: cmsis
       revision: 74981bf893e8b10931464b9945e2143d99a3f0a3
