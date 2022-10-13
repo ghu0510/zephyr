@@ -47,6 +47,9 @@ struct senss_sensor_version {
 	};
 };
 
+#define SENSS_SENSOR_INVALID_HANDLE (-1)
+#define SENSS_INDEX_ALL (-1)
+
 #define SENSS_SENSOR_VERSION(_major, _minor, _hotfix, _build)           \
 	((_major) << 24 | (_minor) << 16 | (_hotfix) << 8 | (_build))
 
@@ -165,7 +168,7 @@ int senss_get_sensors(const struct senss_sensor_info **info);
  *
  * @param sensor_index The index which need to open.
  *
- * @param *handle The opened instance handle, if failed will be set to NULL.
+ * @param *handle The opened instance handle, if failed will be set to -1.
  *
  * @return 0 on success or negative error value on failure.
  */

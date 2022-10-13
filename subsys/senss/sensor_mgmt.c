@@ -378,12 +378,12 @@ static int set_reporter_sensitivity(struct senss_mgmt_context *ctx,
 	LOG_INF("%s, sesnor:%s, index:%d, sensitivity:%d",
 			__func__, sensor->dev->name, index, sensitivity);
 
-	if (index < -1 || index >= sensor->cfg.sensitivity_count) {
+	if (index < SENSS_INDEX_ALL || index >= sensor->cfg.sensitivity_count) {
 		LOG_ERR("sensor:%s sensitivity index:%d is invalid", sensor->dev->name, index);
 		return -EINVAL;
 	}
 
-	if (index == -1) {
+	if (index == SENSS_INDEX_ALL) {
 		for (i = 0; i < sensor->cfg.sensitivity_count; i++) {
 			conn->sensitivity[i] = sensitivity;
 		}
@@ -670,7 +670,7 @@ int open_sensor(int type, int sensor_index)
 	reporter_sensor = get_sensor_by_type_and_index(ctx, type, sensor_index);
 	if (!reporter_sensor) {
 		LOG_ERR("no sensor match to type:0x%x, index:%d", type, sensor_index);
-		return -1;
+		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
 	/* allocate sensor for application client */
@@ -816,12 +816,12 @@ int get_sensitivity(struct connection *conn, int index, uint32_t *value)
 
 	*value = UINT32_MAX;
 
-	if (index < -1 || index >= sensor->cfg.sensitivity_count) {
+	if (index < SENSS_INDEX_ALL || index >= sensor->cfg.sensitivity_count) {
 		LOG_ERR("sensor:%s sensitivity index:%d is invalid", sensor->dev->name, index);
 		return -EINVAL;
 	}
 
-	if (index == -1)
+	if (index == SENSS_INDEX_ALL)
 		memcpy(value, conn->sensitivity, sensor->cfg.sensitivity_count * sizeof(uint32_t));
 	else
 		*value = conn->sensitivity[index];
