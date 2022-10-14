@@ -32,7 +32,7 @@ jobs:
           shopt -s dotglob
           rm -rf *
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.1.0
         with:
           path: 'zephyrproject/zephyr'
       - name: Set Creds for internal repos

@@ -33,7 +33,7 @@ jobs:
 
       # Checkout code from open internal PR
       - name: Checkout the code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.1.0
         with:
           path: 'zephyrproject/zephyr'
           ref: ${{ github.event.pull_request.head.sha }}
