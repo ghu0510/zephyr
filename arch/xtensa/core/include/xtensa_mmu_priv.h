@@ -10,12 +10,6 @@
 #ifndef ZEPHYR_ARCH_XTENSA_XTENSA_MMU_PRIV_H_
 #define ZEPHYR_ARCH_XTENSA_XTENSA_MMU_PRIV_H_
 
-#define Z_XTENSA_MMU_X  BIT(0)
-#define Z_XTENSA_MMU_W  BIT(1)
-#define Z_XTENSA_MMU_CACHED_WB BIT(2)
-#define Z_XTENSA_MMU_CACHED_WT BIT(3)
-#define Z_XTENSA_MMU_ILLEGAL (BIT(3) | BIT(2))
-
 #define Z_XTENSA_PTE_PPN_MASK 0xFFFFF000U
 #define Z_XTENSA_PTE_ATTR_MASK 0x0000000FU
 #define Z_XTENSA_L1_MASK 0x3FF00000U
@@ -76,13 +70,6 @@
  */
 #define Z_XTENSA_PAGE_TABLE_VADDR \
 	Z_XTENSA_PTE_ENTRY_VADDR(Z_XTENSA_PTEVADDR)
-
-struct xtensa_mmu_range {
-	const char *name;
-	uint32_t start;
-	uint32_t end;
-	uint32_t attrs;
-};
 
 static inline void xtensa_rasid_set(uint32_t rasid)
 {

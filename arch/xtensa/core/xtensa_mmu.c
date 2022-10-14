@@ -52,22 +52,15 @@ extern char _data_start[];
 extern char _data_end[];
 extern char _bss_start[];
 extern char _bss_end[];
-extern char _cached_start[];
-extern char _cached_end[];
-extern char _imr_start[];
-extern char _imr_end[];
 
+__weak const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {};
+__weak int xtensa_soc_mmu_ranges_num;
 /*
  * Static definition of all code & data memory regions of the
  * current Zephyr image. This information must be available &
  * processed upon MMU initialization.
  */
 
-/*
- * TODO: Some of regions here are (I think) SoC specific
- * and shouldn't be here. We can do something like on ARM
- * where we have SoC specific regions.
- */
 static const struct xtensa_mmu_range mmu_zephyr_ranges[] = {
 	/*
 	 * Mark the zephyr execution regions (data, bss, noinit, etc.)
@@ -79,33 +72,12 @@ static const struct xtensa_mmu_range mmu_zephyr_ranges[] = {
 		.attrs = Z_XTENSA_MMU_W,
 		.name = "data",
 	},
-
-	{
-		.start = (uint32_t)VECBASE_RESET_PADDR_SRAM,
-		.end   = (uint32_t)VECBASE_RESET_PADDR_SRAM + VECTOR_TBL_SIZE ,
-		.attrs = Z_XTENSA_MMU_X,
-		.name = "exceptions",
-	},
 	{
 		.start = (uint32_t)&_bss_start,
 		.end   = (uint32_t)&_bss_end,
 		.attrs = Z_XTENSA_MMU_W,
 		.name = "bss",
 	},
-
-	{
-		.start = (uint32_t)&_imr_start,
-		.end   = (uint32_t)&_imr_end,
-		.attrs = Z_XTENSA_MMU_X | Z_XTENSA_MMU_W,
-		.name = "imr",
-	},
-	{
-		.start = (uint32_t)&_cached_start,
-		.end   = (uint32_t)&_cached_end,
-		.attrs = Z_XTENSA_MMU_X | Z_XTENSA_MMU_W | Z_XTENSA_MMU_CACHED_WB,
-		.name = "cached",
-	},
-
 	/* System heap memory */
 	{
 		.start = (uint32_t)&_heap_start,
@@ -113,7 +85,6 @@ static const struct xtensa_mmu_range mmu_zephyr_ranges[] = {
 		.attrs = Z_XTENSA_MMU_W,
 		.name = "heap",
 	},
-
 	/* Mark text segment cacheable, read only and executable */
 	{
 		.start = (uint32_t)&__text_region_start,
@@ -121,49 +92,11 @@ static const struct xtensa_mmu_range mmu_zephyr_ranges[] = {
 		.attrs = Z_XTENSA_MMU_X,
 		.name = "text",
 	},
-
 	/* Mark rodata segment cacheable, read only and non-executable */
 	{
 		.start = (uint32_t)&__rodata_region_start,
 		.end   = (uint32_t)&__rodata_region_end,
 		.name = "rodata",
-	},
-
-	{
-		.start = (uint32_t)HP_SRAM_WIN0_BASE,
-		.end   = (uint32_t)HP_SRAM_WIN0_BASE + HP_SRAM_WIN0_SIZE,
-		.attrs = Z_XTENSA_MMU_W,
-		.name = "win0",
-	},
-	{
-		.start = (uint32_t)HP_SRAM_WIN2_BASE,
-		.end   = (uint32_t)HP_SRAM_WIN2_BASE + HP_SRAM_WIN2_SIZE,
-		.attrs = Z_XTENSA_MMU_W,
-		.name = "win2",
-	},
-	{
-		.start = (uint32_t)HP_SRAM_WIN3_BASE,
-		.end   = (uint32_t)HP_SRAM_WIN3_BASE + HP_SRAM_WIN3_SIZE,
-		.attrs = Z_XTENSA_MMU_W,
-		.name = "win3",
-	},
-	{
-		.start = 0x4002a000,
-		.end   = 0x4002a000 + HP_SRAM_WIN3_SIZE,
-		.attrs = Z_XTENSA_MMU_W,
-		.name = "win3-uncached",
-	},
-	{
-		.start = (uint32_t)_cached_start,
-		.end   = (uint32_t)_cached_end,
-		.attrs = Z_XTENSA_MMU_W,
-		.name = "cached",
-	},
-	{
-		.start = (uint32_t)z_mapped_start,
-		.end   = (uint32_t)IMR_BOOT_LDR_MANIFEST_BASE,
-		.attrs = Z_XTENSA_MMU_W | Z_XTENSA_MMU_X,
-		.name = "stack",
 	},
 };
 
@@ -180,6 +113,30 @@ static inline uint32_t *alloc_l2_table(void)
 	return NULL;
 }
 
+static void map_memory_range(const struct xtensa_mmu_range *range)
+{
+	uint32_t page, *table;
+
+	for (page = range->start; page < range->end; page += CONFIG_MMU_PAGE_SIZE) {
+		uint32_t pte = Z_XTENSA_PTE(page, 0, range->attrs);
+		uint32_t l2_pos = Z_XTENSA_L2_POS(page);
+		uint32_t l1_pos = page >> 22;
+
+			if (l1_page_table[l1_pos] == Z_XTENSA_MMU_ILLEGAL) {
+				table  = alloc_l2_table();
+
+			__ASSERT(table != NULL, "There is no l2 page table available to "
+				"map 0x%08x\n", page);
+
+			l1_page_table[l1_pos] =
+				Z_XTENSA_PTE((uint32_t)table, 0, Z_XTENSA_MMU_CACHED_WT);
+		}
+
+		table = (uint32_t *)(l1_page_table[l1_pos] & Z_XTENSA_PTE_PPN_MASK);
+		table[l2_pos] = pte;
+	}
+}
+
 void z_xtensa_mmu_init(void)
 {
 	volatile uint8_t entry;
@@ -190,26 +147,11 @@ void z_xtensa_mmu_init(void)
 	}
 
 	for (entry = 0; entry < ARRAY_SIZE(mmu_zephyr_ranges); entry++) {
-		struct xtensa_mmu_range range = mmu_zephyr_ranges[entry];
-		uint32_t *table;
+		map_memory_range(&mmu_zephyr_ranges[entry]);
+	}
 
-		for (page = range.start; page < range.end; page += CONFIG_MMU_PAGE_SIZE) {
-			uint32_t pte = Z_XTENSA_PTE(page, 0, range.attrs);
-			uint32_t l2_pos = Z_XTENSA_L2_POS(page);
-			uint32_t l1_pos = page >> 22;
-
-			if (l1_page_table[l1_pos] == Z_XTENSA_MMU_ILLEGAL) {
-				table  = alloc_l2_table();
-
-				__ASSERT(table != NULL, "There is no l2 page table available to"
-					"map 0x%08x\n", page);
-
-				l1_page_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, 0, Z_XTENSA_MMU_CACHED_WT);
-			}
-
-			table = (uint32_t *)(l1_page_table[l1_pos] & Z_XTENSA_PTE_PPN_MASK);
-			table[l2_pos] = pte;
-		}
+	for (entry = 0; entry < xtensa_soc_mmu_ranges_num; entry++) {
+		map_memory_range(&xtensa_soc_mmu_ranges[entry]);
 	}
 
 	xthal_dcache_all_writeback();
