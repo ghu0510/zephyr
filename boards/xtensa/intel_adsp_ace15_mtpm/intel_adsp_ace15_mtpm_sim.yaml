@@ -5,7 +5,10 @@ simulation: xt-sim
 arch: xtensa
 toolchain:
   - xcc
+  - zephyr
+  - xcc-clang
 testing:
+  timeout_multiplier: 2
   ignore_tags:
-     - net
-     - bluetooth
+    - net
+    - bluetooth
