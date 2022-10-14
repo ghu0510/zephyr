@@ -194,7 +194,7 @@ void z_xtensa_mmu_init(void)
 		uint32_t *table;
 
 		for (page = range.start; page < range.end; page += CONFIG_MMU_PAGE_SIZE) {
-			uint32_t pte = Z_XTENSA_PTE(page, range.attrs);
+			uint32_t pte = Z_XTENSA_PTE(page, 0, range.attrs);
 			uint32_t l2_pos = Z_XTENSA_L2_POS(page);
 			uint32_t l1_pos = page >> 22;
 
@@ -204,7 +204,7 @@ void z_xtensa_mmu_init(void)
 				__ASSERT(table != NULL, "There is no l2 page table available to"
 					"map 0x%08x\n", page);
 
-				l1_page_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_MMU_CACHED_WT);
+				l1_page_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, 0, Z_XTENSA_MMU_CACHED_WT);
 			}
 
 			table = (uint32_t *)(l1_page_table[l1_pos] & Z_XTENSA_PTE_PPN_MASK);
@@ -282,7 +282,7 @@ void z_xtensa_mmu_init(void)
 static bool l2_page_table_map(void *vaddr, uintptr_t phys, uint32_t flags)
 {
 	uint32_t l1_pos = (uint32_t)vaddr >> 22;
-	uint32_t pte = Z_XTENSA_PTE(phys, flags);
+	uint32_t pte = Z_XTENSA_PTE(phys, 0, flags);
 	uint32_t l2_pos = Z_XTENSA_L2_POS((uint32_t)vaddr);
 	uint32_t *table;
 
@@ -293,7 +293,7 @@ static bool l2_page_table_map(void *vaddr, uintptr_t phys, uint32_t flags)
 			return false;
 		}
 
-		l1_page_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_MMU_CACHED_WT);
+		l1_page_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, 0, Z_XTENSA_MMU_CACHED_WT);
 	}
 
 	table = (uint32_t *)(l1_page_table[l1_pos] & Z_XTENSA_PTE_PPN_MASK);

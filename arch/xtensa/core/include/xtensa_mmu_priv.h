@@ -23,8 +23,12 @@
 
 #define Z_XTENSA_PPN_SHIFT 12U
 
-#define Z_XTENSA_PTE(paddr, attr) \
-	((paddr & Z_XTENSA_PTE_PPN_MASK) | (attr & Z_XTENSA_PTE_ATTR_MASK))
+#define Z_XTENSA_PTE_RING_MASK 0x00000030U
+
+#define Z_XTENSA_PTE(paddr, ring, attr) \
+	((paddr & Z_XTENSA_PTE_PPN_MASK) | \
+	((ring << 4) & Z_XTENSA_PTE_RING_MASK) | \
+	(attr & Z_XTENSA_PTE_ATTR_MASK))
 
 #define Z_XTENSA_TLB_ENTRY(vadd, way) \
 	((vadd & Z_XTENSA_PTE_PPN_MASK) | (way))
