@@ -413,11 +413,11 @@ SECTIONS {
     *(.unused_ram_start_marker.*)
   } >ram
 
+  z_mapped_end = .;
   . = L2_SRAM_BASE + L2_SRAM_SIZE;
   . = SEGSTART_UNCACHED;
   _heap_sentry = .;
   _image_ram_end = .;
-  z_mapped_end = .;
 
   /* dma buffers */
   .lpbuf (NOLOAD): {
