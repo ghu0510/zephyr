@@ -1,4 +1,8 @@
-set(RIMAGE ${BOARD_DIR}/support/rimage)
+find_program(
+  RIMAGE
+  NAMES rimage
+  )
+
 if(CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM)
 add_custom_target(
   gen_signed_image ALL
