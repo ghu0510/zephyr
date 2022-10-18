@@ -92,12 +92,11 @@ Invocation of the simulator itself is somewhat involved, so the
 details are now handled by a wrapper script (mtlsim.py) which is
 integrated as a zephyr native emulator.
 
-PTL simulator is still being distributed inside this repository, so
-one just need to set the MTL_SIM_DIR environment variable to:
-
-.. code-block:: console
-
-   export MTL_SIM_DIR=$ZEPHYR_BASE/boards/xtensa/intel_adsp_ace30_ptl/support/sim_prebuilt
+PTL simulator is available from
+http://gale.hf.intel.com/~nashif/audio/simulator/sim-ptl-20221018.tar.bz2. Get
+the tarball and extract the contents on your host and set the MTL_SIM_DIR
+environment variable to the path of the directory with the content of the
+tarball.
 
 After build with west, call
 
