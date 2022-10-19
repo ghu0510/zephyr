@@ -53,5 +53,17 @@
 					   0 0 (-1)>;
 			underlying-device = <&bmi160_spi>;
 		};
+
+		hinge_angle: hinge-angle {
+			compatible = "zephyr,senss-hinge-angle";
+			status = "okay";
+			sensor-type = <0x20B>;
+			sensor-index = <0>;
+			vendor = "VND";
+			model = "Test";
+			friendly-name = "Hinge Angle Sensor";
+			reporters = <&base_accel &lid_accel>;
+			minimal-interval = <100000>;
+		};
 	};
 };
