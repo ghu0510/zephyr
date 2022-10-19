@@ -1,0 +1,9 @@
+# Copyright (c) 2022 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+config  SENSS_SENSOR_MOTION_DETECTOR
+	bool "Senss motion detector sensor"
+	depends on DT_HAS_ZEPHYR_SENSS_MOTION_DETECTOR_ENABLED
+	default y
+	help
+	  Enable senss motion detector sensor.
