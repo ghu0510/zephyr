@@ -1,0 +1,75 @@
+This has a simplified view on running Zephyr on PTL FPGA.
+
+Prerequisite:
+
+1. Clone the FAT tool from: https://github.com/intel-innersource/frameworks.validation.firmware-automated-testing.fat
+
+2. Obtain an official ROM and ROM EXT binary files named
+   "dsp_rom_ptl_release.bin" and "dsp_lib_rom_ext_ptl_release.bin".
+   One way is to download the ROM archive in CI via Popychaczka site.
+   For the ROM EXT file, use the one under rom_ext_auth_bypass/ for now
+   so it will not check the manifest signature. Once we have the correct
+   private key to sign the manifest, we can use the normal ROM EXT file.
+
+3. Obtain the FPGA configuration archive specified for PTL.
+   This can also be downloaded via Popychaczka site.
+   Latest one, as of this writing, is
+     "PTL_ptl_ace_ipfpga_cth_2022_10_12_HAPS_80_build0_upf_Vivado_par_directive_v2_2019_1.zip"
+
+4. Build Zephyr image using the intel_adsp_ace30_ptl board, and sign it using dummy key.
+
+5. The ace_fpga_loader.py tool in the SoC directory.
+
+
+To use the PTL FPGA:
+
+1. Reserve a PTL specific machine with FPGA attached via Popychaczka.
+   These machines usually are tagged with "HAPS-80 S26 1".
+   IF NOT SURE, ASK. There are machines specifically used for PTL,
+   and can be used interactively.
+
+2. Re-configure the FPGA as needed.
+
+   a. Power down the DUT via the web page (under the Power Reset column).
+
+   b. Connect to the Controller Host machine via Remote Desktop.
+      IP address of the Controller is the smaller one under Platform IP column.
+
+   c. Copy over the FPGA configuration archive obtained above.
+      One easy way is to open Windows Explorer both locally and remotely.
+      Ctrl-C on local machine to copy the FPGA archive, and Ctrl-V on remote
+      machine to paste it there.
+
+   d. Unpack the archive.
+
+   e. Execute run_ptl.bat.
+      The command prompt window will close itself automatically after completion.
+      For curious minds, open a command prompt manually, navigate to
+      directory and run run_ptl.bat.
+
+   f. Power up the DUT via the web page.
+
+   g. Wait a few minutes before continuing as the DUT requires some time
+      to boot.
+
+3. Copy the FAT tool and ROM EXT file to the DUT as needed.
+   Convention there is to create directory under C:\work, for example, C:\work\<Intel ID>\.
+
+   a. It might be easier to 7zip the FAT tool directory, and unpack there.
+   b. DUT has SSH server so it is possible to SCP files over.
+
+4. Copy ace_fpga_loader.py to DUT also.
+
+5. Copy the Zephyr image to DUT in the directory created in step 3.
+
+6. Run the loader tool:
+     python ace_fpga_loader.ph --fat <path to FAT tool> --rom <ROM file> --romext <ROM EXT file> --fw <Zephyr .ri file>
+
+   For example:
+     python ace_fpga_loader.py --fat frameworks.validation.firmware-automated-testing.fat --rom dsp_rom_ptl_release.bin --romext dsp_lib_rom_ext_ptl_release.bin --fw zephyr.ri
+
+   Note that due to winstream instability via FPGA, sometimes lines are mixed up.
+   To obtain log separately, do this:
+     python ace_fpga_loader.ph --fat <path to FAT tool> --log-only
+
+   And it will display the log inside the winstream window.
