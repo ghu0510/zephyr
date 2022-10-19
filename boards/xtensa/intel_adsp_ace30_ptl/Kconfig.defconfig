@@ -9,3 +9,10 @@ config BOARD
 
 
 endif # BOARD_INTEL_ADSP_ACE30_PTL_SIM
+
+if BOARD_INTEL_ADSP_ACE30_PTL
+
+config BOARD
+	default "intel_adsp_ace30_ptl"
+
+endif # BOARD_INTEL_ADSP_ACE30_PTL

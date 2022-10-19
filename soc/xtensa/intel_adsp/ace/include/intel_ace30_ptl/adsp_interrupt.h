@@ -69,7 +69,12 @@ struct ace_dint {
 /* This register enables (1) or disable (0) the interrupt of
  * each host inter-processor communication capability instance in a single register.
  */
+#ifdef CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM
+/* Simulator is using MTL register addresses */
 #define DXHIPCIE_REG 0x78840
+#else
+#define DXHIPCIE_REG 0x91040
+#endif /* CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM */
 
 #define ACE_DINT	     ((volatile struct ace_dint *)DXHIPCIE_REG)
 #define XTENSA_IRQ_NUM_MASK  0xff
