@@ -54,6 +54,18 @@
 			underlying-device = <&bmi160_spi>;
 		};
 
+		motion_detector: motion-detector {
+			compatible = "zephyr,senss-motion-detector";
+			status = "okay";
+			sensor-type = <0x77>;
+			sensor-index = <0>;
+			vendor = "VND";
+			model = "Test";
+			friendly-name = "Motion Detector Sensor";
+			reporters = <&lid_accel>;
+			minimal-interval = <100000>;
+		};
+
 		hinge_angle: hinge-angle {
 			compatible = "zephyr,senss-hinge-angle";
 			status = "okay";

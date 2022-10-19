@@ -29,6 +29,22 @@ static int acc_data_event_callback(int handle, void *buf, int size, void *param)
 	return 0;
 }
 
+static int motion_detector_data_event_callback(int handle, void *buf, int size,
+	void *param)
+{
+	const struct senss_sensor_info *info = senss_get_sensor_info(handle);
+	struct senss_sensor_value_int32 *sample =
+		(struct senss_sensor_value_int32 *)buf;
+
+	ARG_UNUSED(size);
+	ARG_UNUSED(param);
+
+	LOG_INF("Sensor %s data:\t v: %d", info->name,
+		sample->readings[0].v);
+
+	return 0;
+}
+
 static int hinge_angle_data_event_callback(int handle, void *buf, int size,
 	void *param)
 {
@@ -50,6 +66,7 @@ void main(void)
 	const struct senss_sensor_info *info = NULL;
 	int base_acc;
 	int lid_acc;
+	int motion_detector;
 	int hinge_angle;
 	int ret;
 
@@ -88,6 +105,23 @@ void main(void)
 		ret = senss_set_interval(lid_acc, 100 * USEC_PER_MSEC);
 		if (ret) {
 			LOG_ERR("lid_acc senss_set_interval error\n");
+		}
+	}
+
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_MOTION_DETECTOR, 0,
+		&motion_detector);
+	if (ret) {
+		LOG_ERR("senss_open_sensor, type:0x%x index:0 error",
+			SENSS_SENSOR_TYPE_MOTION_MOTION_DETECTOR);
+	} else {
+		info = senss_get_sensor_info(motion_detector);
+		senss_register_data_event_callback(motion_detector,
+			motion_detector_data_event_callback, NULL);
+
+		ret = senss_set_interval(motion_detector,
+			info->minimal_interval);
+		if (ret) {
+			LOG_ERR("motion_detector senss_set_interval error\n");
 		}
 	}
 

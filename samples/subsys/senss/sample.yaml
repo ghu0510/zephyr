@@ -12,6 +12,7 @@ common:
       - "senss run successfully"
       - "Sensor base-accel data:"
       - "Sensor lid-accel data:"
+      - "Sensor motion-detector data:"
       - "Sensor hinge-angle data:"
 tests:
   sample.subsys.senss:
