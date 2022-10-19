@@ -324,6 +324,10 @@ struct senss_sensor_value_human_detection {
 	} readings[1];
 };
 
+enum senss_hinge_angle_result {
+	SENSS_HINGE_ANGLE_RESULT_UNKNOWN = -1,
+};
+
 /**
  * @}
  */

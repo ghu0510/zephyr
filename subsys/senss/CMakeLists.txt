@@ -16,3 +16,4 @@ if (CONFIG_SENSS)
 endif()
 
 add_subdirectory_ifdef(CONFIG_SENSS_SENSOR_PHY_ACC sensor/phy_acc)
+add_subdirectory_ifdef(CONFIG_SENSS_SENSOR_HINGE_ANGLE sensor/hinge_angle)
