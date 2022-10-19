@@ -17,45 +17,35 @@ The Zephyr tree is best cloned via west.
    west update
 
 
-Ideally, you will want to build and run the simulator on your host. Building on
-the host using XCC is currently supported and documented below, however, running
-in the simulator is currently working in the docker envirnment.
-
-.. note::
-
-   Support and documentation for running the firmware image on the host using the
-   simulator is work in progress.
-
 Toolchain Setup on Host
 =======================
 
-No special instructions are required to build Zephyr using the Zephyr
-SDK.  West works like it does for any other platform.
+No special instructions are required to build using the Zephyr SDK.
+West works like it does for any other platform.
 
-If you wish to use the Cadence toolchain instead of GCC, you will need
-install the XCC toolchain for this core. At least 2 files are needed:
+However, if you want to use the Cadence toolchain instead of GCC, you will need to
+install the XCC toolchain for your core. We provide an all-in-one package
+that help you to install the toolchain easily:
 
-- ace10_LX7HiFi4_linux.tgz
-- XtensaTools_RG_2019_12_linux.tgz
+- xtensa-dist.tar.gz
 
-With the above tools package and the DSP Build Configuration package,
-the toolchain can be setup as follows.
+You can download it from http://gale.hf.intel.com/~nashif/audio/xtensa-dist.tar.gz.
 
+With the above package, set the toolchain up:
 
 .. code-block:: console
 
-   # Create Xtensa install root
-   mkdir -p ~/xtensa/install/tools
-   mkdir -p ~/xtensa/install/builds
-   # Set up the configuration-independent Xtensa Tool:
-   tar zxvf XtensaTools_RG_2019_12_linux.tgz -C ~/xtensa/install/tools
-   # Set up the configuration-specific core files:
-   tar zxvf ace10_LX7HiFi4_linux.tgz -C ~/xtensa/install/builds
-   # Install the Xtensa development toolchain:
-   cd ~/xtensa/install
-   ./builds/RG-2019.12-linux/ace10_LX7HiFi4/install \
-   --xtensa-tools ./tools/RG-2019.12-linux/XtensaTools/ \
-   --registry  ./tools/RG-2019.12-linux/XtensaTools/config/
+   # Uncompress the Xtensa toolchain
+   tar zxvf xtensa-dist.tar.gz
+
+   # Enter the directory
+   cd xtensa-dist
+
+   # Run the install script
+   ./install.sh
+
+The script will install the toolchain for you and set up the core registry
+required by the toolchain. The toolchain will be installed in ~/xtensa.
 
 You might need to install some 32-bit libraries to run this command and some of
 the binaries included in the toolchain. Install all needed 32 bit packages:
@@ -65,7 +55,13 @@ the binaries included in the toolchain. Install all needed 32 bit packages:
    sudo dpkg --add-architecture i386
    sudo apt-get install libncurses5:i386 zlib1g:i386 libcrypt1:i386
 
-Once installed, you are ready to build and run a zephyr application for this hardware
+Make sure also that you have these additional libraries installed:
+
+.. code-block:: console
+
+   sudo apt-get install libncurses5 libncurses6 libncursesw5 libncursesw6 libtinfo6 libcrypt1
+
+Once installed, you are ready to build and run a Zephyr application for your board
 using the Cadence XCC compiler and the software simulator.
 
 A few environment variables are needed to tell Zephyr where the toolchain is:
@@ -77,123 +73,44 @@ A few environment variables are needed to tell Zephyr where the toolchain is:
    export XTENSA_TOOLCHAIN_PATH=$HOME/xtensa/install/tools
    export TOOLCHAIN_VER=RG-2019.12-linux
 
-Additionally, you might need to define the license server for XCC, this can be
-setup using the environment variable `XTENSAD_LICENSE_FILE`
+You may also need to define the license server for XCC. Set the environment
+variable `XTENSAD_LICENSE_FILE`:
+
+.. code-block:: console
+
+   export XTENSAD_LICENSE_FILE=84300@xtensa01p.elic.intel.com
+
 
 Install the prebuilt simulator and ROM
 ======================================
 
 The simulator team has release version of prebuilt simulators we can
-leverage to run zephry on it. The zephyr team has already customized
-the available prebuilt binary package for you. You can download it
-from our shared folder. It is often named "mtlsim_2019.12.tar.bz2" or
-"mtlsim_2022_ww36.tar.bz2". After downloading it, you can start the
-installation by:
+run Zephyr on. The Zephyr team has already customized the available
+prebuilt binary package for you. You can download it as an archive from
+the same folder as the toolchain. The naming scheme for the archives follow
+the template sim_{board}_{date}.tar.bz2. For example,
+"sim_mtl_20221018.tar.bz2". The later the date, the more recent the
+release. Install the simulator by downloading and extracting the archive:
 
 .. code-block:: console
 
-   tar xvf mtlsim_2019.12.tar.bz2 -C ~/
+   tar xvf sim_mtl_20221018.tar.bz2 -C ~/
 
-Then the simulator and the ROM are installed completely. Also, if you
-want to run on other version of simulator, run the same command with
-different file name. Ex.
-
-.. code-block:: console
-
-   tar xvf mtlsim_2022.ww36.tar.bz2 -C ~/
-
-
-Using Docker
-============
-
-Host Setup
-----------
-
-By convention, these instructions group all shared files between the
-container and host in a single directory.  For example, if $HOME/zephyrproject
-is what you have on the host, it is mounted as /z in the container.
-
-Docker Container Setup
-----------------------
-
-The audio team maintains a docker image sufficient to build and run
-all needed Meteor Lake DSP (ACE) simulator and firmware tools, including Zephyr.  Pull
-it with:
+After the simulator and the ROM are installed, you will need to set the
+MTL_SIM_DIR environment variable. To run on another version of the simulator,
+export the path to that version. For example:
 
 .. code-block:: console
 
-    docker pull ger-registry.caas.intel.com/ace-devel/std_sim_mtl
-
-The first clone is slow (coming cross-continent over the IT network).
-You'll want to re-pull this regularly as it seems they like to update
-it, but that only requires deltas and not the base OS image.
-
-Run it with:
-
-.. code-block:: console
-
-   docker run --name ace_sim -d -i -t \
-      --mount type=bind,source=$HOME/z,target=/z \
-      ger-registry.caas.intel.com/ace-devel/std_sim_mtl
-
-Open shells in the container with (instead of /bin/bash, you can just
-run tools directly from the host too):
-
-.. code-block:: console
-
-   docker exec -it ace_sim /bin/bash
-
-Note that this runs the shell as root.  The image inexplicably lacks
-an account with uid=1000 to use for building (i.e. one that matches
-the default host user account) and everything in the images expects you to be
-running as root.
-
-If for any reason you need to start over with a clean container image,
-you can delete the ace_sim container with:
-
-.. code-block:: console
-
-   docker stop ace_sim
-   docker rm ace_sim
-
-Finally, we need west in the docker container so we can build
-Zephyr. (Note the python interpreter on PATH is a custom installed 3.6
-variant and not the distro one, but it works fine.)
-
-.. code-block:: console
-
-   pip3 install west
-
-
-Toolchain Setup inside Docker
------------------------------
-
-Inside the docker image, the follwoing environment variables are required:
-
-
-.. code-block:: console
-
-   export ZEPHYR_TOOLCHAIN_VARIANT=xcc
-
-   export XTENSA_CORE=ace10_LX7HiFi4
-   export XTENSA_TOOLS_VERSION=RG-2019.12-linux
-   export XTENSA_INSTALL_PATH=/root/xtensa
-   export XTENSA_TOOLS_DIR=$XTENSA_INSTALL_PATH/XtDevTools/install/tools
-   export XTENSA_TOOLS=$XTENSA_INSTALL_PATH/XtDevTools/install/tools/$XTENSA_TOOLS_VERSION/XtensaTools
-   export XTENSA_TOOLCHAIN_PATH=$XTENSA_TOOLS_DIR/$XTENSA_TOOLS_VERSION
-   export XTENSA_BUILDS_DIR=/root/xtensa/XtDevTools/install/builds
-   export XTENSA_SYSTEM=$XTENSA_BUILDS_DIR/$XTENSA_TOOLS_VERSION/$XTENSA_CORE/config
+   export MTL_SIM_DIR=~/sim_mtl_20221018
 
 
 Building a Zephyr Application
 #############################
 
-The board name is "intel_adsp_ace15_mtpm_sim" and is maintained in the `zephyr-intel` tree which is
-dedicated for internal platforms and embargoed code.
-
-The board would be available for development as any other upstream board. You
-can either build applications in main Zephyr tree or in the `zephyr-intel` code
-base.
+The `intel_adsp_ace15_mtpm_sim` board currently exists as patches on the internal
+`zephyr` repository. You can still build for it as you would any other
+upstream board:
 
 .. code-block:: console
 
@@ -207,13 +124,15 @@ Invocation of the simulator itself is somewhat involved, so the
 details are now handled by a wrapper script (mtlsim.py) which is
 integrated as a zephyr native emulator.
 
-After build with west, call
+After building with west, call
 
 .. code-block:: console
 
    ninja -C build run
 
 You can also build and run in one single command::
+
+.. code-block:: console
 
    west build -p auto -b intel_adsp_ace15_mtpm_sim samples/hello_world -t run
 
@@ -433,6 +352,18 @@ Anaconda python 3.6 you'll find ahead of it on PATH. Don't try to run
 it with "python" on the command line or change the #! line to use
 /usr/bin/env.
 
+
+Run tests with twister
+======================
+
+We can run one or multiple tests with Twister after exporting the necessary
+environment varibles, for example:
+
+.. code-block:: console
+
+   scripts/twister -W -p intel_adsp_ace15_mtpm_sim -T samples/hello_world -vv
+
+
 GDB access
 ##########
 
@@ -483,7 +414,7 @@ Building Rimage
 
 The included binary should be good enough, but if you need to track
 upstream changes, the SOF rimage tool is available from public github.
-Build it in your host environment, not the docker:
+Build it in your host environment:
 
 .. code-block:: console
 
@@ -493,105 +424,38 @@ Build it in your host environment, not the docker:
    git submodule update
    cmake .
    make
-   cp ./rimage /z/zephyr-ace #FIXME
+   sudo cp ./rimage /usr/local/bin
 
-If you do need to make changes to rimage, please make sure to tell
-Andy so the prebuilt binary gets updated!
 
-Building the simulator
-######################
+Note: If you get a error message "error: Unsupported config version 3.0",
+you might need to get the latest code of rimage tool from upstream and
+build it.
 
-The DSP simulator itself can be built from scratch in the container.
-The source code from the audio team is on the internal gitlab:
+Troubleshooting
+################
 
-.. code-block:: console
+Here are some possible failures you might encounter for reference:
 
-   git clone https://gitlab.devtools.intel.com/audio_tools/std_sim.git
+- Cannot find the C complier
 
-The tool is itself a C++ program linked against libraries in the
-Xtensa SDK.  It's a straightforward build in the container:
+This error can happen as a result of license server issues. You can export
+FLEXLM_DIAGNOSTICS=3 to get the detailed server connection log. The incorrect
+machine time will cause failure. If the connection still fails, you can try to
+clear your caches by deleting the ~/.cache and ~/.ccache directories.
 
-.. code-block:: console
+- No Zephyr output message
 
-  cd /z/std_sim
-  source ./scripts/linux/mtl_config.sh
-  ./scripts/linux/build_mtl_sim.sh
-
-Likewise, if you do need to make changes to the simulator, please make
-sure to tell Andy so the prebuilt binary gets updated!
-
-And for anyone (including Andy) interested in updating the prebuilt:
-There are three files to copy (dsp_fw_sim, libgna.so.2 and
-intel_dsp/intel_dsp.so -- yes, the extra directory in the path
-matters, that's how it's linked).  And note that C++ debug info is
-extremely large.  Remember to strip the binaries before committing!
-
-Building the ROM image
-######################
-
-This is the boot ROM for the device, built from audio team code that
-we don't touch.  The source code is on a audio team git server in
-Europe, which requires the "cAVS_FW_ro" permission in AGS to access.
+Sometimes the simulator runs, but hangs after the message "Thread started"
+For example:
 
 .. code-block:: console
 
-   git clone -b ace git@repos.igk.intel.com:cavs_fw
+   NOTE    gna_accelerator -        0.0/000: GNA DMA thread started.
+   NOTE    gna_accelerator -        0.0/000: GNA compute thread started.
+   NOTE    memory_control  -        0.0/000: Thread started.
+   NOTE    dp_dma_int_aggr -        0.0/000: Thread started.
 
-The build itself is, like the simulator, trivial to do with a single
-script in the container:
-
-.. code-block:: console
-
-   cd /z/cavs_fw/builder
-   ./build.sh -e buildenvs/buildenv_mtl.sh \
-       -e buildenvs/buildenv_sim_rom.sh \
-       -e buildenvs/buildenv_local.sh
-   cp /z/cavs_fw/artifacts/FW/bin/mtl/rom/sim/dsp_rom_mtl_sim.hex /z/zephyr-ace #FIXME
-
-
-How to customize the prebuilt simulator package
-###############################################
-
-The simulator team has release version of prebuilt simulators we can
-leverage to run zephry on it without building it our own. Once a new
-version of simulator is being released, we will customize it this way:
-
-First, download the prebuilt simulator from:
-
-https://github.com/intel-innersource/applications.audio.simulator.std-sim/releases
-
-It is compressed in tar file, often named like "std_sim_linux_mtl_ww36_v2733.zip".
-After downloading this tar file, you can uncompress it by:
-
-.. code-block:: console
-
-   mkdir mtlsim
-   unzip std_sim_linux_mtl_ww36_v2733.zip -d mtlsim
-   cd mtlsim
-
-In this directory, use "ls" to see if there is a "build_linux_mtl.tar.gz" tar file.
-If yes, please also uncompress it by:
-
-.. code-block:: console
-
-   tar xvf build_linux_mtl.tar.gz
-
-If no, skip the above tar command. The simulator vesrion before 2022 ww36 will
-not have this file. This file contains XCC shared library which is using by
-simulator.
-
-The second step is we have to copy the simulator wrapper script from the shared
-folder. It is named "dsp_fw_sim.wrapper". This wrapper script is use to deal
-with some shared library path issue in order to be able to run in a native
-enviornment, this is, without docker.
-
-After you get "dsp_fw_sim.wrapper", please put it into the "mtlsim.ww.36"
-directory. Then enter the "mtlsim.ww36" directory and run:
-
-.. code-block:: console
-
-   chmod +x dsp_fw_sim.wrapper
-   tar cvf mtlsim_2022.ww36.tar.bz2 mtlsim
-
-Now you successfully customized the prebuilt simulator package, and the ROM
-file or shared libraries are already in it.
+One of the possible reason is the xt-gdb failed to start. You can run
+$XTENSA_TOOLCHAIN_PATH/$TOOLCHAIN_VER/XtensaTools/bin/xt-gdb in the
+terminal to check. It is likely that the environment variable is
+not setting correctly or some shared library using by xt-gdb is missing.
