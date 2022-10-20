@@ -1,11 +1,12 @@
 identifier: intel_adsp_ace30_ptl_sim
 name: ACE 3.0 Panther Lake Audio DSP
-type: mcu
+type: sim
 simulation: xt-sim
 arch: xtensa
 toolchain:
   - xcc-clang
 testing:
+  timeout_multiplier: 2
   ignore_tags:
      - net
      - bluetooth
