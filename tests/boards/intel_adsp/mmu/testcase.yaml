@@ -1,0 +1,5 @@
+common:
+  tags: mmu
+tests:
+  boards.intel_adsp.mmu:
+    platform_allow: intel_adsp_ace30_ptl_sim
