@@ -240,6 +240,8 @@ static bool l2_page_table_map(void *vaddr, uintptr_t phys, uint32_t flags)
 	table = (uint32_t *)(l1_page_table[l1_pos] & Z_XTENSA_PTE_PPN_MASK);
 	table[l2_pos] = pte;
 
+	xtensa_dtlb_autorefill_invalidate_sync(vaddr);
+	xtensa_itlb_autorefill_invalidate_sync(vaddr);
 	return true;
 }
 
@@ -290,9 +292,6 @@ void arch_mem_map(void *virt, uintptr_t phys, size_t size, uint32_t flags)
 	}
 
 	arch_irq_unlock(key);
-
-	xtensa_itlb_autorefill_invalidate_sync();
-	xtensa_dtlb_autorefill_invalidate_sync();
 }
 
 static void l2_page_table_unmap(void *vaddr)
@@ -311,13 +310,17 @@ static void l2_page_table_unmap(void *vaddr)
 
 	for (l2_pos = 0; l2_pos < XTENSA_L2_PAGE_TABLE_ENTRIES; l2_pos++) {
 		if (table[l2_pos] != Z_XTENSA_MMU_ILLEGAL) {
-			return;
+			goto end;
 		}
 	}
 
 	l1_page_table[l1_pos] = Z_XTENSA_MMU_ILLEGAL;
 	table_pos = (table - (uint32_t *)l2_page_tables) / (XTENSA_L2_PAGE_TABLE_ENTRIES);
 	atomic_clear_bit(l2_page_tables_track, table_pos);
+
+end:
+	xtensa_dtlb_autorefill_invalidate_sync(vaddr);
+	xtensa_itlb_autorefill_invalidate_sync(vaddr);
 }
 
 void arch_mem_unmap(void *addr, size_t size)
@@ -345,6 +348,4 @@ void arch_mem_unmap(void *addr, size_t size)
 	}
 
 	arch_irq_unlock(key);
-	xtensa_itlb_autorefill_invalidate_sync();
-	xtensa_dtlb_autorefill_invalidate_sync();
 }
