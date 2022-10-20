@@ -22,9 +22,8 @@ LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
  */
 #define XTENSA_L2_PAGE_TABLE_ENTRIES 1024U
 
-BUILD_ASSERT(CONFIG_MMU_PAGE_SIZE != 0x1000,
-	 "MMU_PAGE_SIZE value %u is invalid, only 4 kB pages are supported\n",
-	 CONFIG_MMU_PAGE_SIZE);
+BUILD_ASSERT(CONFIG_MMU_PAGE_SIZE == 0x1000,
+	     "MMU_PAGE_SIZE value is invalid, only 4 kB pages are supported\n");
 
 /*
  * Level 1 page table has to be 4Kb to fit into one of the wired entries.
