@@ -8,7 +8,7 @@ config SOC
 	string
 	default "intel_ace30_ptl"
 
-config MP_NUM_CPUS
+config MP_MAX_NUM_CPUS
 	default 3
 
 config SYS_CLOCK_HW_CYCLES_PER_SEC
