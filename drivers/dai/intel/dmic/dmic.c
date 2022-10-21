@@ -156,44 +156,69 @@ static inline void dai_dmic_release_ownership(const struct dai_intel_dmic *dmic)
 
 #endif /* CONFIG_DAI_DMIC_HAS_OWNERSHIP */
 
+static inline uint32_t dai_dmic_base(const struct dai_intel_dmic *dmic)
+{
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30_PTL)
+	return dmic->hdamldmic_base;
+#else
+	return dmic->shim_base;
+#endif
+}
+
 #if CONFIG_DAI_DMIC_HAS_MULTIPLE_LINE_SYNC
 static inline void dai_dmic_set_sync_period(uint32_t period, const struct dai_intel_dmic *dmic)
 {
 	uint32_t val = CONFIG_DAI_DMIC_HW_IOCLK / period - 1;
-
+	uint32_t base = dai_dmic_base(dmic);
 	/* DMIC Change sync period */
-	sys_write32(sys_read32(dmic->shim_base + DMICSYNC_OFFSET) | DMICSYNC_SYNCPRD(val),
-			dmic->shim_base + DMICSYNC_OFFSET);
-	sys_write32(sys_read32(dmic->shim_base + DMICSYNC_OFFSET) | DMICSYNC_CMDSYNC,
-			dmic->shim_base + DMICSYNC_OFFSET);
+#if defined (CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30_PTL)
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) | DMICSYNC_SYNCPRD(val),
+		    base + DMICSYNC_OFFSET);
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) | DMICSYNC_SYNCPU,
+		    base + DMICSYNC_OFFSET);
+	while (sys_read32(base + DMICSYNC_OFFSET) & DMICSYNC_SYNCPU) {
+		k_sleep(K_USEC(100));
+	}
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) | DMICSYNC_CMDSYNC,
+		    base + DMICSYNC_OFFSET);
+#else /* All other CAVS and ACE platforms */
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) | DMICSYNC_SYNCPRD(val),
+		    base + DMICSYNC_OFFSET);
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) | DMICSYNC_CMDSYNC,
+		    base + DMICSYNC_OFFSET);
+#endif
 }
 
 static inline void dai_dmic_clear_sync_period(const struct dai_intel_dmic *dmic)
 {
+	uint32_t base = dai_dmic_base(dmic);
 	/* DMIC Clean sync period */
-	sys_write32(sys_read32(dmic->shim_base + DMICSYNC_OFFSET) & ~DMICSYNC_SYNCPRD(0x0000),
-			dmic->shim_base + DMICSYNC_OFFSET);
-	sys_write32(sys_read32(dmic->shim_base + DMICSYNC_OFFSET) & ~DMICSYNC_CMDSYNC,
-			dmic->shim_base + DMICSYNC_OFFSET);
-
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) & ~DMICSYNC_SYNCPRD(0x0000),
+			base + DMICSYNC_OFFSET);
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) & ~DMICSYNC_CMDSYNC,
+			base + DMICSYNC_OFFSET);
 }
 
 /* Preparing for command synchronization on multiple link segments */
 static inline void dai_dmic_sync_prepare(const struct dai_intel_dmic *dmic)
 {
-	sys_write32(sys_read32(dmic->shim_base + DMICSYNC_OFFSET) | DMICSYNC_CMDSYNC,
-			dmic->shim_base + DMICSYNC_OFFSET);
+	uint32_t base = dai_dmic_base(dmic);
+
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) | DMICSYNC_CMDSYNC,
+		    base + DMICSYNC_OFFSET);
 }
 
 /* Trigering synchronization of command execution */
 static void dmic_sync_trigger(const struct dai_intel_dmic *dmic)
 {
-	__ASSERT_NO_MSG((sys_read32(dmic->shim_base + DMICSYNC_OFFSET) & DMICSYNC_CMDSYNC) != 0);
+	uint32_t base = dai_dmic_base(dmic);
 
-	sys_write32(sys_read32(dmic->shim_base + DMICSYNC_OFFSET) |
-		    DMICSYNC_SYNCGO, dmic->shim_base + DMICSYNC_OFFSET);
+	__ASSERT_NO_MSG((sys_read32(base + DMICSYNC_OFFSET) & DMICSYNC_CMDSYNC) != 0);
+
+	sys_write32(sys_read32(base + DMICSYNC_OFFSET) |
+		    DMICSYNC_SYNCGO, base + DMICSYNC_OFFSET);
 	/* waiting for CMDSYNC bit clearing */
-	while (sys_read32(dmic->shim_base + DMICSYNC_OFFSET) & DMICSYNC_CMDSYNC) {
+	while (sys_read32(base + DMICSYNC_OFFSET) & DMICSYNC_CMDSYNC) {
 		k_sleep(K_USEC(100));
 	}
 }
@@ -262,10 +287,13 @@ static inline void dai_dmic_dis_clk_gating(const struct dai_intel_dmic *dmic)
 	sys_write32(shim_reg, SHIM_CLKCTL);
 
 	LOG_INF("dis-dmic-clk-gating CLKCTL %08x", shim_reg);
-#else
 	/* Disable DMIC clock gating */
+#elif (CONFIG_SOC_INTEL_ACE20_LNL || CONFIG_SOC_INTEL_ACE30_PTL)
+	sys_write32((sys_read32(dmic->vshim_base + DMICLCTL_OFFSET) | DMIC_DCGD),
+		    dmic->vshim_base + DMICLCTL_OFFSET);
+#else /* All other CAVS and ACE platforms */
 	sys_write32((sys_read32(dmic->shim_base + DMICLCTL_OFFSET) | DMIC_DCGD),
-			dmic->shim_base + DMICLCTL_OFFSET);
+		    dmic->shim_base + DMICLCTL_OFFSET);
 #endif
 }
 
@@ -279,27 +307,42 @@ static inline void dai_dmic_en_clk_gating(const struct dai_intel_dmic *dmic)
 	sys_write32(shim_reg, SHIM_CLKCTL);
 
 	LOG_INF("en-dmic-clk-gating CLKCTL %08x", shim_reg);
-#else
 	/* Enable DMIC clock gating */
+#elif (CONFIG_SOC_INTEL_ACE20_LNL || CONFIG_SOC_INTEL_ACE30_PTL)
+	sys_write32((sys_read32(dmic->vshim_base + DMICLCTL_OFFSET) & ~DMIC_DCGD),
+		    dmic->vshim_base + DMICLCTL_OFFSET);
+#else /* All other CAVS and ACE platforms */
 	sys_write32((sys_read32(dmic->shim_base + DMICLCTL_OFFSET) & ~DMIC_DCGD),
-			dmic->shim_base + DMICLCTL_OFFSET);
+		    dmic->shim_base + DMICLCTL_OFFSET);
 #endif
 }
 
 static inline void dai_dmic_en_power(const struct dai_intel_dmic *dmic)
 {
 #ifndef CONFIG_SOC_SERIES_INTEL_CAVS_V15
+	uint32_t base = dai_dmic_base(dmic);
 	/* Enable DMIC power */
-	sys_write32((sys_read32(dmic->shim_base + DMICLCTL_OFFSET) | DMICLCTL_SPA),
-			dmic->shim_base + DMICLCTL_OFFSET);
-#endif
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30_PTL)
+	sys_write32((sys_read32(base + DMICLCTL_OFFSET) |
+		    DMICLCTL_SPA | DMICLCTL_OFLEN),
+		    base + DMICLCTL_OFFSET);
+#else /* All other CAVS and ACE platforms */
+	sys_write32((sys_read32(base + DMICLCTL_OFFSET) | DMICLCTL_SPA),
+			base + DMICLCTL_OFFSET);
+#endif /* (CONFIG_SOC_INTEL_ACE20_LNL || CONFIG_SOC_INTEL_ACE30_PTL) */
+	while (!(sys_read32(base + DMICLCTL_OFFSET) & DMICLCTL_CPA)) {
+		k_sleep(K_USEC(100));
+	}
+#endif /* #ifndef CONFIG_SOC_SERIES_INTEL_CAVS_V15 */
 }
+
 static inline void dai_dmic_dis_power(const struct dai_intel_dmic *dmic)
 {
 #ifndef CONFIG_SOC_SERIES_INTEL_CAVS_V15
+	uint32_t base = dai_dmic_base(dmic);
 	/* Disable DMIC power */
-	sys_write32((sys_read32(dmic->shim_base + DMICLCTL_OFFSET) & (~DMICLCTL_SPA)),
-			dmic->shim_base + DMICLCTL_OFFSET);
+	sys_write32((sys_read32(base + DMICLCTL_OFFSET) & (~DMICLCTL_SPA)),
+		     base + DMICLCTL_OFFSET);
 #endif
 }
 
@@ -770,6 +813,7 @@ static int dai_dmic_set_config(const struct device *dev,
 		return -EINVAL;
 	}
 
+	__ASSERT_NO_MSG(dmic->created);
 	key = k_spin_lock(&dmic->lock);
 
 #if CONFIG_DAI_INTEL_DMIC_TPLG_PARAMS
