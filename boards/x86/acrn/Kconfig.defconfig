@@ -3,11 +3,45 @@
 
 if BOARD_ACRN
 
-config BOARD
-	default "acrn"
-	depends on BOARD_ACRN
+config PIC_DISABLE
+	default y
+
+config LOAPIC
+	default y
+
+config APIC_TSC_DEADLINE_TIMER
+	default y
+
+config X2APIC
+	default y
+
+config CONSOLE
+	default y
+
+config SERIAL
+	default y
+
+config UART_CONSOLE
+	default y
+
+config BUILD_OUTPUT_BIN
+	default y
+
+config SHELL_BACKEND_SERIAL_INTERRUPT_DRIVEN
+	default n
+
+config KERNEL_VM_SIZE
+	default 0x1000000
+
+config BUILD_NO_GAP_FILL
+	default y
 
 config MP_MAX_NUM_CPUS
 	default 2
 
+config ACPI
+	default y
+
+config BOARD
+	default "acrn"
 endif

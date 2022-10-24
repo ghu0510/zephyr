@@ -1,5 +1,5 @@
-Building and Running Zephyr with ACRN
-#####################################
+Building and Running Zephyr with ACRN Pre-launched Mode
+#######################################################
 
 Zephyr's is capable of running as a guest under the x86 ACRN
 hypervisor (see https://projectacrn.org/).  The process for getting
@@ -300,3 +300,233 @@ command:
 
 
 .. _EHL: https://www.intel.com/content/www/us/en/products/docs/processors/embedded/enhanced-for-iot-platform-brief.html
+
+Building and Running Zephyr with ACRN Post-launched Mode
+########################################################
+
+Zephyr's is capable of running as a guest under the x86 ACRN
+hypervisor (see https://projectacrn.org/). The process for getting
+this to work is somewhat involved, however.
+
+ACRN hypervisor supports a hybrid scenario where Zephyr runs in a so-
+called "post-launched" mode. Please refer to the Getting Started Guide for ACRN:
+https://projectacrn.github.io/latest/getting-started/getting-started.html#gsg
+
+Configure and build ACRN
+************************
+
+First you need the source code, clone from:
+
+    .. code-block:: console
+
+        git clone https://github.com/projectacrn/acrn-hypervisor
+
+We suggest that you use versions v3.1 or later of the ACRN hypervisor
+as they have better support for SMP in Zephyr.
+
+Like Zephyr, ACRN favors build-time configuration management instead
+of runtime probing or control.  Unlike Zephyr, ACRN has single large
+configuration files instead of small easily-merged configuration
+elements like kconfig defconfig files or devicetree includes.  You
+have to edit a big XML file to match your Zephyr configuration.
+Choose an ACRN host config that matches your hardware ("rpl-s17" in
+this case).  Then find the relevant file in
+``misc/config_tools/data/<platform>/scenario.xml``.
+
+First, find the list of ``<vm>`` declarations.  Each has an ``id=``
+attribute.  For testing Zephyr, you will want to make sure that the
+Zephyr image is ID zero.  This allows you to launch ACRN with just one
+VM image and avoids the need to needlessly copy large Linux blobs into
+the boot filesystem.  Under currently tested configurations, Zephyr
+will always have a "vm_type" tag of "SAFETY_VM".
+
+Configure Zephyr Memory Layout
+==============================
+
+Next, locate the load address of the Zephyr image and its entry point
+address.  These have to be configured manually in ACRN.  Traditionally
+Zephyr distributes itself as an ELF image where these addresses can be
+automatically extracted, but ACRN does not know how to do that, it
+only knows how to load a single contiguous region of data into memory
+and jump to a specific address.
+
+Find the "<vm id="0">...<os_config>" tag that will look something like this:
+
+    .. code-block:: xml
+
+        <os_config>
+            <name>Zephyr</name>
+            <kern_type>KERNEL_ZEPHYR</kern_type>
+            <kern_mod>Zephyr_RawImage</kern_mod>
+            <ramdisk_mod/>
+            <bootargs></bootargs>
+            <kern_load_addr>0x1000</kern_load_addr>
+            <kern_entry_addr>0x1000</kern_entry_addr>
+        </os_config>
+
+The ``kern_load_addr`` tag must match the Zephyr LOCORE_BASE symbol
+found in include/arch/x86/memory.ld.  This is currently 0x1000 and
+matches the default ACRN config.
+
+The ``kern_entry_addr`` tag must match the entry point in the built
+``zephyr.elf`` file.  You can find this with binutils, for example:
+
+    .. code-block:: console
+
+        # objdump -f build/zephyr/zephyr.elf
+
+        build/zephyr/zephyr.elf:     file format elf64-x86-64
+        architecture: i386:x86-64, flags 0x00000012:
+        EXEC_P, HAS_SYMS
+        start address 0x0000000000001000
+
+By default this entry address is the same, at 0x1000.  This has not
+always been true of all configurations, however, and will likely
+change in the future.
+
+Configure Zephyr CPUs
+=====================
+
+Now you need to configure the CPU environment ACRN presents to the
+guest.  By default Zephyr builds in SMP mode, but ACRN's default
+configuration gives it only one CPU.  Find the value of
+``CONFIG_MP_NUM_CPUS`` in the Zephyr .config file give the guest that
+many CPUs in the ``<cpu_affinity>`` tag.  For example:
+
+    .. code-block:: xml
+
+        <vm id="1">
+            <vm_type>STANDARD_VM</vm_type>
+            <console_vuart>COM Port 1</console_vuart>
+            <os_type>Non-Windows OS</os_type>
+            <vuart0>n</vuart0>
+            <vbootloader>y</vbootloader>
+            <memory>
+            <size>1024</size>
+            </memory>
+            <cpu_affinity>
+            <pcpu>
+                <pcpu_id>1</pcpu_id>
+                <real_time_vcpu>n</real_time_vcpu>
+            </pcpu>
+            <pcpu>
+                <pcpu_id>0</pcpu_id>
+                <real_time_vcpu>n</real_time_vcpu>
+            </pcpu>
+            </cpu_affinity>
+            <virtio_devices>
+            <console>
+                <use_type>Virtio console</use_type>
+                <backend_type>stdio</backend_type>
+            </console>
+            <block>/home/ztest/zephyr/zephyr.img</block>
+            </virtio_devices>
+            <load_order>POST_LAUNCHED_VM</load_order>
+            <name>POST_STD_VM2</name>
+            <priority>PRIO_LOW</priority>
+            <companion_vmid>65535</companion_vmid>
+        </vm>
+
+
+To use SMP, we have to change the pcpu_id of VM0 to 0 and 1.
+This configures ACRN to run Zephyr on CPU0 and CPU1. The ACRN hypervisor
+and Zephyr application will not boot successfully without this change.
+If you plan to run Zephyr with one CPU only, you can skip it.
+
+Build ACRN
+==========
+Once configuration is complete, ACRN builds fairly cleanly:
+
+    .. code-block:: console
+
+        $ make -j BOARD=rpl-s17 SCENARIO=scenario
+
+The only build artifact you need is the ACRN multiboot image in
+``build/hypervisor/acrn.bin``.
+
+Install ACRN
+************
+
+ACRN will boot on the hardware via the GNU GRUB bootloader, which is
+itself launched from the EFI firmware.  These need to be configured
+correctly. Please refere to the section install acrn of the  Getting
+Started Guide for ACRN:
+https://projectacrn.github.io/latest/getting-started/getting-started.html#install-acrn
+
+Run ACRN and Service VM
+***********************
+
+The ACRN hypervisor boots the Ubuntu Service VM automatically. Please
+refere to the Getting Started Guide for ACRN:
+https://projectacrn.github.io/latest/getting-started/getting-started.html#run-acrn-and-the-service-vm
+
+Assemble Zephyr EFI Boot Media
+******************************
+
+Build your Zephyr App
+=====================
+
+First, build the Zephyr application you want to run in ACRN as you
+normally would, selecting an appropriate board:
+
+    .. code-block:: console
+
+        west build -b acrn_rpl_crb samples/hello_world
+
+In this tutorial, we will use the Intel Raptor Lake Reference Board
+since it is one of the suggested platform for this
+type of scenario. Use ``acrn_rpl_crb`` as the target board parameter.
+
+Note the kconfig output in ``build/zephyr/.config``, you will need to
+reference that to configure ACRN later.
+
+Copy Images and Configure GRUB
+==============================
+
+#. Configure Zephyr GRUB (grub.cfg) as below:
+
+    .. code-block:: console
+
+        set default=0
+        set timeout=10
+
+        menuentry "Zephyr Kernel" {
+            multiboot /kernel/zephyr.elf
+        }
+
+#. Prepare the boot device. The three files (GRUB, ACRN and Zephyr)
+all need to be copied into "/efi/boot" or "kernel" directory. Note that
+GRUB must be named “bootx64.efi” for the firmware to recognize it as
+the bootloader:
+
+    .. code-block:: console
+
+        # dd if=/dev/zero of=zephyr.img bs=1M count=35
+        # mkfs.vfat -F 32 zephyr.img
+        # sudo mount `sudo losetup -f -P --show zephyr.img` /mnt
+        # sudo mkdir -p /mnt/efi/boot
+        # sudo mkdir -p /mnt/kernel
+        # cp $ZEPHYR_APP_BINARY /mnt/kernel
+        # cp $GRUB_CFG /mnt/efi/boot
+        # cp $GRUB_EFI_BINARY /mnt/efi/boot
+
+Boot zephyr VM
+******************
+
+Zephyr is RTOS, it can be launched by service VM. Please
+refere to Run Zephyr as the USer RTVM OS:
+https://projectacrn.github.io/latest/tutorials/using_zephyr_as_user_vm.html
+
+Login into the service VM, copy the "zephyr.img" to service VM folder, then
+launch the script below:
+
+    .. code-block:: console
+
+        # sudo ./launch_zephyr.sh
+
+Then Zephyr will boot automatically. You will see a console message
+from the hello_world sample application:
+
+    .. code-block:: console
+
+        Hello World! ACRN_RPL_CRB
