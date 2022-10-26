@@ -297,7 +297,6 @@ static int set_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state
 static void sensor_event_init(struct senss_mgmt_context *ctx)
 {
 	/* initial semaphore */
-	k_sem_init(&ctx->snr_later_cfg_sem, 0, 1);
 	k_sem_init(&ctx->mgmt_sem, 0, 1);
 	k_sem_init(&ctx->event_sem, 0, 1);
 
@@ -962,6 +961,4 @@ void sensor_later_config(struct senss_mgmt_context *ctx)
 	}
 
 	__ASSERT(sys_slist_is_empty(&ctx->cfg_list), "config list should be empty");
-
-	k_sem_give(&ctx->snr_later_cfg_sem);
 }

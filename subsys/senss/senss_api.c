@@ -24,6 +24,7 @@ int senss_close_sensor(int handle)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 	struct connection *conn = get_connection_by_handle(ctx, handle);
+	int ret;
 
 	if (!conn) {
 		LOG_ERR("handle:%d get connection error", handle);
@@ -33,13 +34,10 @@ int senss_close_sensor(int handle)
 
 	LOG_INF("%s, handle:%d", __func__, handle);
 
-	/* if sensor later config is needed, wait until sensor is configured */
-	if (!sys_slist_is_empty(&ctx->cfg_list)) {
-		LOG_INF("%s, config list is not empty yet, take sem", __func__);
-		k_sem_reset(&ctx->snr_later_cfg_sem);
-		k_sem_take(&ctx->snr_later_cfg_sem, K_FOREVER);
-	} else {
-		LOG_INF("%s, config list is already empty", __func__);
+	ret = senss_set_interval(handle, 0);
+	if (ret) {
+		LOG_ERR("senss set handle:%d interval err", handle);
+		return ret;
 	}
 
 	return close_sensor(conn);
@@ -138,8 +136,6 @@ const struct senss_sensor_info *senss_get_sensor_info(int handle)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 	struct connection *conn = get_connection_by_handle(ctx, handle);
-
-	LOG_INF("%s, conn:0x%x", __func__, (int)conn);
 
 	if (!conn) {
 		LOG_ERR("handle:%d get connection error", handle);

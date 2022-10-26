@@ -169,7 +169,6 @@ struct senss_mgmt_context {
 	uint16_t count;
 	struct senss_sensor *sensor_db[MAX_SENSOR_COUNT];
 	struct connection *conns[MAX_HANDLE_COUNT];
-	struct k_sem snr_later_cfg_sem;
 	struct k_sem mgmt_sem;
 	struct k_sem event_sem;
 	atomic_t event_flag;
