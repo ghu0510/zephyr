@@ -17,18 +17,6 @@
 extern "C" {
 #endif
 
-#define MAX_SENSOR_COUNT CONFIG_SENSS_MAX_SENSOR_COUNT
-#define MAX_REPORTER_COUNT CONFIG_SENSS_MAX_REPORTER_COUNT
-#define MAX_SENSITIVITY_COUNT CONFIG_SENSS_MAX_SENSITIVITY_COUNT
-#define MAX_HANDLE_COUNT CONFIG_SENSS_MAX_HANDLE_COUNT
-#define MAX_SENSOR_DATA_BUF_SIZE CONFIG_MAX_SENSOR_DATA_BUF_SIZE
-#define MAX_SENSOR_DATA_SIZE CONFIG_SENSS_MAX_SENSOR_DATA_SIZE
-
-#define RUNTIME_STACK_SIZE CONFIG_SENSS_RUNTIME_THREAD_STACK_SIZE
-#define MGMT_STACK_SIZE CONFIG_SENSS_MGMT_THREAD_STACK_SIZE
-#define RUNTIME_THREAD_PRIORITY CONFIG_SENSS_RUNTIME_THREAD_PRIORITY
-#define MGMT_THREAD_PRIORITY CONFIG_SENSS_MGMT_THREAD_PRIORITY
-
 /* indicates that this sensor is not polling yet */
 #define EXEC_TIME_OFF UINT64_MAX
 /* indicates sensor is opened now */
@@ -67,6 +55,14 @@ extern "C" {
 #define for_each_sensor_config(ctx, sensor, tmp)			\
 	SYS_SLIST_FOR_EACH_CONTAINER_SAFE(&ctx->cfg_list, sensor, tmp, cfg_node)
 
+#if CONFIG_SENSS_RUNTIME_THREAD_PRIORITY < -16 || CONFIG_SENSS_RUNTIME_THREAD_PRIORITY >= 15
+#error "Invalid runtime thread priority"
+#endif
+
+#if CONFIG_SENSS_MGMT_THREAD_PRIORITY < -16 || CONFIG_SENSS_MGMT_THREAD_PRIORITY >= 15
+#error "Invalid management thread priority"
+#endif
+
 enum sensor_trigger_mode {
 	SENSOR_TRIGGER_MODE_POLLING = 1,
 	SENSOR_TRIGGER_MODE_DATA_READY = 2,
@@ -84,7 +80,7 @@ struct senss_sensor_dt_info {
 	const struct device *dev;
 	struct senss_sensor_info info;
 	uint16_t reporter_num;
-	uint16_t reporters[MAX_REPORTER_COUNT];
+	uint16_t reporters[CONFIG_SENSS_MAX_REPORTER_COUNT];
 };
 
 /**
@@ -94,7 +90,7 @@ struct senss_sensor_dt_info {
 struct sensor_config {
 	uint32_t interval;
 	uint8_t sensitivity_count;
-	int sensitivity[MAX_SENSITIVITY_COUNT];
+	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
 };
 
 struct sensor_sample {
@@ -112,7 +108,7 @@ struct connection {
 	struct senss_sensor *sink;
 	/* interval and sensitivity set from client(sink) to reporter(source) */
 	uint32_t interval;
-	int sensitivity[MAX_SENSITIVITY_COUNT];
+	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
 	/* copy sample to connection from reporter */
 	struct sensor_sample sample;
 	/* client(sink) next consume time */
@@ -167,8 +163,8 @@ struct senss_mgmt_context {
 	struct senss_sensor_info *info;
 	int fixed_connection_count;
 	uint16_t count;
-	struct senss_sensor *sensor_db[MAX_SENSOR_COUNT];
-	struct connection *conns[MAX_HANDLE_COUNT];
+	struct senss_sensor *sensor_db[CONFIG_SENSS_MAX_SENSOR_COUNT];
+	struct connection *conns[CONFIG_SENSS_MAX_HANDLE_COUNT];
 	struct k_sem mgmt_sem;
 	struct k_sem event_sem;
 	atomic_t event_flag;
@@ -178,7 +174,7 @@ struct senss_mgmt_context {
 	struct k_thread mgmt_thread;
 	sys_slist_t cfg_list;
 	struct ring_buf sensor_ring_buf;
-	uint8_t buf[MAX_SENSOR_DATA_BUF_SIZE];
+	uint8_t buf[CONFIG_SENSS_RING_BUF_SIZE];
 };
 
 struct sensor_data_headar {
@@ -212,7 +208,7 @@ static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context
 						       int index)
 {
 	if (!sensor || index >= sensor->conns_num ||
-		sensor->dt_info->reporters[index] >= MAX_SENSOR_COUNT) {
+		sensor->dt_info->reporters[index] >= CONFIG_SENSS_MAX_SENSOR_COUNT) {
 		return NULL;
 	}
 
@@ -237,7 +233,7 @@ static inline struct senss_sensor *get_sensor_by_dev(const struct device *dev)
 static inline struct connection *get_connection_by_handle(struct senss_mgmt_context *ctx,
 							  int handle)
 {
-	if (handle >= MAX_HANDLE_COUNT) {
+	if (handle >= CONFIG_SENSS_MAX_HANDLE_COUNT) {
 		return NULL;
 	}
 
@@ -248,7 +244,7 @@ static inline int find_first_free_connection(struct senss_mgmt_context *ctx)
 {
 	int i;
 
-	for (i = ctx->fixed_connection_count; i < MAX_SENSOR_COUNT; i++) {
+	for (i = ctx->fixed_connection_count; i < CONFIG_SENSS_MAX_SENSOR_COUNT; i++) {
 		if (!ctx->conns[i]) {
 			break;
 		}
@@ -278,7 +274,7 @@ static inline bool is_filtering_sensitivity(struct sensor_config *cfg)
 {
 	bool filtering = false;
 
-	for (int i = 0; i < MAX_SENSITIVITY_COUNT; i++) {
+	for (int i = 0; i < CONFIG_SENSS_MAX_SENSITIVITY_COUNT; i++) {
 		if (cfg->sensitivity[i] != 0) {
 			filtering = true;
 			break;

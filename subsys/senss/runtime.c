@@ -57,16 +57,16 @@ static void add_data_to_sensor_buf(struct senss_mgmt_context *ctx,
 				   struct connection *conn)
 {
 	struct sensor_data_headar *header;
-	uint8_t data[MAX_SENSOR_DATA_SIZE];
+	uint8_t data[CONFIG_SENSS_MAX_SENSOR_DATA_SIZE];
 	uint32_t data_size;
 
 	if (ring_buf_space_get(&ctx->sensor_ring_buf) < sizeof(*header) + sensor->data_size) {
 		LOG_WRN("ring buffer will overflow, ignore the coming data");
 		return;
 	}
-	__ASSERT(sizeof(*header) + sensor->data_size <= MAX_SENSOR_DATA_SIZE,
+	__ASSERT(sizeof(*header) + sensor->data_size <= CONFIG_SENSS_MAX_SENSOR_DATA_SIZE,
 		"data_size:%d is too large, should enlarge MAX_SENSOR_DATA_SIZE:%d",
-		sensor->data_size, MAX_SENSOR_DATA_SIZE);
+		sensor->data_size, CONFIG_SENSS_MAX_SENSOR_DATA_SIZE);
 
 	header = (struct sensor_data_headar *)data;
 	header->data_size = sensor->data_size;

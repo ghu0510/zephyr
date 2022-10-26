@@ -50,12 +50,12 @@ config SENSS_MAX_HANDLE_COUNT
 	  be created for each hanle
 	  Typical values are 256
 
-config MAX_SENSOR_DATA_BUF_SIZE
-	int "maximum sensor data buf size"
+config SENSS_RING_BUF_SIZE
+	int "ring buf size to store sensor data"
 	depends on SENSS
 	default 16384
 	help
-	  This is the maximum sensor data buf to store sensor data that
+	  This is the ring buffer to store sensor data that
 	  will be posted to application
 	  Typical values are 16 * 1024
 

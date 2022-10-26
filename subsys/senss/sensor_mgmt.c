@@ -24,14 +24,14 @@ static struct senss_sensor_dt_info sensors_dt[] = {
 };
 static struct senss_mgmt_context senss_ctx = {0};
 
-K_THREAD_STACK_DEFINE(runtime_stack, RUNTIME_STACK_SIZE);
-K_THREAD_STACK_DEFINE(mgmt_stack, MGMT_STACK_SIZE);
+K_THREAD_STACK_DEFINE(runtime_stack, CONFIG_SENSS_RUNTIME_THREAD_STACK_SIZE);
+K_THREAD_STACK_DEFINE(mgmt_stack, CONFIG_SENSS_MGMT_THREAD_STACK_SIZE);
 
 static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 {
 	struct sensor_data_headar *header;
 	struct connection *conn;
-	uint8_t buf[MAX_SENSOR_DATA_SIZE];
+	uint8_t buf[CONFIG_SENSS_MAX_SENSOR_DATA_SIZE];
 	uint32_t wanted_size = sizeof(*header);
 	uint32_t ret_size, rd_size = 0;
 	uint16_t data_size = 0;
@@ -43,10 +43,10 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 		if (rd_size == sizeof(*header)) {
 			header = (struct sensor_data_headar *)buf;
 			data_size = header->data_size;
-			__ASSERT(data_size + sizeof(*header) <= MAX_SENSOR_DATA_SIZE,
+			__ASSERT(data_size + sizeof(*header) <= CONFIG_SENSS_MAX_SENSOR_DATA_SIZE,
 						"invalid data size:%d", header->data_size);
 			conn_index = header->conn_index;
-			__ASSERT(conn_index < MAX_HANDLE_COUNT,
+			__ASSERT(conn_index < CONFIG_SENSS_MAX_HANDLE_COUNT,
 						"invalid connection index:%d", conn_index);
 			/* get data_size from header, and then read sensor data from ring buf */
 			wanted_size = data_size;
@@ -135,7 +135,7 @@ static void init_sensor_config(struct sensor_config *config, int type)
 	config->interval = SENSOR_INTERVAL_MAX;
 	config->sensitivity_count = get_max_valid_index(type);
 
-	__ASSERT(config->sensitivity_count <= MAX_SENSITIVITY_COUNT,
+	__ASSERT(config->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
 			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
 			config->sensitivity_count);
 
@@ -227,8 +227,8 @@ static void init_each_connection(struct senss_mgmt_context *ctx,
 	__ASSERT(conn->sample.data, "alloc memory for sample data error");
 	conn->sample.size = source->data_size;
 	conn->interval = SENSOR_INTERVAL_MAX;
-	for (i = 0; i < MAX_SENSITIVITY_COUNT; i++) {
-		conn->sensitivity[i] = SENSOR_SENSITIVITY_MAX;
+	for (i = 0; i < CONFIG_SENSS_MAX_SENSITIVITY_COUNT; i++) {
+		conn->sensitivity[i] = CONFIG_SENSS_MAX_SENSITIVITY_COUNT;
 	}
 }
 
@@ -254,7 +254,9 @@ static void init_sensor_connections(struct senss_mgmt_context *ctx, struct senss
 		 */
 		init_each_connection(ctx, conn, reporter_sensor, sensor, false);
 		conn->index = ctx->fixed_connection_count++;
-		__ASSERT(conn->index < MAX_SENSOR_COUNT,
+		LOG_INF("%s, report:%s, client:%s, connection:%d",
+			__func__, reporter_sensor->dev->name, sensor->dev->name, conn->index);
+		__ASSERT(conn->index < CONFIG_SENSS_MAX_SENSOR_COUNT,
 			"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
 
 		ctx->conns[conn->index] = conn;
@@ -276,8 +278,9 @@ static void get_connections_index(struct senss_mgmt_context *ctx,
 		return;
 	}
 
-	__ASSERT(sensor->conns_num <= MAX_REPORTER_COUNT,
-		"connection number:%d exceed max number:%d", sensor->conns_num, MAX_REPORTER_COUNT);
+	__ASSERT(sensor->conns_num <= CONFIG_SENSS_MAX_REPORTER_COUNT,
+				"connection number:%d exceed max number:%d",
+				sensor->conns_num, CONFIG_SENSS_MAX_REPORTER_COUNT);
 
 	for_each_sensor_connection(i, sensor, conn) {
 		conn_idx[i] = conn->index;
@@ -287,7 +290,7 @@ static void get_connections_index(struct senss_mgmt_context *ctx,
 static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sensor)
 {
 	const struct senss_sensor_api *sensor_api;
-	int conn_idx[MAX_REPORTER_COUNT] = {0};
+	int conn_idx[CONFIG_SENSS_MAX_REPORTER_COUNT] = {0};
 
 	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
 	sensor_api = sensor->dev->api;
@@ -614,14 +617,14 @@ int senss_init(void)
 	ctx->senss_initialized = true;
 
 	/* sensor subsystem runtime thread: sensor scheduling and sensor data processing */
-	k_thread_create(&ctx->runtime_thread, runtime_stack, RUNTIME_STACK_SIZE,
+	k_thread_create(&ctx->runtime_thread, runtime_stack, CONFIG_SENSS_RUNTIME_THREAD_STACK_SIZE,
 			(k_thread_entry_t) senss_runtime_thread, ctx, NULL, NULL,
-			K_PRIO_COOP(RUNTIME_THREAD_PRIORITY), 0, K_NO_WAIT);
+			CONFIG_SENSS_RUNTIME_THREAD_PRIORITY, 0, K_NO_WAIT);
 
 	/* sensor management thread: get sensor data from senss and dispatch data */
-	k_thread_create(&ctx->mgmt_thread, mgmt_stack, MGMT_STACK_SIZE,
+	k_thread_create(&ctx->mgmt_thread, mgmt_stack, CONFIG_SENSS_MGMT_THREAD_STACK_SIZE,
 			(k_thread_entry_t) senss_mgmt_thread, ctx, NULL, NULL,
-			K_PRIO_COOP(MGMT_THREAD_PRIORITY), 0, K_NO_WAIT);
+			CONFIG_SENSS_MGMT_THREAD_PRIORITY, 0, K_NO_WAIT);
 
 	return ret;
 }
@@ -635,7 +638,7 @@ int senss_deinit(void)
 	int i, j;
 
 	/* close all opened sensors */
-	for (i = 0; i < MAX_HANDLE_COUNT; i++) {
+	for (i = 0; i < CONFIG_SENSS_MAX_HANDLE_COUNT; i++) {
 		conn = ctx->conns[i];
 		if (!conn) {
 			continue;
@@ -707,7 +710,7 @@ int open_sensor(int type, int sensor_index)
 	init_each_connection(ctx, conn, reporter_sensor, client_sensor, true);
 
 	conn->index = find_first_free_connection(ctx);
-	__ASSERT(conn->index < MAX_SENSOR_COUNT,
+	__ASSERT(conn->index < CONFIG_SENSS_MAX_SENSOR_COUNT,
 		"connection index:%d should less than MAX_SENSOR_COUNT", conn->index);
 
 	/* multi applications could open sensor simultaneously, mutex protect to global variable */
@@ -745,7 +748,7 @@ int close_sensor(struct connection *conn)
 			break;
 		}
 	}
-	__ASSERT(conn->index < MAX_SENSOR_COUNT,
+	__ASSERT(conn->index < CONFIG_SENSS_MAX_SENSOR_COUNT,
 		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
 
 	if (client->conns != conn) {
@@ -907,7 +910,7 @@ int senss_sensor_post_data(const struct device *dev, void *buf, int size)
 			size, sensor->data_size);
 		return -EINVAL;
 	}
-	LOG_INF("%s, sensor:%s, data_size:%d", __func__, sensor->dev->name, sensor->data_size);
+	LOG_DBG("%s, sensor:%s, data_size:%d", __func__, sensor->dev->name, sensor->data_size);
 
 	memcpy(sensor->data_buf, buf, size);
 
