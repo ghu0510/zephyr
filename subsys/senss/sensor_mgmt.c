@@ -29,29 +29,51 @@ K_THREAD_STACK_DEFINE(mgmt_stack, MGMT_STACK_SIZE);
 
 static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 {
-	struct sensor_data_headar header;
+	struct sensor_data_headar *header;
 	struct connection *conn;
 	uint8_t buf[MAX_SENSOR_DATA_SIZE];
+	uint32_t wanted_size = sizeof(*header);
+	uint32_t ret_size, rd_size = 0;
+	uint16_t data_size = 0;
+	uint16_t conn_index = 0;
 	int ret = 0;
 
-	while (ring_buf_size_get(&ctx->sensor_ring_buf) > 0) {
-		/* get sensor_data_header first */
-		ring_buf_get(&ctx->sensor_ring_buf, (uint8_t *)&header, sizeof(header));
+	while ((ret_size = ring_buf_get(&ctx->sensor_ring_buf, buf + rd_size, wanted_size)) > 0) {
+		rd_size += ret_size;
+		if (rd_size == sizeof(*header)) {
+			header = (struct sensor_data_headar *)buf;
+			data_size = header->data_size;
+			__ASSERT(data_size + sizeof(*header) <= MAX_SENSOR_DATA_SIZE,
+						"invalid data size:%d", header->data_size);
+			conn_index = header->conn_index;
+			__ASSERT(conn_index < MAX_HANDLE_COUNT,
+						"invalid connection index:%d", conn_index);
+			/* get data_size from header, and then read sensor data from ring buf */
+			wanted_size = data_size;
+		} else if (rd_size == sizeof(*header) + wanted_size) {
+			conn = ctx->conns[conn_index];
+			if (!conn || !conn->data_evt_cb) {
+				LOG_WRN("%s, connection is NULL or event callback isn't registered",
+								__func__);
+				continue;
+			}
+			LOG_DBG("%s(%d), rd_size:%d", __func__, __LINE__, rd_size);
 
-		__ASSERT(header.data_size <= MAX_SENSOR_DATA_SIZE,
-					"invalid data size:%d", header.data_size);
-		__ASSERT(header.conn_index < MAX_HANDLE_COUNT,
-					"invalid connection index:%d", header.conn_index);
-		/* then get sensor data according to sensor data size */
-		ring_buf_get(&ctx->sensor_ring_buf, buf, header.data_size);
-		conn = ctx->conns[header.conn_index];
-		__ASSERT(conn, "invalid connection");
+			ret = conn->data_evt_cb((int)conn_index, buf + sizeof(*header),
+								data_size, conn->cb_param);
+			/* read next sample header */
+			wanted_size = sizeof(*header);
+			rd_size = 0;
+		} else {
+			LOG_ERR("%s, invalid ret_size:%d, rd_size:%d", __func__, ret_size, rd_size);
+			ret = -EINVAL;
+		}
+	}
 
-		LOG_DBG("%s, data_size:%d, conn_index:%d",
-					__func__, header.data_size, header.conn_index);
-
-		ret = conn->data_evt_cb((int)header.conn_index,
-							buf, header.data_size, conn->cb_param);
+	if (ret_size == 0 && wanted_size != sizeof(*header)) {
+		LOG_ERR("%s(%d), ret_size:%d, wanted_size:%d",
+					__func__, __LINE__, ret_size, wanted_size);
+		__ASSERT(wanted_size, "wanted_size:%d", wanted_size);
 	}
 
 	return ret;

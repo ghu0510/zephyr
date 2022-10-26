@@ -56,20 +56,30 @@ static void add_data_to_sensor_buf(struct senss_mgmt_context *ctx,
 				   struct senss_sensor *sensor,
 				   struct connection *conn)
 {
-	struct sensor_data_headar header;
+	struct sensor_data_headar *header;
+	uint8_t data[MAX_SENSOR_DATA_SIZE];
+	uint32_t data_size;
 
-	header.data_size = sensor->data_size;
-	header.conn_index = conn->index;
-	/* put sensor data header first */
-	ring_buf_put(&ctx->sensor_ring_buf, (uint8_t *)&header, sizeof(header));
-	/* put sensor data */
-	ring_buf_put(&ctx->sensor_ring_buf, sensor->data_buf, sensor->data_size);
-
-	if (ring_buf_size_get(&ctx->sensor_ring_buf) > MAX_SENSOR_DATA_BUF_SIZE) {
-		LOG_WRN("ring buffer is full, old data will be override");
+	if (ring_buf_space_get(&ctx->sensor_ring_buf) < sizeof(*header) + sensor->data_size) {
+		LOG_WRN("ring buffer will overflow, ignore the coming data");
+		return;
 	}
+	__ASSERT(sizeof(*header) + sensor->data_size <= MAX_SENSOR_DATA_SIZE,
+		"data_size:%d is too large, should enlarge MAX_SENSOR_DATA_SIZE:%d",
+		sensor->data_size, MAX_SENSOR_DATA_SIZE);
 
-	LOG_DBG("%s, conn_index:%d, data_size:%d", __func__, conn->index, header.data_size);
+	header = (struct sensor_data_headar *)data;
+	header->data_size = sensor->data_size;
+	header->conn_index = conn->index;
+
+	memcpy(data + sizeof(*header), sensor->data_buf, sensor->data_size);
+
+	data_size = ring_buf_put(&ctx->sensor_ring_buf, data, sizeof(*header) + sensor->data_size);
+	__ASSERT(data_size == sizeof(*header) + sensor->data_size,
+			"put data size:%d is not expected :%d",
+			data_size, sizeof(*header) + sensor->data_size);
+
+	LOG_DBG("%s, conn_index:%d, data_size:%d", __func__, conn->index, sensor->data_size);
 }
 
 static int sensor_sensitivity_test(struct senss_sensor *sensor,
