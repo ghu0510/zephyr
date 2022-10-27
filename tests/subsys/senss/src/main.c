@@ -203,6 +203,184 @@ ZTEST(senss_tests, test_senss_set_interval)
 	zassert_equal(ret, 0, "Close ACC 0 failed");
 }
 
+/**
+ * @brief Test Get Interval
+ *
+ * This test verifies senss_get_interval
+ */
+ZTEST(senss_tests, test_senss_get_interval)
+{
+	int handle = 0;
+	uint32_t value;
+	int ret;
+
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&handle);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	/* positive test */
+	ret = senss_get_interval(handle, &value);
+	zassert_equal(ret, 0, "Get ACC 0 interval failed");
+	zassert_equal(value, 0, "Value is not equal to 0");
+
+	ret = senss_set_interval(handle, INTERVAL_10HZ);
+	zassert_equal(ret, 0, "Set ACC 0 interval 100 ms failed");
+	value = 0;
+	ret = senss_get_interval(handle, &value);
+	zassert_equal(ret, 0, "Get ACC 0 interval 100 ms failed");
+	zassert_equal(value, INTERVAL_10HZ, "Value is not equal to INTERVAL_10HZ");
+
+	ret = senss_set_interval(handle, INTERVAL_20HZ);
+	zassert_equal(ret, 0, "Set ACC 0 interval 50 ms failed");
+	value = 0;
+	ret = senss_get_interval(handle, &value);
+	zassert_equal(ret, 0, "Get ACC 0 interval 50 ms failed");
+	zassert_equal(value, INTERVAL_20HZ, "Value is not equal to INTERVAL_20HZ");
+
+	/* negative test */
+	ret = senss_get_interval(SENSS_SENSOR_INVALID_HANDLE, &value);
+	zassert_true(ret < 0, "Negative test 1 failed");
+	/* Pass NULL to uint32_t *value */
+	ret = senss_get_interval(handle, NULL);
+	zassert_true(ret < 0, "Negative test 2 failed");
+
+	ret = senss_close_sensor(handle);
+	zassert_equal(ret, 0, "Close ACC 0 failed");
+}
+
+/**
+ * @brief Test Set Sensitivity
+ *
+ * This test verifies senss_set_sensitivity
+ */
+ZTEST(senss_tests, test_senss_set_sensitivity)
+{
+	int handle = 0;
+	int ret;
+
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&handle);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	/* positive test */
+	ret = senss_set_sensitivity(handle, 0, 100);
+	zassert_equal(ret, 0, "Set ACC 0 index 0 sensitivity 100 failed");
+
+	ret = senss_set_sensitivity(handle, 2, 50);
+	zassert_equal(ret, 0, "Set ACC 0 index 2 sensitivity 50 failed");
+
+	ret = senss_set_sensitivity(handle, SENSS_INDEX_ALL, 100);
+	zassert_equal(ret, 0, "Set ACC 0 all index sensitivity 100 failed");
+
+	/* negative test */
+	ret = senss_set_sensitivity(SENSS_SENSOR_INVALID_HANDLE, 0, 100);
+	zassert_true(ret < 0, "Negative test 1 failed");
+
+	/* For ACC, valid channel: [-1,2] */
+	ret = senss_set_sensitivity(handle, -2, 100);
+	zassert_true(ret < 0, "Negative test 2 failed");
+
+	ret = senss_set_sensitivity(handle, 3, 100);
+	zassert_true(ret < 0, "Negative test 3 failed");
+
+	ret = senss_close_sensor(handle);
+	zassert_equal(ret, 0, "Close ACC 0 failed");
+}
+
+/**
+ * @brief Test Set Sensitivity
+ *
+ * This test verifies senss_get_sensitivity
+ */
+ZTEST(senss_tests, test_senss_get_sensitivity)
+{
+	int handle = 0;
+	uint32_t value;
+	int ret;
+
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&handle);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	/* positive test */
+	ret = senss_get_sensitivity(handle, 0, &value);
+	zassert_equal(ret, 0, "Get ACC 0 index 0 sensitivity failed");
+	zassert_equal(value, 0, "Value is not equal to 0");
+
+	ret = senss_set_sensitivity(handle, 0, 100);
+	zassert_equal(ret, 0, "Set ACC 0 index 0 sensitivity 100 failed");
+	value = 0;
+	ret = senss_get_sensitivity(handle, 0, &value);
+	zassert_equal(ret, 0, "Get ACC 0 index 0 sensitivity 100 failed");
+	zassert_equal(value, 100, "Value is not equal to 100");
+
+	ret = senss_set_sensitivity(handle, 2, 50);
+	zassert_equal(ret, 0, "Set ACC 0 index 2 sensitivity 50 failed");
+	value = 0;
+	ret = senss_get_sensitivity(handle, 2, &value);
+	zassert_equal(ret, 0, "Get ACC 0 index 2 sensitivity 50 failed");
+	zassert_equal(value, 50, "Value is not equal to 50");
+
+	ret = senss_set_sensitivity(handle, SENSS_INDEX_ALL, 100);
+	zassert_equal(ret, 0, "Set ACC 0 all index sensitivity 100 failed");
+	value = 0;
+	ret = senss_get_sensitivity(handle, SENSS_INDEX_ALL, &value);
+	zassert_equal(ret, 0, "Get ACC 0 all sensitivity 100 failed");
+	zassert_equal(value, 100, "Value is not equal to 100");
+
+	/* negative test */
+	ret = senss_get_sensitivity(SENSS_SENSOR_INVALID_HANDLE, 0, &value);
+	zassert_true(ret < 0, "Negative test 1 failed");
+
+	/* For ACC, valid channel: [-1,2] */
+	ret = senss_get_sensitivity(handle, -2, &value);
+	zassert_true(ret < 0, "Negative test 2 failed");
+
+	ret = senss_get_sensitivity(handle, 3, &value);
+	zassert_true(ret < 0, "Negative test 3 failed");
+
+	/* Pass NULL to uint32_t *value */
+	ret = senss_get_sensitivity(handle, 0, NULL);
+	zassert_true(ret < 0, "Negative test 4 failed");
+
+	ret = senss_close_sensor(handle);
+	zassert_equal(ret, 0, "Close ACC 0 failed");
+}
+
+/**
+ * @brief Test Senss Read Sample
+ *
+ * This test verifies senss_read_sample
+ */
+ZTEST(senss_tests, test_senss_read_sample)
+{
+	int handle = 0;
+	struct senss_sensor_value_3d_int32 sample = {0};
+	int ret;
+
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&handle);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	/* positive test */
+	ret = senss_read_sample(handle, &sample, sizeof(sample));
+	zassert_equal(ret, 0, "Read Sample ACC 0 failed");
+
+	/* negative test */
+	ret = senss_read_sample(SENSS_SENSOR_INVALID_HANDLE, &sample,
+			sizeof(sample));
+	zassert_true(ret < 0, "Negative test 1 failed");
+
+	ret = senss_read_sample(handle, NULL, sizeof(sample));
+	zassert_true(ret < 0, "Negative test 2 failed");
+
+	ret = senss_read_sample(handle, &sample, 0);
+	zassert_true(ret < 0, "Negative test 3 failed");
+
+	ret = senss_close_sensor(handle);
+	zassert_equal(ret, 0, "Close ACC 0 failed");
+}
+
 static int acc_0_callback(int handle, void *buf, int size, void *param)
 {
 	const struct senss_sensor_info *info = senss_get_sensor_info(handle);
