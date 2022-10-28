@@ -29,7 +29,8 @@ that help you to install the toolchain easily:
 
 - xtensa-dist.tar.gz
 
-You can download it from http://gale.hf.intel.com/~nashif/audio/xtensa-dist.tar.gz.
+You can download it from http://gale.hf.intel.com/~nashif/audio/, along with
+the simulator; see the next section.
 
 With the above package, set the toolchain up:
 
@@ -59,10 +60,9 @@ Make sure also that you have these additional libraries installed:
 
 .. code-block:: console
 
-   sudo apt-get install libncurses5 libncurses6 libncursesw5 libncursesw6 libtinfo6 libcrypt1
+   sudo apt-get install libncurses5 libncurses6 libncursesw5 libncursesw6 libtinfo6 libcrypt1 libssl-dev
 
-Once installed, you are ready to build and run a Zephyr application for your board
-using the Cadence XCC compiler and the software simulator.
+Once installed, you are ready to build and run a Zephyr application for your board using the Cadence XCC compiler and the software simulator.
 
 A few environment variables are needed to tell Zephyr where the toolchain is:
 
@@ -70,8 +70,9 @@ A few environment variables are needed to tell Zephyr where the toolchain is:
 
    export ZEPHYR_TOOLCHAIN_VARIANT=xcc
 
-   export XTENSA_TOOLCHAIN_PATH=$HOME/xtensa/install/tools
+   export XTENSA_TOOLCHAIN_PATH=$HOME/xtensa/XtDevTools/install/tools
    export TOOLCHAIN_VER=RG-2019.12-linux
+   export XTENSA_CORE=ace10_LX7HiFi4
 
 You may also need to define the license server for XCC. Set the environment
 variable `XTENSAD_LICENSE_FILE`:
@@ -104,25 +105,41 @@ export the path to that version. For example:
 
    export MTL_SIM_DIR=~/sim_mtl_20221018
 
+Building Rimage
+###############
+
+You will need to build the upstream rimage and install it:
+
+.. code-block:: console
+
+   git clone https://github.com/thesofproject/rimage
+   cd rimage
+   git submodule init
+   git submodule update
+   cmake -B build/
+   sudo make -C build/ install
+
+If you get a error message "error: Unsupported config version 3.0",
+you might need to get the latest code of rimage tool from upstream and
+rebuild it.
 
 Building a Zephyr Application
 #############################
 
 The `intel_adsp_ace15_mtpm_sim` board currently exists as patches on the internal
-`zephyr` repository. You can still build for it as you would any other
+`Zephyr` repository. You can still build for it as you would any other
 upstream board:
 
 .. code-block:: console
 
    west build -p auto -b intel_adsp_ace15_mtpm_sim samples/hello_world
 
-
 Run in the Simulator
 ####################
 
 Invocation of the simulator itself is somewhat involved, so the
 details are now handled by a wrapper script (mtlsim.py) which is
-integrated as a zephyr native emulator.
+integrated as a Zephyr native emulator.
 
 After building with west, call
 
@@ -136,7 +153,7 @@ You can also build and run in one single command::
 
    west build -p auto -b intel_adsp_ace15_mtpm_sim samples/hello_world -t run
 
-This is a typical output after running the flash command:
+This is a typical output after running the command:
 
 .. code-block:: console
 
@@ -409,28 +426,6 @@ instructions.  If you do need to debug the ROM, you can specify it's
 ELF file on the command line instead, or use the gdb "file" command to
 change the symbol table.
 
-Building Rimage
-###############
-
-The included binary should be good enough, but if you need to track
-upstream changes, the SOF rimage tool is available from public github.
-Build it in your host environment:
-
-.. code-block:: console
-
-   git clone https://github.com/thesofproject/rimage
-   cd rimage
-   git submodule init
-   git submodule update
-   cmake .
-   make
-   sudo cp ./rimage /usr/local/bin
-
-
-Note: If you get a error message "error: Unsupported config version 3.0",
-you might need to get the latest code of rimage tool from upstream and
-build it.
-
 Troubleshooting
 ################
 
@@ -442,6 +437,26 @@ This error can happen as a result of license server issues. You can export
 FLEXLM_DIAGNOSTICS=3 to get the detailed server connection log. The incorrect
 machine time will cause failure. If the connection still fails, you can try to
 clear your caches by deleting the ~/.cache and ~/.ccache directories.
+
+- Cannot find simulator
+
+When West can't find the simulator on the path you gave it, you'll get an error like this:
+
+.. code-block:: console
+
+   ...
+   Firmware manifest and signing completed !
+   [2/3] cd /home/laurenmu/intel-zephyrproject/zephyr/build && MTLSIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
+   /bin/sh: 1: MTLSIM-NOTFOUND: not found
+   FAILED: zephyr/CMakeFiles/run_mtlsim /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/CMakeFiles/run_mtlsim
+   cd /home/laurenmu/intel-zephyrproject/zephyr/build && MTLSIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
+   ninja: build stopped: subcommand failed.
+   FATAL ERROR: command exited with status 1: /usr/bin/cmake --build /home/laurenmu/intel-zephyrproject/zephyr/build --target run
+
+If you've set the path but still get this error, rebuild Zephyr with the
+pristine option -p. The Linux environment variable is copied into CMake during
+the configuration stage, so if you set or change the environment variable without
+redoing the build from scratch, it won't know where the simulator is.
 
 - No Zephyr output message
 
@@ -459,3 +474,13 @@ One of the possible reason is the xt-gdb failed to start. You can run
 $XTENSA_TOOLCHAIN_PATH/$TOOLCHAIN_VER/XtensaTools/bin/xt-gdb in the
 terminal to check. It is likely that the environment variable is
 not setting correctly or some shared library using by xt-gdb is missing.
+
+- Zephyr cache issues
+
+Clearing your cache is good for more than just license server issues.
+If you're having inexplicable errors, try rebuilding after deleting the
+caches:
+
+.. code-block:: console
+
+   rm -rf ~/.ccache ~/.cache/zephyr
