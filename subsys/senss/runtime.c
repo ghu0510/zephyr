@@ -223,7 +223,7 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		} else {
 			add_data_to_sensor_buf(ctx, sensor, conn);
 			/* post data to applcation client directly */
-			k_sem_give(&ctx->mgmt_sem);
+			k_sem_give(&ctx->dispatch_sem);
 		}
 	}
 

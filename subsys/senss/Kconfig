@@ -77,28 +77,37 @@ config SENSS_RUNTIME_THREAD_STACK_SIZE
 	  This is the stack size for sensor runtime thread
 	  Typical values are 4096
 
-config SENSS_MGMT_THREAD_STACK_SIZE
-	int "stack size for sensor management thread"
+config SENSS_DISPATCH_THREAD_STACK_SIZE
+	int "stack size for sensor dispatch thread"
 	depends on SENSS
 	default 1024
 	help
-	  This is the stack size for sensor management thread
+	  This is the stack size for sensor dispatch thread
 	  Typical values are 1024
 
 config SENSS_RUNTIME_THREAD_PRIORITY
 	int "priority for sensor subsysterm runtime thread"
 	depends on SENSS
-	default 7
+	default 9
 	help
-	  This is the thread priority for sensor subsysterm runtim thread
-	  Typical values are 7
+	  This is the thread priority for sensor subsysterm runtime thread
+	  Ring buffer data is stored by runtime thread, and then give semaphore
+	  to notify dispatch thread, runtime thread priority should lower than
+	  dispatch thread priority to ensure dispatch thread could fetch data as
+	  soon as runtime thread give semaphore. Take for example, if runtime
+	  priority is higher than dispatch thread, and runtime running in full
+	  loadering with no sleep, then dispatch thread has no change to fetch
+	  data, then ring buf will always be put into data until overflow.
+	  Typical values are 9
 
-config SENSS_MGMT_THREAD_PRIORITY
-	int "priority for sensor management thread"
+config SENSS_DISPATCH_THREAD_PRIORITY
+	int "priority for sensor dispatch thread"
 	depends on SENSS
 	default 8
 	help
-	  This is the thread priority for sensor management thread
+	  This is the thread priority for sensor subsystem dispatch thread
+	  Ring buffer data should be fetched ASAP, so Dispatch
+	  thread priority should be higher than runtime thread
 	  Typical values are 8
 
 source "subsys/senss/sensor/phy_acc/Kconfig"

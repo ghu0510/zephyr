@@ -59,8 +59,8 @@ extern "C" {
 #error "Invalid runtime thread priority"
 #endif
 
-#if CONFIG_SENSS_MGMT_THREAD_PRIORITY < -16 || CONFIG_SENSS_MGMT_THREAD_PRIORITY >= 15
-#error "Invalid management thread priority"
+#if CONFIG_SENSS_DISPATCH_THREAD_PRIORITY < -16 || CONFIG_SENSS_DISPATCH_THREAD_PRIORITY >= 15
+#error "Invalid dispatch thread priority"
 #endif
 
 enum sensor_trigger_mode {
@@ -165,13 +165,13 @@ struct senss_mgmt_context {
 	uint16_t count;
 	struct senss_sensor *sensor_db[CONFIG_SENSS_MAX_SENSOR_COUNT];
 	struct connection *conns[CONFIG_SENSS_MAX_HANDLE_COUNT];
-	struct k_sem mgmt_sem;
+	struct k_sem dispatch_sem;
 	struct k_sem event_sem;
 	atomic_t event_flag;
 	struct k_mutex rpt_mutex;
 	struct k_mutex cfg_mutex;
 	struct k_thread runtime_thread;
-	struct k_thread mgmt_thread;
+	struct k_thread dispatch_thread;
 	sys_slist_t cfg_list;
 	struct ring_buf sensor_ring_buf;
 	uint8_t buf[CONFIG_SENSS_RING_BUF_SIZE];

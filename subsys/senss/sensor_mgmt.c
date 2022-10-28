@@ -25,7 +25,7 @@ static struct senss_sensor_dt_info sensors_dt[] = {
 static struct senss_mgmt_context senss_ctx = {0};
 
 K_THREAD_STACK_DEFINE(runtime_stack, CONFIG_SENSS_RUNTIME_THREAD_STACK_SIZE);
-K_THREAD_STACK_DEFINE(mgmt_stack, CONFIG_SENSS_MGMT_THREAD_STACK_SIZE);
+K_THREAD_STACK_DEFINE(dispatch_stack, CONFIG_SENSS_DISPATCH_THREAD_STACK_SIZE);
 
 static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 {
@@ -79,14 +79,14 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 	return ret;
 }
 
-static void senss_mgmt_thread(void *p1, void *p2, void *p3)
+static void senss_dispatch_thread(void *p1, void *p2, void *p3)
 {
 	struct senss_mgmt_context *ctx = p1;
 
 	LOG_INF("%s start...", __func__);
 
 	do {
-		k_sem_take(&ctx->mgmt_sem, K_FOREVER);
+		k_sem_take(&ctx->dispatch_sem, K_FOREVER);
 
 		fetch_data_and_dispatch(ctx);
 	} while (1);
@@ -322,7 +322,7 @@ static int set_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state
 static void sensor_event_init(struct senss_mgmt_context *ctx)
 {
 	/* initial semaphore */
-	k_sem_init(&ctx->mgmt_sem, 0, 1);
+	k_sem_init(&ctx->dispatch_sem, 0, 1);
 	k_sem_init(&ctx->event_sem, 0, 1);
 
 	/* initial events */
@@ -621,10 +621,11 @@ int senss_init(void)
 			(k_thread_entry_t) senss_runtime_thread, ctx, NULL, NULL,
 			CONFIG_SENSS_RUNTIME_THREAD_PRIORITY, 0, K_NO_WAIT);
 
-	/* sensor management thread: get sensor data from senss and dispatch data */
-	k_thread_create(&ctx->mgmt_thread, mgmt_stack, CONFIG_SENSS_MGMT_THREAD_STACK_SIZE,
-			(k_thread_entry_t) senss_mgmt_thread, ctx, NULL, NULL,
-			CONFIG_SENSS_MGMT_THREAD_PRIORITY, 0, K_NO_WAIT);
+	/* sensor dispatch thread: get sensor data from senss and dispatch data */
+	k_thread_create(&ctx->dispatch_thread, dispatch_stack,
+			CONFIG_SENSS_DISPATCH_THREAD_STACK_SIZE,
+			(k_thread_entry_t) senss_dispatch_thread, ctx, NULL, NULL,
+			CONFIG_SENSS_DISPATCH_THREAD_PRIORITY, 0, K_NO_WAIT);
 
 	return ret;
 }
