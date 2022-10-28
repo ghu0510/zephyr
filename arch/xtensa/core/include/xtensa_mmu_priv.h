@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <zephyr/toolchain.h>
+
 #ifndef ZEPHYR_ARCH_XTENSA_XTENSA_MMU_PRIV_H_
 #define ZEPHYR_ARCH_XTENSA_XTENSA_MMU_PRIV_H_
 
@@ -84,13 +86,13 @@
 #define Z_XTENSA_PAGE_TABLE_VADDR \
 	Z_XTENSA_PTE_ENTRY_VADDR(Z_XTENSA_PTEVADDR)
 
-static inline void xtensa_rasid_set(uint32_t rasid)
+static ALWAYS_INLINE void xtensa_rasid_set(uint32_t rasid)
 {
 	__asm__ volatile("wsr %0, rasid\n\t"
 			"isync\n" : : "a"(rasid));
 }
 
-static inline uint32_t xtensa_rasid_get(void)
+static ALWAYS_INLINE uint32_t xtensa_rasid_get(void)
 {
 	uint32_t rasid;
 
@@ -98,52 +100,52 @@ static inline uint32_t xtensa_rasid_get(void)
 	return rasid;
 }
 
-static inline void xtensa_itlb_entry_invalidate(uint32_t entry)
+static ALWAYS_INLINE void xtensa_itlb_entry_invalidate(uint32_t entry)
 {
 	__asm__ volatile("iitlb %0\n\t"
 			: : "a" (entry));
 }
 
-static inline void xtensa_itlb_entry_invalidate_sync(uint32_t entry)
+static ALWAYS_INLINE void xtensa_itlb_entry_invalidate_sync(uint32_t entry)
 {
 	__asm__ volatile("iitlb %0\n\t"
 			"isync\n\t"
 			: : "a" (entry));
 }
 
-static inline void xtensa_dtlb_entry_invalidate_sync(uint32_t entry)
+static ALWAYS_INLINE void xtensa_dtlb_entry_invalidate_sync(uint32_t entry)
 {
 	__asm__ volatile("idtlb %0\n\t"
 			"dsync\n\t"
 			: : "a" (entry));
 }
 
-static inline void xtensa_dtlb_entry_invalidate(uint32_t entry)
+static ALWAYS_INLINE void xtensa_dtlb_entry_invalidate(uint32_t entry)
 {
 	__asm__ volatile("idtlb %0\n\t"
 			: : "a" (entry));
 }
 
-static inline void xtensa_dtlb_entry_write_sync(uint32_t pte, uint32_t entry)
+static ALWAYS_INLINE void xtensa_dtlb_entry_write_sync(uint32_t pte, uint32_t entry)
 {
 	__asm__ volatile("wdtlb %0, %1\n\t"
 			"dsync\n\t"
 			: : "a" (pte), "a"(entry));
 }
 
-static inline void xtensa_dtlb_entry_write(uint32_t pte, uint32_t entry)
+static ALWAYS_INLINE void xtensa_dtlb_entry_write(uint32_t pte, uint32_t entry)
 {
 	__asm__ volatile("wdtlb %0, %1\n\t"
 			: : "a" (pte), "a"(entry));
 }
 
-static inline void xtensa_itlb_entry_write(uint32_t pte, uint32_t entry)
+static ALWAYS_INLINE void xtensa_itlb_entry_write(uint32_t pte, uint32_t entry)
 {
 	__asm__ volatile("witlb %0, %1\n\t"
 			: : "a" (pte), "a"(entry));
 }
 
-static inline void xtensa_itlb_entry_write_sync(uint32_t pte, uint32_t entry)
+static ALWAYS_INLINE void xtensa_itlb_entry_write_sync(uint32_t pte, uint32_t entry)
 {
 	__asm__ volatile("witlb %0, %1\n\t"
 			"isync\n\t"
@@ -242,7 +244,7 @@ static inline void xtensa_dtlb_autorefill_invalidate_all_sync(void)
  *
  * @param ptables The page tables address (virtual address)
  */
-static inline void xtensa_ptevaddr_set(void *ptables)
+static ALWAYS_INLINE void xtensa_ptevaddr_set(void *ptables)
 {
 	__asm__ volatile("wsr.ptevaddr %0" : : "a"((uint32_t)ptables));
 }
@@ -250,7 +252,7 @@ static inline void xtensa_ptevaddr_set(void *ptables)
 /*
  * The following functions are helpful when debugging.
  */
-static inline void *xtensa_dtlb_vaddr_read(uint32_t entry)
+static ALWAYS_INLINE void *xtensa_dtlb_vaddr_read(uint32_t entry)
 {
 	uint32_t vaddr;
 
@@ -258,7 +260,7 @@ static inline void *xtensa_dtlb_vaddr_read(uint32_t entry)
 	return (void *)vaddr;
 }
 
-static inline uint32_t xtensa_dtlb_paddr_read(uint32_t entry)
+static ALWAYS_INLINE uint32_t xtensa_dtlb_paddr_read(uint32_t entry)
 {
 	uint32_t paddr;
 
@@ -266,7 +268,7 @@ static inline uint32_t xtensa_dtlb_paddr_read(uint32_t entry)
 	return paddr;
 }
 
-static inline void *xtensa_itlb_vaddr_read(uint32_t entry)
+static ALWAYS_INLINE void *xtensa_itlb_vaddr_read(uint32_t entry)
 {
 	uint32_t vaddr;
 
@@ -274,7 +276,7 @@ static inline void *xtensa_itlb_vaddr_read(uint32_t entry)
 	return (void *)vaddr;
 }
 
-static inline uint32_t xtensa_itlb_paddr_read(uint32_t entry)
+static ALWAYS_INLINE uint32_t xtensa_itlb_paddr_read(uint32_t entry)
 {
 	uint32_t paddr;
 
@@ -282,7 +284,7 @@ static inline uint32_t xtensa_itlb_paddr_read(uint32_t entry)
 	return paddr;
 }
 
-static inline uint32_t xtensa_itlb_probe(void *vaddr)
+static ALWAYS_INLINE uint32_t xtensa_itlb_probe(void *vaddr)
 {
 	uint32_t ret;
 
@@ -290,7 +292,7 @@ static inline uint32_t xtensa_itlb_probe(void *vaddr)
 	return ret;
 }
 
-static inline uint32_t xtensa_dtlb_probe(void *vaddr)
+static ALWAYS_INLINE uint32_t xtensa_dtlb_probe(void *vaddr)
 {
 	uint32_t ret;
 
