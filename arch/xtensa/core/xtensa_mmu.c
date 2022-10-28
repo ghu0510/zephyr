@@ -161,8 +161,8 @@ void z_xtensa_mmu_init(void)
 	/* Next step is to invalidate the tlb entry that contains the top level
 	 * page table. This way we don't cause a multi hit exception.
 	 */
-	xtensa_dtlb_entry_invalidate(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, 6));
-	xtensa_itlb_entry_invalidate(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, 6));
+	xtensa_dtlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, 6));
+	xtensa_itlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, 6));
 
 	/* We are not using a flat table page, so we need to map
 	 * only the top level page table (which maps the page table itself).
@@ -210,14 +210,14 @@ void z_xtensa_mmu_init(void)
 				:: [idx] "a"((entry << 29) | 6));
 	}
 
-
 	/* To finish, just restore vecbase and invalidate TLB entries
 	 * used to map the relocated vecbase.
 	 */
 	__asm__ volatile("wsr.vecbase %0\n\t"
 			:: "a"(vecbase));
-	xtensa_dtlb_entry_invalidate(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
-	xtensa_itlb_entry_invalidate(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
+
+	xtensa_dtlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
+	xtensa_itlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
 }
 
 static bool l2_page_table_map(void *vaddr, uintptr_t phys, uint32_t flags)
