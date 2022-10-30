@@ -222,9 +222,14 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 			conn->sample.size = sensor->data_size;
 		} else {
 			add_data_to_sensor_buf(ctx, sensor, conn);
-			/* post data to applcation client directly */
-			k_sem_give(&ctx->dispatch_sem);
+			ctx->data_to_ring_buf = true;
 		}
+	}
+
+	/* notify dispatch thread to dispatch data to applicaiton */
+	if (ctx->data_to_ring_buf) {
+		k_sem_give(&ctx->dispatch_sem);
+		ctx->data_to_ring_buf = false;
 	}
 
 	return 0;

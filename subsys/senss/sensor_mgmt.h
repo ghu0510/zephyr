@@ -173,6 +173,7 @@ struct senss_mgmt_context {
 	sys_slist_t cfg_list;
 	struct ring_buf sensor_ring_buf;
 	uint8_t buf[CONFIG_SENSS_RING_BUF_SIZE];
+	bool data_to_ring_buf;
 };
 
 struct sensor_data_headar {
