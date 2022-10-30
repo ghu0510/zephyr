@@ -13,6 +13,9 @@ LOG_MODULE_DECLARE(senss, CONFIG_SENSS_LOG_LEVEL);
 /* senss_open_sensor is normally called by applcation: hid, chre, zephyr main, etc */
 int senss_open_sensor(int type, int sensor_index, int *handle)
 {
+	if (!handle) {
+		return -ENODEV;
+	}
 	/* set connection index directly to handle */
 	*handle = open_sensor(type, sensor_index);
 
@@ -64,6 +67,11 @@ int senss_get_interval(int handle, uint32_t *value)
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 	struct connection *conn = get_connection_by_handle(ctx, handle);
 
+	if (!value) {
+		LOG_ERR("%s, invalid interval address", __func__);
+		return -EINVAL;
+	}
+
 	if (!conn) {
 		LOG_ERR("handle:%d get connection error", handle);
 		return -EINVAL;
@@ -82,8 +90,8 @@ int senss_set_sensitivity(int handle, int index, uint32_t value)
 		return -EINVAL;
 	}
 
-	LOG_INF("%s, dynamic connection:%d, sensor:%s, sensitivity:%d",
-		__func__, conn->dynamic, conn->source->dev->name, value);
+	LOG_INF("%s, index:%d, dynamic connection:%d, sensor:%s, sensitivity:%d",
+		__func__, index, conn->dynamic, conn->source->dev->name, value);
 
 	return set_sensitivity(conn, index, value);
 }
@@ -93,10 +101,17 @@ int senss_get_sensitivity(int handle, int index, uint32_t *value)
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 	struct connection *conn = get_connection_by_handle(ctx, handle);
 
+	if (!value) {
+		LOG_ERR("%s, invalid sensitivity address", __func__);
+		return -EINVAL;
+	}
+
 	if (!conn) {
 		LOG_ERR("handle:%d get connection error", handle);
 		return -EINVAL;
 	}
+
+	LOG_INF("%s, index:%d, dynamic connection:%d", __func__, index, conn->dynamic);
 
 	return get_sensitivity(conn, index, value);
 }
@@ -105,6 +120,11 @@ int senss_read_sample(int handle, void *buf, int size)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 	struct connection *conn = get_connection_by_handle(ctx, handle);
+
+	if (!buf) {
+		LOG_ERR("%s, invalid buf to read sample", __func__);
+		return -EINVAL;
+	}
 
 	if (!conn) {
 		LOG_ERR("handle:%d get connection error", handle);

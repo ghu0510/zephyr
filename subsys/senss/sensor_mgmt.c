@@ -248,7 +248,7 @@ static void init_sensor_connections(struct senss_mgmt_context *ctx, struct senss
 	/* initial each connection for sensors who has reporters */
 	for_each_sensor_connection(i, sensor, conn) {
 		reporter_sensor = get_reporter_sensor(ctx, sensor, i);
-		__ASSERT(!reporter_sensor, "sensor's reporter should not be NULL");
+		__ASSERT(reporter_sensor, "sensor's reporter should not be NULL");
 		/* device tree required sensor connection cannot be opened or closed any more,
 		 * so it is called fixed connection. dynamic: false
 		 */
@@ -365,7 +365,7 @@ static void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_
 	k_sem_give(&ctx->event_sem);
 }
 
-static int set_reporeter_interval(struct senss_mgmt_context *ctx,
+static int set_reporter_interval(struct senss_mgmt_context *ctx,
 				  struct senss_sensor *sensor,
 				  struct connection *conn,
 				  uint32_t interval)
@@ -558,8 +558,10 @@ static int config_sensor(struct senss_sensor *sensor)
 
 	for (i = 0; i < sensor->cfg.sensitivity_count; i++) {
 		ret = config_sensitivity(sensor, i);
-		LOG_WRN("sensor:%s config sensitivity index:%d error",
-				sensor->dev->name, i);
+		if (ret) {
+			LOG_WRN("sensor:%s config sensitivity index:%d error",
+					sensor->dev->name, i);
+		}
 	}
 
 	return ret;
@@ -781,7 +783,7 @@ int set_interval(struct connection *conn, uint32_t interval)
 
 	for_each_sensor_client(reporter_sensor, tmp_conn) {
 		if (tmp_conn == conn) {
-			return set_reporeter_interval(ctx, reporter_sensor, conn, interval);
+			return set_reporter_interval(ctx, reporter_sensor, conn, interval);
 		}
 	}
 

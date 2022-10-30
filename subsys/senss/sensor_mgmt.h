@@ -25,8 +25,6 @@ extern "C" {
 #define EXEC_TIME_INIT 0
 #define EXEC_TIME_OFF UINT64_MAX
 
-#define SENSS_SENSOR_TYPE_COLOR_ALS 0x141
-
 #define SENSS_SENSOR_INFO(node)						\
 {									\
 	.dev = DEVICE_DT_GET(node),					\
@@ -322,11 +320,19 @@ static inline bool is_sensor_data_ready(struct senss_sensor *sensor)
 
 static inline int get_max_valid_index(int32_t type)
 {
+	#define SENSS_SENSOR_TYPE_COLOR_ALS 0x141
+	#define SENSS_SENSOR_TYPE_ACC 0x73
+	#define SENSS_SENSOR_TYPE_GYRO 0x76
+
 	int max_valid_index = 1;
 
 	switch (type) {
 	case SENSS_SENSOR_TYPE_COLOR_ALS:
 		max_valid_index = 5;
+		break;
+	case SENSS_SENSOR_TYPE_ACC:
+	case SENSS_SENSOR_TYPE_GYRO:
+		max_valid_index = 3;
 		break;
 	default:
 		break;
