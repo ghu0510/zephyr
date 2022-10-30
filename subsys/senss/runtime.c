@@ -416,7 +416,6 @@ void senss_runtime_thread(void *p1, void *p2, void *p3)
 	k_timeout_t timeout;
 	uint64_t cur_time;
 	int sleep_time;
-	int ret;
 
 	LOG_INF("%s start...", __func__);
 
@@ -428,15 +427,6 @@ void senss_runtime_thread(void *p1, void *p2, void *p3)
 		sleep_time = calc_sleep_time(ctx, cur_time);
 
 		timeout = (sleep_time == UINT32_MAX ? K_FOREVER : K_MSEC(sleep_time));
-		ret = k_sem_take(&ctx->event_sem, timeout);
-		if (!ret) {
-			if (atomic_test_and_clear_bit(&ctx->event_flag, EVENT_CONFIG_READY)) {
-				LOG_INF("%s, config_ready", __func__);
-				sensor_later_config(ctx);
-			}
-			if (atomic_test_and_clear_bit(&ctx->event_flag, EVENT_DATA_READY)) {
-				LOG_INF("%s, data_ready", __func__);
-			}
-		}
+		sensor_event_process(ctx, timeout);
 	} while (1);
 }

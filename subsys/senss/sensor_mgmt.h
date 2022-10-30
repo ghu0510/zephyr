@@ -195,7 +195,7 @@ int register_data_event_callback(struct connection *conn,
 				 senss_data_event_t callback,
 				 void *param);
 int read_sample(struct senss_sensor *sensor, void *buf, int size);
-void sensor_later_config(struct senss_mgmt_context *ctx);
+void sensor_event_process(struct senss_mgmt_context *ctx, k_timeout_t timeout);
 
 static inline uint64_t get_us(void)
 {

@@ -399,8 +399,9 @@ static int set_reporter_sensitivity(struct senss_mgmt_context *ctx,
 {
 	int i;
 
-	LOG_INF("%s, sesnor:%s, index:%d, sensitivity:%d",
-			__func__, sensor->dev->name, index, sensitivity);
+	LOG_INF("%s, sesnor:%s, index:%d, sensitivity:%d, sensitivity_count:%d",
+				__func__, sensor->dev->name, index,
+				sensitivity, sensor->cfg.sensitivity_count);
 
 	if (index < SENSS_INDEX_ALL || index >= sensor->cfg.sensitivity_count) {
 		LOG_ERR("sensor:%s sensitivity index:%d is invalid", sensor->dev->name, index);
@@ -565,6 +566,44 @@ static int config_sensor(struct senss_sensor *sensor)
 	}
 
 	return ret;
+}
+
+static void sensor_later_config(struct senss_mgmt_context *ctx)
+{
+	struct senss_sensor *sensor, *tmp;
+	int virtual_cfg_cnt = 0;
+
+	if (sys_slist_is_empty(&ctx->cfg_list)) {
+		return;
+	}
+
+	LOG_INF("%s, config virtual sensor first", __func__);
+
+	/* enumerate all virtual sensors first */
+	do {
+		virtual_cfg_cnt = 0;
+		for_each_sensor_config(ctx, sensor, tmp) {
+			if (is_phy_sensor(sensor)) {
+				continue;
+			}
+			config_sensor(sensor);
+			sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
+			virtual_cfg_cnt++;
+		}
+	} while (virtual_cfg_cnt);
+
+	LOG_INF("%s, then config physical sensor", __func__);
+
+	/* enumerate all physical sensors and config sensor */
+	for_each_sensor_config(ctx, sensor, tmp) {
+		if (is_virtual_sensor(sensor)) {
+			continue;
+		}
+		config_sensor(sensor);
+		sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
+	}
+
+	__ASSERT(sys_slist_is_empty(&ctx->cfg_list), "config list should be empty");
 }
 
 int senss_init(void)
@@ -953,40 +992,18 @@ int senss_sensor_set_data_ready(const struct device *dev, bool data_ready)
 	return 0;
 }
 
-void sensor_later_config(struct senss_mgmt_context *ctx)
+void sensor_event_process(struct senss_mgmt_context *ctx, k_timeout_t timeout)
 {
-	struct senss_sensor *sensor, *tmp;
-	int virtual_cfg_cnt = 0;
+	int ret;
 
-	if (sys_slist_is_empty(&ctx->cfg_list)) {
-		return;
-	}
-
-	LOG_INF("%s, config virtual sensor first", __func__);
-
-	/* enumerate all virtual sensors first */
-	do {
-		virtual_cfg_cnt = 0;
-		for_each_sensor_config(ctx, sensor, tmp) {
-			if (is_phy_sensor(sensor)) {
-				continue;
-			}
-			config_sensor(sensor);
-			sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
-			virtual_cfg_cnt++;
+	ret = k_sem_take(&ctx->event_sem, timeout);
+	if (!ret) {
+		if (atomic_test_and_clear_bit(&ctx->event_flag, EVENT_CONFIG_READY)) {
+			LOG_INF("%s, config_ready", __func__);
+			sensor_later_config(ctx);
 		}
-	} while (virtual_cfg_cnt);
-
-	LOG_INF("%s, then config physical sensor", __func__);
-
-	/* enumerate all physical sensors and config sensor */
-	for_each_sensor_config(ctx, sensor, tmp) {
-		if (is_virtual_sensor(sensor)) {
-			continue;
+		if (atomic_test_and_clear_bit(&ctx->event_flag, EVENT_DATA_READY)) {
+			LOG_INF("%s, data_ready", __func__);
 		}
-		config_sensor(sensor);
-		sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
 	}
-
-	__ASSERT(sys_slist_is_empty(&ctx->cfg_list), "config list should be empty");
 }
