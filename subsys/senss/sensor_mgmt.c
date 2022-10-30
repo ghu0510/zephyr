@@ -424,188 +424,6 @@ static int set_reporter_sensitivity(struct senss_mgmt_context *ctx,
 	return 0;
 }
 
-static int set_arbitrate_interval(struct senss_sensor *sensor, uint32_t interval)
-{
-	const struct senss_sensor_api *sensor_api;
-
-	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
-	sensor_api = sensor->dev->api;
-	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
-
-	sensor->cfg.interval = interval;
-	/* reset sensor next_exec_time as soon as sensor interval is changed */
-	sensor->next_exec_time = interval > 0 ? EXEC_TIME_INIT : EXEC_TIME_OFF;
-
-	LOG_INF("%s, interval:%d, next_exec_time:%lld", __func__, interval, sensor->next_exec_time);
-
-	if (!sensor_api->set_interval) {
-		LOG_WRN("sensor:%s set_interval callback is not set yet", sensor->dev->name);
-		return -ENODEV;
-	}
-
-	return sensor_api->set_interval(sensor->dev, interval);
-}
-
-static int set_arbitrate_sensitivity(struct senss_sensor *sensor, int index, uint32_t sensitivity)
-{
-	const struct senss_sensor_api *sensor_api;
-
-	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
-	sensor_api = sensor->dev->api;
-	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
-
-	/* update sensor sensitivity */
-	sensor->cfg.sensitivity[index] = sensitivity;
-
-	if (!sensor_api->set_sensitivity) {
-		LOG_WRN("sensor:%s set_sensitivity callback is not set", sensor->dev->name);
-		return -ENODEV;
-	}
-	if (sensitivity == SENSOR_SENSITIVITY_MAX) {
-		LOG_INF("sensitivity is not set by any client, ignore");
-		return 0;
-	}
-
-	return sensor_api->set_sensitivity(sensor->dev, index, sensitivity);
-}
-
-static uint32_t arbitrate_interval(struct senss_sensor *sensor)
-{
-	struct connection *conn;
-	uint32_t min_ri = SENSOR_INTERVAL_MAX;
-	uint32_t interval;
-
-	/* search from all clients, arbitrate the interval */
-	for_each_sensor_client(sensor, conn) {
-		LOG_DBG("%s, for each client, conn:%d, sensor:%s, mode:%d, interval:%d",
-			__func__, conn->index, sensor->dev->name, sensor->mode, conn->interval);
-		if (conn->interval != 0 && conn->interval < min_ri) {
-			min_ri = conn->interval;
-		}
-	}
-	/* min_ri == SENSOR_INTERVAL_MAX means sensor is not opened by any clients
-	 * if no client open the sensor, interval should be 0
-	 */
-	interval = (min_ri == SENSOR_INTERVAL_MAX ? 0 : min_ri);
-
-	LOG_INF("%s, sensor:%s, interval:%d, min_ri:%d, next_exec_time:%lld",
-		__func__, sensor->dev->name, interval, min_ri, sensor->next_exec_time);
-
-	/* interval == 0  means sensor is not opened by any clients
-	 */
-	if (interval == 0) {
-		/* sensor is closed by all clients, reset next_exec_time as EXEC_TIME_OFF
-		 * open -> close: next_exec_time = EXEC_TIME_OFF
-		 */
-		sensor->next_exec_time = EXEC_TIME_OFF;
-	} else {
-		/* sensor is still closed last time, set next_exec_time as EXEC_TIME_INIT
-		 * close -> open: next_exec_time = EXEC_TIME_INIT
-		 */
-		if (sensor->next_exec_time == EXEC_TIME_OFF) {
-			sensor->next_exec_time = EXEC_TIME_INIT;
-		}
-	}
-
-	return interval;
-}
-
-static int config_interval(struct senss_sensor *sensor)
-{
-	uint32_t interval = arbitrate_interval(sensor);
-
-	return set_arbitrate_interval(sensor, interval);
-}
-
-static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
-{
-	struct connection *conn;
-	uint32_t min_sensitivity = SENSOR_SENSITIVITY_MAX;
-
-	for_each_sensor_client(sensor, conn) {
-		LOG_DBG("%s, for each client, conn:%d, index:%d, sens:%d, min_sen:%d",
-				__func__, conn->index, index,
-				conn->sensitivity[index], min_sensitivity);
-		if (conn->sensitivity[index] < min_sensitivity) {
-			min_sensitivity = conn->sensitivity[index];
-		}
-	}
-
-	LOG_INF("%s, min_sensitivity:%d", __func__, min_sensitivity);
-
-	/* SENSOR_SENSITIVITY_MAX means sensitivity is not configured by any client */
-	return min_sensitivity;
-}
-
-static int config_sensitivity(struct senss_sensor *sensor, int index)
-{
-	uint32_t sensitivity = arbitrate_sensivitity(sensor, index);
-
-	LOG_INF("%s, sensor:%s, index:%d, sensitivity:%d",
-		__func__, sensor->dev->name, index, sensitivity);
-
-	return set_arbitrate_sensitivity(sensor, index, sensitivity);
-}
-
-static int config_sensor(struct senss_sensor *sensor)
-{
-	int ret;
-	int i = 0;
-
-	ret = config_interval(sensor);
-	if (ret) {
-		LOG_WRN("sensor:%s config interval error", sensor->dev->name);
-	}
-
-	for (i = 0; i < sensor->cfg.sensitivity_count; i++) {
-		ret = config_sensitivity(sensor, i);
-		if (ret) {
-			LOG_WRN("sensor:%s config sensitivity index:%d error",
-					sensor->dev->name, i);
-		}
-	}
-
-	return ret;
-}
-
-static void sensor_later_config(struct senss_mgmt_context *ctx)
-{
-	struct senss_sensor *sensor, *tmp;
-	int virtual_cfg_cnt = 0;
-
-	if (sys_slist_is_empty(&ctx->cfg_list)) {
-		return;
-	}
-
-	LOG_INF("%s, config virtual sensor first", __func__);
-
-	/* enumerate all virtual sensors first */
-	do {
-		virtual_cfg_cnt = 0;
-		for_each_sensor_config(ctx, sensor, tmp) {
-			if (is_phy_sensor(sensor)) {
-				continue;
-			}
-			config_sensor(sensor);
-			sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
-			virtual_cfg_cnt++;
-		}
-	} while (virtual_cfg_cnt);
-
-	LOG_INF("%s, then config physical sensor", __func__);
-
-	/* enumerate all physical sensors and config sensor */
-	for_each_sensor_config(ctx, sensor, tmp) {
-		if (is_virtual_sensor(sensor)) {
-			continue;
-		}
-		config_sensor(sensor);
-		sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
-	}
-
-	__ASSERT(sys_slist_is_empty(&ctx->cfg_list), "config list should be empty");
-}
-
 int senss_init(void)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
@@ -990,6 +808,192 @@ int senss_sensor_set_data_ready(const struct device *dev, bool data_ready)
 			__func__, sensor->dev->name, data_ready, sensor->mode);
 
 	return 0;
+}
+
+
+/* sensor_later_config including interval/sensitiviyt arbitrate and set,
+ * which is called in rumtime thread
+ */
+static uint32_t arbitrate_interval(struct senss_sensor *sensor)
+{
+	struct connection *conn;
+	uint32_t min_ri = SENSOR_INTERVAL_MAX;
+	uint32_t interval;
+
+	/* search from all clients, arbitrate the interval */
+	for_each_sensor_client(sensor, conn) {
+		LOG_DBG("%s, for each client, conn:%d, sensor:%s, mode:%d, interval:%d",
+			__func__, conn->index, sensor->dev->name, sensor->mode, conn->interval);
+		if (conn->interval != 0 && conn->interval < min_ri) {
+			min_ri = conn->interval;
+		}
+	}
+	/* min_ri == SENSOR_INTERVAL_MAX means sensor is not opened by any clients
+	 * if no client open the sensor, interval should be 0
+	 */
+	interval = (min_ri == SENSOR_INTERVAL_MAX ? 0 : min_ri);
+
+	LOG_INF("%s, sensor:%s, interval:%d, min_ri:%d, next_exec_time:%lld",
+		__func__, sensor->dev->name, interval, min_ri, sensor->next_exec_time);
+
+	/* interval == 0  means sensor is not opened by any clients
+	 */
+	if (interval == 0) {
+		/* sensor is closed by all clients, reset next_exec_time as EXEC_TIME_OFF
+		 * open -> close: next_exec_time = EXEC_TIME_OFF
+		 */
+		sensor->next_exec_time = EXEC_TIME_OFF;
+	} else {
+		/* sensor is still closed last time, set next_exec_time as EXEC_TIME_INIT
+		 * close -> open: next_exec_time = EXEC_TIME_INIT
+		 */
+		if (sensor->next_exec_time == EXEC_TIME_OFF) {
+			sensor->next_exec_time = EXEC_TIME_INIT;
+		}
+	}
+
+	return interval;
+}
+
+static int set_arbitrate_interval(struct senss_sensor *sensor, uint32_t interval)
+{
+	const struct senss_sensor_api *sensor_api;
+
+	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
+	sensor_api = sensor->dev->api;
+	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
+
+	sensor->cfg.interval = interval;
+	/* reset sensor next_exec_time as soon as sensor interval is changed */
+	sensor->next_exec_time = interval > 0 ? EXEC_TIME_INIT : EXEC_TIME_OFF;
+
+	LOG_INF("%s, interval:%d, next_exec_time:%lld", __func__, interval, sensor->next_exec_time);
+
+	if (!sensor_api->set_interval) {
+		LOG_WRN("sensor:%s set_interval callback is not set yet", sensor->dev->name);
+		return -ENODEV;
+	}
+
+	return sensor_api->set_interval(sensor->dev, interval);
+}
+
+static int config_interval(struct senss_sensor *sensor)
+{
+	uint32_t interval = arbitrate_interval(sensor);
+
+	return set_arbitrate_interval(sensor, interval);
+}
+
+static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
+{
+	struct connection *conn;
+	uint32_t min_sensitivity = SENSOR_SENSITIVITY_MAX;
+
+	for_each_sensor_client(sensor, conn) {
+		LOG_DBG("%s, for each client, conn:%d, index:%d, sens:%d, min_sen:%d",
+				__func__, conn->index, index,
+				conn->sensitivity[index], min_sensitivity);
+		if (conn->sensitivity[index] < min_sensitivity) {
+			min_sensitivity = conn->sensitivity[index];
+		}
+	}
+
+	LOG_INF("%s, min_sensitivity:%d", __func__, min_sensitivity);
+
+	/* SENSOR_SENSITIVITY_MAX means sensitivity is not configured by any client */
+	return min_sensitivity;
+}
+
+static int set_arbitrate_sensitivity(struct senss_sensor *sensor, int index, uint32_t sensitivity)
+{
+	const struct senss_sensor_api *sensor_api;
+
+	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
+	sensor_api = sensor->dev->api;
+	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
+
+	/* update sensor sensitivity */
+	sensor->cfg.sensitivity[index] = sensitivity;
+
+	if (!sensor_api->set_sensitivity) {
+		LOG_WRN("sensor:%s set_sensitivity callback is not set", sensor->dev->name);
+		return -ENODEV;
+	}
+	if (sensitivity == SENSOR_SENSITIVITY_MAX) {
+		LOG_INF("sensitivity is not set by any client, ignore");
+		return 0;
+	}
+
+	return sensor_api->set_sensitivity(sensor->dev, index, sensitivity);
+}
+
+static int config_sensitivity(struct senss_sensor *sensor, int index)
+{
+	uint32_t sensitivity = arbitrate_sensivitity(sensor, index);
+
+	LOG_INF("%s, sensor:%s, index:%d, sensitivity:%d",
+		__func__, sensor->dev->name, index, sensitivity);
+
+	return set_arbitrate_sensitivity(sensor, index, sensitivity);
+}
+
+static int config_sensor(struct senss_sensor *sensor)
+{
+	int ret;
+	int i = 0;
+
+	ret = config_interval(sensor);
+	if (ret) {
+		LOG_WRN("sensor:%s config interval error", sensor->dev->name);
+	}
+
+	for (i = 0; i < sensor->cfg.sensitivity_count; i++) {
+		ret = config_sensitivity(sensor, i);
+		if (ret) {
+			LOG_WRN("sensor:%s config sensitivity index:%d error",
+					sensor->dev->name, i);
+		}
+	}
+
+	return ret;
+}
+
+static void sensor_later_config(struct senss_mgmt_context *ctx)
+{
+	struct senss_sensor *sensor, *tmp;
+	int virtual_cfg_cnt = 0;
+
+	if (sys_slist_is_empty(&ctx->cfg_list)) {
+		return;
+	}
+
+	LOG_INF("%s, config virtual sensor first", __func__);
+
+	/* enumerate all virtual sensors first */
+	do {
+		virtual_cfg_cnt = 0;
+		for_each_sensor_config(ctx, sensor, tmp) {
+			if (is_phy_sensor(sensor)) {
+				continue;
+			}
+			config_sensor(sensor);
+			sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
+			virtual_cfg_cnt++;
+		}
+	} while (virtual_cfg_cnt);
+
+	LOG_INF("%s, then config physical sensor", __func__);
+
+	/* enumerate all physical sensors and config sensor */
+	for_each_sensor_config(ctx, sensor, tmp) {
+		if (is_virtual_sensor(sensor)) {
+			continue;
+		}
+		config_sensor(sensor);
+		sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
+	}
+
+	__ASSERT(sys_slist_is_empty(&ctx->cfg_list), "config list should be empty");
 }
 
 void sensor_event_process(struct senss_mgmt_context *ctx, k_timeout_t timeout)
