@@ -693,6 +693,7 @@ int set_sensitivity(struct connection *conn, int index, uint32_t value)
 int get_sensitivity(struct connection *conn, int index, uint32_t *value)
 {
 	struct senss_sensor *sensor;
+	int i = 0;
 
 	__ASSERT(conn && conn->source, "connection or reporter should not be NULL");
 
@@ -705,10 +706,19 @@ int get_sensitivity(struct connection *conn, int index, uint32_t *value)
 		return -EINVAL;
 	}
 
-	if (index == SENSS_INDEX_ALL)
-		memcpy(value, conn->sensitivity, sensor->cfg.sensitivity_count * sizeof(uint32_t));
-	else
+	if (index == SENSS_INDEX_ALL) {
+		/* each sensitivity index value should be same for global sensitivity */
+		for (i = 1; i < sensor->cfg.sensitivity_count; i++) {
+			if (conn->sensitivity[i] != conn->sensitivity[0]) {
+				LOG_ERR("sensitivity[%d]:%d should be same as senstivity:%d",
+					i, conn->sensitivity[i], conn->sensitivity[0]);
+				return -EINVAL;
+			}
+		}
+		*value = conn->sensitivity[0];
+	} else {
 		*value = conn->sensitivity[index];
+	}
 
 	return 0;
 }
@@ -716,6 +726,7 @@ int get_sensitivity(struct connection *conn, int index, uint32_t *value)
 int read_sample(struct senss_sensor *sensor, void *buf, int size)
 {
 	__ASSERT(sensor, "senss_sensor is NULL");
+
 	if (!sensor) {
 		LOG_ERR("cannot find sensor");
 		return -ENODEV;
@@ -735,8 +746,7 @@ int register_data_event_callback(struct connection *conn,
 				 senss_data_event_t callback,
 				 void *param)
 {
-	if (!conn)
-		return -ENODEV;
+	__ASSERT(conn, "connection should not be NULL");
 
 	conn->data_evt_cb = callback;
 	conn->cb_param = param;

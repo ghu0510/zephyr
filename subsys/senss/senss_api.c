@@ -146,8 +146,7 @@ int senss_register_data_event_callback(int handle,
 		return -EINVAL;
 	}
 
-	__ASSERT(conn->dynamic,
-			"only dynamic connection sensor could register data event callback");
+	__ASSERT(conn->dynamic, "only dynamic connection could register data event callback");
 
 	return register_data_event_callback(conn, callback, param);
 }
