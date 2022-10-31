@@ -322,18 +322,19 @@ static inline bool is_sensor_data_ready(struct senss_sensor *sensor)
 static inline int get_max_valid_index(int32_t type)
 {
 	#define SENSS_SENSOR_TYPE_COLOR_ALS 0x141
-	#define SENSS_SENSOR_TYPE_ACC 0x73
-	#define SENSS_SENSOR_TYPE_GYRO 0x76
+	#define COLOR_ALS_SENSOR_SENSITIVITY_COUNT 5
+	#define IMU_SENSOR_SENSITIVITY_COUNT 3
+	#define DEFAULT_SENSITIVITY_COUNT 1
 
-	int max_valid_index = 1;
+	int max_valid_index = DEFAULT_SENSITIVITY_COUNT;
 
 	switch (type) {
 	case SENSS_SENSOR_TYPE_COLOR_ALS:
-		max_valid_index = 5;
+		max_valid_index = COLOR_ALS_SENSOR_SENSITIVITY_COUNT;
 		break;
-	case SENSS_SENSOR_TYPE_ACC:
-	case SENSS_SENSOR_TYPE_GYRO:
-		max_valid_index = 3;
+	case SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D:
+	case SENSS_SENSOR_TYPE_MOTION_GYROMETER_3D:
+		max_valid_index = IMU_SENSOR_SENSITIVITY_COUNT;
 		break;
 	default:
 		break;
