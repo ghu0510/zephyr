@@ -40,6 +40,19 @@
 /* Number of auto-refill ways */
 #define Z_XTENSA_TLB_AUTOREFILL_WAYS 4
 
+
+/* PITLB HIT bit. For more information see
+ * Xtensa Instruction Set Architecture (ISA) Reference Manual
+ * 4.6.5.7 Formats for Probing MMU Option TLB Entries
+ */
+#define Z_XTENSA_PITLB_HIT BIT(3)
+
+/* PDTLB HIT bit. For more information see
+ * Xtensa Instruction Set Architecture (ISA) Reference Manual
+ * 4.6.5.7 Formats for Probing MMU Option TLB Entries
+ */
+#define Z_XTENSA_PDTLB_HIT BIT(4)
+
 /*
  * Virtual address where the page table is mapped
  */
@@ -312,6 +325,24 @@ static inline uint32_t xtensa_dtlb_probe(void *vaddr)
 
 	__asm__ __volatile__("pdtlb  %0, %1\n\t" : "=a" (ret) : "a" ((uint32_t)vaddr));
 	return ret;
+}
+
+static inline void xtensa_itlb_vaddr_invalidate(void *vaddr)
+{
+	uint32_t entry = xtensa_itlb_probe(vaddr);
+
+	if (entry & Z_XTENSA_PITLB_HIT) {
+		xtensa_itlb_entry_invalidate_sync(entry);
+	}
+}
+
+static inline void xtensa_dtlb_vaddr_invalidate(void *vaddr)
+{
+	uint32_t entry = xtensa_dtlb_probe(vaddr);
+
+	if (entry & Z_XTENSA_PDTLB_HIT) {
+		xtensa_dtlb_entry_invalidate_sync(entry);
+	}
 }
 
 #endif /* ZEPHYR_ARCH_XTENSA_XTENSA_MMU_PRIV_H_ */
