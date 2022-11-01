@@ -218,6 +218,17 @@ void z_xtensa_mmu_init(void)
 
 	xtensa_dtlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
 	xtensa_itlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
+
+	/*
+	 * Pre-load TLB for vecbase so exception handling won't result
+	 * in TLB miss during boot, and that we can handle single
+	 * TLB misses.
+	 */
+	xtensa_itlb_entry_write_sync(
+		Z_XTENSA_PTE(vecbase, 0,
+			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
+		Z_XTENSA_AUTOFILL_TLB_ENTRY(vecbase));
+
 }
 
 static bool l2_page_table_map(void *vaddr, uintptr_t phys, uint32_t flags)

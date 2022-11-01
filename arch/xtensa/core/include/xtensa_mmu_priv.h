@@ -29,6 +29,10 @@
 #define Z_XTENSA_TLB_ENTRY(vaddr, way) \
 	(((vaddr) & Z_XTENSA_PTE_PPN_MASK) | (way))
 
+#define Z_XTENSA_AUTOFILL_TLB_ENTRY(vaddr) \
+	(((vaddr) & Z_XTENSA_PTE_PPN_MASK) | \
+	 (((vaddr) >> Z_XTENSA_PPN_SHIFT) & 0x03U))
+
 #define Z_XTENSA_L2_POS(vaddr) \
 	(((vaddr) & Z_XTENSA_L2_MASK) >> Z_XTENSA_PPN_SHIFT)
 
