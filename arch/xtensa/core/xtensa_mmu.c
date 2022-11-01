@@ -66,35 +66,35 @@ static const struct xtensa_mmu_range mmu_zephyr_ranges[] = {
 	 * cacheable, read / write and non-executable
 	 */
 	{
-		.start = (uint32_t)&__data_start,
-		.end   = (uint32_t)&__data_end,
+		.start = (uint32_t)__data_start,
+		.end   = (uint32_t)__data_end,
 		.attrs = Z_XTENSA_MMU_W,
 		.name = "data",
 	},
 	{
-		.start = (uint32_t)&_bss_start,
-		.end   = (uint32_t)&_bss_end,
+		.start = (uint32_t)_bss_start,
+		.end   = (uint32_t)_bss_end,
 		.attrs = Z_XTENSA_MMU_W,
 		.name = "bss",
 	},
 	/* System heap memory */
 	{
-		.start = (uint32_t)&_heap_start,
-		.end   = (uint32_t)&_heap_end,
+		.start = (uint32_t)_heap_start,
+		.end   = (uint32_t)_heap_end,
 		.attrs = Z_XTENSA_MMU_W,
 		.name = "heap",
 	},
 	/* Mark text segment cacheable, read only and executable */
 	{
-		.start = (uint32_t)&__text_region_start,
-		.end   = (uint32_t)&__text_region_end,
+		.start = (uint32_t)__text_region_start,
+		.end   = (uint32_t)__text_region_end,
 		.attrs = Z_XTENSA_MMU_X,
 		.name = "text",
 	},
 	/* Mark rodata segment cacheable, read only and non-executable */
 	{
-		.start = (uint32_t)&__rodata_region_start,
-		.end   = (uint32_t)&__rodata_region_end,
+		.start = (uint32_t)__rodata_region_start,
+		.end   = (uint32_t)__rodata_region_end,
 		.name = "rodata",
 	},
 };

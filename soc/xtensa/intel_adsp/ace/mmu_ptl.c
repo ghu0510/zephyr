@@ -53,8 +53,8 @@ const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {
 		.name = "stack",
 	},
 	{
-		.start = (uint32_t)&_imr_start,
-		.end   = (uint32_t)&_imr_end,
+		.start = (uint32_t)_imr_start,
+		.end   = (uint32_t)_imr_end,
 		.attrs = Z_XTENSA_MMU_X | Z_XTENSA_MMU_W,
 		.name = "imr",
 	},
