@@ -46,7 +46,7 @@ static int calc_sleep_time(struct senss_mgmt_context *ctx, uint64_t cur_time)
 		sleep_time = (uint32_t)((next_poll_time - cur_time) / USEC_PER_MSEC);
 	}
 
-	LOG_INF("%s, next:%lld, cur:%lld, sleep_time:%d(ms)",
+	LOG_DBG("%s, next:%lld, cur:%lld, sleep_time:%d(ms)",
 				__func__, next_poll_time, cur_time, sleep_time);
 
 	return sleep_time;
@@ -148,7 +148,7 @@ static bool sensor_test_consume_time(struct senss_sensor *sensor,
 	if (conn->next_consume_time <= sample_time)
 		return true;
 
-	LOG_INF("data not ready, next_consume_time:%lld sample_time:%lld, cur_time:%lld",
+	LOG_DBG("data not ready, next_consume_time:%lld sample_time:%lld, cur_time:%lld",
 		conn->next_consume_time, sample_time, cur_time);
 
 	return false;
@@ -343,7 +343,7 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 	 * no need to poll, return directly
 	 */
 	if (sensor->mode != SENSOR_TRIGGER_MODE_POLLING || sensor->cfg.interval == UINT32_MAX) {
-		LOG_INF("sensor %s not in polling mode:%d or sensor interval:%d not opened yet",
+		LOG_DBG("sensor %s not in polling mode:%d or sensor interval:%d not opened yet",
 			sensor->dev->name, sensor->mode, sensor->cfg.interval);
 		sensor->next_exec_time = EXEC_TIME_OFF;
 		return false;
@@ -372,7 +372,7 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 /* check whether sensor needs to be executed/processed */
 static bool sensor_need_exec(struct senss_sensor *sensor, uint64_t cur_time)
 {
-	LOG_INF("sensor:%s need to execute, next_exec_time:%lld, mode:%d, interval:%d",
+	LOG_DBG("sensor:%s need to execute, next_exec_time:%lld, mode:%d, interval:%d",
 		sensor->dev->name, sensor->next_exec_time, sensor->mode, sensor->cfg.interval);
 
 	if (!is_sensor_opened(sensor)) {
