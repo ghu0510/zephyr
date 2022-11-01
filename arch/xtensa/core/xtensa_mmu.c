@@ -286,7 +286,7 @@ void arch_mem_map(void *virt, uintptr_t phys, size_t size, uint32_t flags)
 
 	while (rem_size > 0) {
 		bool ret = l2_page_table_map((void *)va, pa, xtensa_flags);
-
+		ARG_UNUSED(ret);
 		__ASSERT(ret, "Virtual address (%u) already mapped", (uint32_t)virt);
 		rem_size -= (rem_size >= KB(4)) ? KB(4) : rem_size;
 		va += KB(4);
