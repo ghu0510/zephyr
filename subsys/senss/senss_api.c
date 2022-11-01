@@ -30,7 +30,7 @@ int senss_close_sensor(int handle)
 	int ret;
 
 	if (!conn) {
-		LOG_ERR("handle:%d get connection error", handle);
+		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return -EINVAL;
 	}
 	__ASSERT(conn->dynamic, "only dynamic connection could be closed");
@@ -52,12 +52,12 @@ int senss_set_interval(int handle, uint32_t value)
 	struct connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
-		LOG_ERR("handle:%d get connection error", handle);
+		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return -EINVAL;
 	}
 
-	LOG_INF("%s, dynamic connection:%d, sensor:%s, interval:%d",
-		__func__, conn->dynamic, conn->source->dev->name, value);
+	LOG_INF("%s, sensor:%s, dynamic connection:%d, interval:%d",
+		__func__, conn->source->dev->name, conn->dynamic, value);
 
 	return set_interval(conn, value);
 }
@@ -86,12 +86,12 @@ int senss_set_sensitivity(int handle, int index, uint32_t value)
 	struct connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
-		LOG_ERR("handle:%d get connection error", handle);
+		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return -EINVAL;
 	}
 
-	LOG_INF("%s, index:%d, dynamic connection:%d, sensor:%s, sensitivity:%d",
-		__func__, index, conn->dynamic, conn->source->dev->name, value);
+	LOG_INF("%s, sensor:%s, dynamic connection:%d, index:%d, sensitivity:%d",
+		__func__, conn->source->dev->name, conn->dynamic, index, value);
 
 	return set_sensitivity(conn, index, value);
 }
@@ -107,7 +107,7 @@ int senss_get_sensitivity(int handle, int index, uint32_t *value)
 	}
 
 	if (!conn) {
-		LOG_ERR("handle:%d get connection error", handle);
+		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return -EINVAL;
 	}
 
@@ -142,7 +142,7 @@ int senss_register_data_event_callback(int handle,
 	struct connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
-		LOG_ERR("handle:%d get connection error", handle);
+		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return -EINVAL;
 	}
 
@@ -157,7 +157,7 @@ const struct senss_sensor_info *senss_get_sensor_info(int handle)
 	struct connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
-		LOG_ERR("handle:%d get connection error", handle);
+		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return NULL;
 	}
 
@@ -170,7 +170,7 @@ int senss_get_sensor_state(int handle, enum senss_sensor_state *state)
 	struct connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
-		LOG_ERR("handle:%d get connection error", handle);
+		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return -EINVAL;
 	}
 

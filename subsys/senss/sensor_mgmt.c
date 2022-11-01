@@ -57,8 +57,6 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 								__func__);
 				continue;
 			}
-			LOG_DBG("%s(%d), rd_size:%d", __func__, __LINE__, rd_size);
-
 			ret = conn->data_evt_cb((int)conn_index, buf + sizeof(*header),
 								data_size, conn->cb_param);
 			/* read next sample header */
@@ -635,8 +633,8 @@ int set_interval(struct connection *conn, uint32_t interval)
 	__ASSERT(conn && conn->source, "connection or reporter should not be NULL");
 	reporter_sensor = conn->source;
 
-	LOG_INF("%s, conn:%d, sensor:%s, dynamic_connection:%d, interval:%u",
-		__func__, conn->index, reporter_sensor->dev->name, conn->dynamic, interval);
+	LOG_INF("%s, sensor:%s, conn:%d, dynamic_connection:%d, interval:%u",
+		__func__, reporter_sensor->dev->name, conn->index, conn->dynamic, interval);
 
 	for_each_sensor_client(reporter_sensor, tmp_conn) {
 		if (tmp_conn == conn) {
@@ -675,6 +673,9 @@ int set_sensitivity(struct connection *conn, int index, uint32_t value)
 	__ASSERT(conn && conn->source, "connection or reporter should not be NULL");
 
 	reporter_sensor = conn->source;
+
+	LOG_INF("%s, sensor:%s, conn:%d, dynamic_connection:%d, index:%d, sensitivity:%u",
+		__func__, reporter_sensor->dev->name, conn->index, conn->dynamic, index, value);
 
 	for_each_sensor_client(reporter_sensor, tmp_conn) {
 		if (tmp_conn == conn) {
@@ -814,7 +815,7 @@ int senss_sensor_set_data_ready(const struct device *dev, bool data_ready)
 	__ASSERT(sensor, "senss_sensor is NULL");
 
 	sensor->mode = !data_ready ? SENSOR_TRIGGER_MODE_POLLING : SENSOR_TRIGGER_MODE_DATA_READY;
-	LOG_INF("%s, sensor:%s, data_ready:%d, polling:%d",
+	LOG_INF("%s, sensor:%s, data_ready:%d, trigger_mode:%d",
 			__func__, sensor->dev->name, data_ready, sensor->mode);
 
 	return 0;
@@ -901,8 +902,7 @@ static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
 
 	for_each_sensor_client(sensor, conn) {
 		LOG_DBG("%s, for each client, conn:%d, index:%d, sens:%d, min_sen:%d",
-				__func__, conn->index, index,
-				conn->sensitivity[index], min_sensitivity);
+			__func__, conn->index, index, conn->sensitivity[index], min_sensitivity);
 		if (conn->sensitivity[index] < min_sensitivity) {
 			min_sensitivity = conn->sensitivity[index];
 		}

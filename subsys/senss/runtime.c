@@ -65,7 +65,7 @@ static void add_data_to_sensor_buf(struct senss_mgmt_context *ctx,
 		return;
 	}
 	__ASSERT(sizeof(*header) + sensor->data_size <= CONFIG_SENSS_MAX_SENSOR_DATA_SIZE,
-		"data_size:%d is too large, should enlarge MAX_SENSOR_DATA_SIZE:%d",
+		"data_size:%d is too large, should enlarge max_sensor_data_size:%d",
 		sensor->data_size, CONFIG_SENSS_MAX_SENSOR_DATA_SIZE);
 
 	header = (struct sensor_data_headar *)data;
