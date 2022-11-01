@@ -204,7 +204,7 @@ static inline void xtensa_dtlb_autorefill_invalidate_sync(void *vaddr)
 	for (way = 0; way < Z_XTENSA_TLB_AUTOREFILL_WAYS; way++) {
 		xtensa_dtlb_entry_invalidate(Z_XTENSA_TLB_ENTRY((uint32_t)vaddr, way));
 	}
-	__asm__ volatile("isync");
+	__asm__ volatile("dsync");
 }
 
 /**
