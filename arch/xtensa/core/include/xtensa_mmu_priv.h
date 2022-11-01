@@ -193,35 +193,6 @@ static inline void xtensa_dtlb_invalidate_sync(void)
 }
 
 /**
- * @brief Invalidates an autorefill DTLB entry.
- *
- * Invalidates the page table enrty that maps a given virtual address.
- */
-static inline void xtensa_dtlb_autorefill_invalidate_sync(void *vaddr)
-{
-	uint8_t way;
-
-	for (way = 0; way < Z_XTENSA_TLB_AUTOREFILL_WAYS; way++) {
-		xtensa_dtlb_entry_invalidate(Z_XTENSA_TLB_ENTRY((uint32_t)vaddr, way));
-	}
-	__asm__ volatile("dsync");
-}
-
-/**
- * @brief Invalidates an autorefill ITLB entry.
- *
- * Invalidates the page table enrty that maps a given virtual address.
- */
-static inline void xtensa_itlb_autorefill_invalidate_sync(void *vaddr)
-{
-	uint8_t way;
-
-	for (way = 0; way < Z_XTENSA_TLB_AUTOREFILL_WAYS; way++) {
-		xtensa_itlb_entry_invalidate(Z_XTENSA_TLB_ENTRY((uint32_t)vaddr, way));
-	}
-	__asm__ volatile("isync");
-}
-/**
  * @brief Invalidate all autorefill ITLB entries.
  *
  * This should be used carefully since all entries in the instruction TLB
