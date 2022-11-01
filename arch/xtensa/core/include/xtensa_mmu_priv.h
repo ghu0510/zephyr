@@ -20,15 +20,15 @@
 #define Z_XTENSA_PTE_RING_MASK 0x00000030U
 
 #define Z_XTENSA_PTE(paddr, ring, attr) \
-	((paddr & Z_XTENSA_PTE_PPN_MASK) | \
-	((ring << 4) & Z_XTENSA_PTE_RING_MASK) | \
-	(attr & Z_XTENSA_PTE_ATTR_MASK))
+	(((paddr) & Z_XTENSA_PTE_PPN_MASK) | \
+	(((ring) << 4) & Z_XTENSA_PTE_RING_MASK) | \
+	((attr) & Z_XTENSA_PTE_ATTR_MASK))
 
-#define Z_XTENSA_TLB_ENTRY(vadd, way) \
-	((vadd & Z_XTENSA_PTE_PPN_MASK) | (way))
+#define Z_XTENSA_TLB_ENTRY(vaddr, way) \
+	(((vaddr) & Z_XTENSA_PTE_PPN_MASK) | (way))
 
-#define Z_XTENSA_L2_POS(vadd) \
-	((vadd & Z_XTENSA_L2_MASK) >> Z_XTENSA_PPN_SHIFT)
+#define Z_XTENSA_L2_POS(vaddr) \
+	(((vaddr) & Z_XTENSA_L2_MASK) >> Z_XTENSA_PPN_SHIFT)
 
 
 /* Number of data TLB ways [0-9] */
