@@ -98,12 +98,12 @@ release. Install the simulator by downloading and extracting the archive:
    tar xvf sim_mtl_20221018.tar.bz2 -C ~/
 
 After the simulator and the ROM are installed, you will need to set the
-MTL_SIM_DIR environment variable. To run on another version of the simulator,
+ACE_SIM_DIR environment variable. To run on another version of the simulator,
 export the path to that version. For example:
 
 .. code-block:: console
 
-   export MTL_SIM_DIR=~/sim_mtl_20221018
+   export ACE_SIM_DIR=~/sim_mtl_20221018
 
 Building Rimage
 ###############
@@ -138,7 +138,7 @@ Run in the Simulator
 ####################
 
 Invocation of the simulator itself is somewhat involved, so the
-details are now handled by a wrapper script (mtlsim.py) which is
+details are now handled by a wrapper script (acesim.py) which is
 integrated as a Zephyr native emulator.
 
 After building with west, call
@@ -410,7 +410,7 @@ shell on the container:
 
 Note that the core will already have started, so you will see it
 stopped in an arbitrary state, likely in the idle thread.  This
-probably isn't what you want, so mtlsim.py provides a
+probably isn't what you want, so acesim.py provides a
 -d/--start-halted option that suppresses the automatic start of the
 DSP cores.
 
@@ -446,10 +446,10 @@ When West can't find the simulator on the path you gave it, you'll get an error 
 
    ...
    Firmware manifest and signing completed !
-   [2/3] cd /home/laurenmu/intel-zephyrproject/zephyr/build && MTLSIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
-   /bin/sh: 1: MTLSIM-NOTFOUND: not found
-   FAILED: zephyr/CMakeFiles/run_mtlsim /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/CMakeFiles/run_mtlsim
-   cd /home/laurenmu/intel-zephyrproject/zephyr/build && MTLSIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
+   [2/3] cd /home/laurenmu/intel-zephyrproject/zephyr/build && ACESIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
+   /bin/sh: 1: ACESIM-NOTFOUND: not found
+   FAILED: zephyr/CMakeFiles/run_acesim /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/CMakeFiles/run_acesim
+   cd /home/laurenmu/intel-zephyrproject/zephyr/build && ACESIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
    ninja: build stopped: subcommand failed.
    FATAL ERROR: command exited with status 1: /usr/bin/cmake --build /home/laurenmu/intel-zephyrproject/zephyr/build --target run
 

@@ -3,6 +3,12 @@
 # Copyright (c) 2020 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+find_program(
+  RIMAGE
+  NAMES rimage
+  )
+
+
 add_subdirectory(common)
 if(CONFIG_SOC_SERIES_INTEL_ACE)
 	add_subdirectory(ace)

@@ -100,13 +100,13 @@ release. Install the simulator by downloading and extracting the archive:
    tar xvf sim_ptl_20221018.tar.bz2 -C ~/
 
 After the simulator and the ROM are installed, you will need to set the
-MTL_SIM_DIR environment variable (yes, even for PTL - this
+ACE_SIM_DIR environment variable (yes, even for PTL - this
 will be updated soon). To run on another version of the simulator,
 export the path to that version. For example:
 
 .. code-block:: console
 
-   export MTL_SIM_DIR=~/sim_ptl_20221018
+   export ACE_SIM_DIR=~/sim_ptl_20221018
 
 Building Rimage
 ###############
@@ -142,12 +142,12 @@ Run in the Simulator
 ####################
 
 Invocation of the simulator itself is somewhat involved, so the
-details are now handled by a wrapper script (mtlsim.py), which is
+details are now handled by a wrapper script (acesim.py), which is
 integrated as a Zephyr native emulator.
 
 The PTL simulator is available from
 http://gale.hf.intel.com/~nashif/audio/simulator/. Get
-the tarball and extract the contents on your host, then set the MTL_SIM_DIR
+the tarball and extract the contents on your host, then set the ACE_SIM_DIR
 environment variable to the path of the directory with the content of the
 tarball.
 
@@ -322,9 +322,9 @@ The emulator is configured to use the prebuilt versions of the
 ROM, signing key, and simulator (in the simulator directory) and to use
 the system rimage (/usr/local/bin/rimage). If you really need to,
 you can override these defaults by passing West values for the CMake variables
-that will be used as the arguments to the build system and mtlsim.py.
-Check the --help output of mtlsim.py for the arguments, then look at
-cmake/emu/mtlsim.cmake and boards/xtensa/intel_adsp_ace30_ptl/CMakeLists.txt
+that will be used as the arguments to the build system and acesim.py.
+Check the --help output of acesim.py for the arguments, then look at
+cmake/emu/acesim.cmake and boards/xtensa/intel_adsp_ace30_ptl/CMakeLists.txt
 in the Zephyr tree for the variables to set. For example:
 
 .. code-block:: console
@@ -366,7 +366,7 @@ shell on the container:
 
 Note that the core will already have started, so you will see it
 stopped in an arbitrary state, likely in the idle thread. This
-probably isn't what you want, so mtlsim.py provides a
+probably isn't what you want, so acesim.py provides a
 -d/--start-halted option that suppresses the automatic start of the
 DSP cores.
 
@@ -402,10 +402,10 @@ When West can't find the simulator on the path you gave it, you'll get an error 
 
    ...
    Firmware manifest and signing completed !
-   [2/3] cd /home/laurenmu/intel-zephyrproject/zephyr/build && MTLSIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
-   /bin/sh: 1: MTLSIM-NOTFOUND: not found
-   FAILED: zephyr/CMakeFiles/run_mtlsim /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/CMakeFiles/run_mtlsim
-   cd /home/laurenmu/intel-zephyrproject/zephyr/build && MTLSIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
+   [2/3] cd /home/laurenmu/intel-zephyrproject/zephyr/build && ACESIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
+   /bin/sh: 1: ACESIM-NOTFOUND: not found
+   FAILED: zephyr/CMakeFiles/run_acesim /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/CMakeFiles/run_acesim
+   cd /home/laurenmu/intel-zephyrproject/zephyr/build && ACESIM-NOTFOUND --rom --sim --rimage /home/laurenmu/intel-zephyrproject/zephyr/build/zephyr/zephyr.ri
    ninja: build stopped: subcommand failed.
    FATAL ERROR: command exited with status 1: /usr/bin/cmake --build /home/laurenmu/intel-zephyrproject/zephyr/build --target run
 

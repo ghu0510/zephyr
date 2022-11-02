@@ -1,7 +1,5 @@
-set(RIMAGE ${BOARD_DIR}/support/rimage)
-if(CONFIG_BOARD_INTEL_ADSP_ACE20_LNL_SIM)
 add_custom_target(
-  gen_signed_image ALL
+  gen_signed_image
   COMMAND
   ${RIMAGE}
   -k ${BOARD_DIR}/support/dummy-key.pem
@@ -12,4 +10,3 @@ add_custom_target(
   -o ${PROJECT_BINARY_DIR}/zephyr.ri
   DEPENDS gen_modules
 )
-endif()

@@ -3,8 +3,6 @@ name: ACE 1.5 Meteor Lake M Audio DSP
 type: sim
 simulation: xt-sim
 arch: xtensa
-env:
-  - MTL_SIM_DIR
 toolchain:
   - xcc
   - zephyr
