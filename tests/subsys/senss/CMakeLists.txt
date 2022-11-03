@@ -8,3 +8,4 @@ FILE(GLOB app_sources src/*.c)
 target_sources(app PRIVATE ${app_sources})
 
 zephyr_include_directories(${ZEPHYR_BASE}/subsys/senss)
+zephyr_include_directories(${ZEPHYR_BASE}/subsys/senss/sensor/phy_3d_sensor)
