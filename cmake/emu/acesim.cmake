@@ -5,6 +5,8 @@
 # if ACE_SIM_DIR is not assign.
 if(DEFINED ENV{ACE_SIM_DIR})
   set(SIM_DIR $ENV{ACE_SIM_DIR})
+else()
+  set(SIM_DIR ${ZEPHYR_STD_SIM_MODULE_DIR})
 endif()
 
 find_program(
