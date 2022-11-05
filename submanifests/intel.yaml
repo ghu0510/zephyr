@@ -1,0 +1,19 @@
+manifest:
+  remotes:
+    - name: intel
+      url-base: https://github.com/intel-innersource
+  projects:
+    - name: std_sim
+      path: intel/std_sim
+      repo-path: os.rtos.zephyr.tools.ace-std-sim
+      revision: 3cd8a64de48c5eaf3152cab6c07a18add876c664
+      remote: intel
+    - name: sof
+      repo-path: drivers.audio.firmware.converged
+      revision: 3e5cadff2297b68cc30cba7d65177fc879182204
+      path: sof
+      remote: intel
+      import:
+        name-whitelist:
+          - rimage
+          - tomlc99
