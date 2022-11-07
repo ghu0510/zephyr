@@ -63,6 +63,18 @@ ZTEST(mem_map, test_z_phys_map_rw)
 		mapped_rw[i] = (uint8_t)(i % 256);
 	}
 
+#ifndef CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM
+	/*
+	 * Flush the changes from mapped_rw and
+	 * invalidate cache on buf[] so it has updated data.
+	 *
+	 * Note that simulator seems to break with cache
+	 * invalidation. So don't do it on simulator for now.
+	 */
+	z_xtensa_cache_flush(mapped_rw, BUF_SIZE);
+	z_xtensa_cache_inv(buf, BUF_SIZE);
+#endif /* !CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM */
+
 	/* Check that the backing buffer contains the expected data. */
 	for (int i = 0; i < BUF_SIZE; i++) {
 		uint8_t expected_val = (uint8_t)(i % 256);
@@ -75,6 +87,17 @@ ZTEST(mem_map, test_z_phys_map_rw)
 			      "unequal byte at RW index %d (%u != %u)",
 			      i, buf[i], mapped_rw[i]);
 	}
+
+#ifndef CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM
+	/*
+	 * Invalidate cache on mapped_ro to make sure
+	 * we don't have old data in cache.
+	 *
+	 * Note that simulator seems to break with cache
+	 * invalidation. So don't do it on simulator for now.
+	 */
+	z_xtensa_cache_inv(mapped_ro, BUF_SIZE);
+#endif /* !CONFIG_BOARD_INTEL_ADSP_ACE30_PTL_SIM */
 
 	/* Check that the read-only mapped area contains the expected data. */
 	for (int i = 0; i < BUF_SIZE; i++) {
