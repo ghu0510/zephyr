@@ -19,6 +19,8 @@ concurrency:
 jobs:
   check_compliance:
     runs-on: fmos-ubuntu-latest
+    env:
+      TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     name: Run compliance checks on patch series (PR)
     steps:
       # Cleans out any files from previous builds (as well as any .west files)
