@@ -1,4 +1,4 @@
-name: Run Intel Twister
+name: 'Run Twister - Intel'
 on:
   pull_request:
     branches:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  runTwister:
+  run_twister:
     defaults:
       run:
         shell: bash
@@ -23,9 +23,36 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        batch: [1, 2, 3]
-        batch_total: [3]
-    timeout-minutes: 45
+        subset: [1, 2, 3, 4]
+        toolchain: [gcc, xcc]
+        include:
+          - toolchain: 'xcc'
+            platform: 'intel_adsp_ace15_mtpm'
+            toolchain_ver: 'RG-2019.12-linux'
+            xtensa_core: 'ace10_LX7HiFi4'
+            variant: 'xcc'
+            subset: 1
+          - toolchain: 'xcc'
+            platform: 'intel_adsp_cavs15'
+            toolchain_ver: 'RG-2017.8-linux'
+            xtensa_core: 'X4H3I16w2D48w3a_2017_8'
+            variant: 'xcc'
+            subset: 2
+          - toolchain: 'xcc'
+            platform: 'intel_adsp_cavs18'
+            toolchain_ver: 'RG-2017.8-linux'
+            xtensa_core: 'X6H3CNL_2017_8'
+            variant: 'xcc'
+            subset: 3
+          - toolchain: 'xcc'
+            platform: 'intel_adsp_cavs25'
+            toolchain_ver: 'RG-2017.8-linux'
+            xtensa_core: 'cavs2x_LX6HiFi3_2017_8'
+            variant: 'xcc'
+            subset: 4
+    timeout-minutes: 60
+    env:
+      TWISTER_OPTS: "-v -M -x=USE_CCACHE=0 --inline-logs --retry-failed 3 --retry-interval 60 --force-color --no-skipped-report --integration -j 64"
     steps:
       - name: Clean
         run: |
@@ -34,7 +61,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3.1.0
         with:
-          path: 'zephyrproject/zephyr'
+          fetch-depth: 0
       - name: Set Creds for internal repos
         run: |
           touch $HOME/.git-credentials
@@ -42,23 +69,64 @@ jobs:
           git config --global user.email "sys_tmbuild@intel.com"
           git config --global user.name "Github Builder CI"
           git config --global credential.helper 'store --file=$HOME/.git-credentials'
-          echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/os.rtos.zephyr.zephyr-intel\nhttps://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
-      - name: 1rtos-ci
-        run: /opt/1rtos/container-api.sh 1rtos-ci $GITHUB_WORKSPACE ${{ matrix.batch }} ${{ matrix.batch_total }} "--integration --force-color --no-skipped-report"
-      - name: log artifacts
-        if: always()
+          west init -l . || true
+          for r in `west  list -f {url} | grep intel-innersource | sed 's#https://##'`; do
+            echo -e "https://$TOKEN:$TOKEN@$r" >> $HOME/.git-credentials
+          done
+          # debug
+          cat $HOME/.git-credentials
+          git config --global --add safe.directory ${PWD}
+
+      - name: Environment Setup
+        run: |
+          west config --global update.narrow true
+          west update
+          west forall -c 'git reset --hard HEAD'
+
+      - name: Build
+        run: |
+
+          if [ ${{ matrix.toolchain }} == 'gcc' ]; then
+
+            export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+            ./scripts/twister \
+              ${TWISTER_OPTS} \
+              --subset  ${{matrix.subset}}/4 \
+              -T tests
+
+          elif [ ${{ matrix.toolchain }} == 'xcc' ]; then
+
+            export ZEPHYR_TOOLCHAIN_VARIANT=${{ matrix.variant }}
+            export XTENSA_TOOLCHAIN_PATH=/opt/toolchains/xcc/install/tools
+            export XTENSA_CORE=${{ matrix.xtensa_core }}
+            export TOOLCHAIN_VER=${{ matrix.toolchain_ver }}
+            export XTENSA_BUILDS_DIR=/opt/toolchains/xcc/install/builds
+
+            ./scripts/twister \
+              ${TWISTER_OPTS} \
+              --retry-build-errors \
+              --quarantine-list .github/workflows/xcc-twister-quarantine.yml \
+              --build-only \
+              --disable-warnings-as-errors \
+              -p ${{ matrix.platform }} \
+              -T tests -e cmsis_dsp
+          fi
+
+
+      - name: Save Artifacts
+        if: failure() || success()
         uses: actions/upload-artifact@v2
         with:
-          name: twisterLog_${{ matrix.batch }}of${{ matrix.batch_total }}
+          name: twister_log_${{ matrix.subset }}_of_${{ strategy.job-total }}
           path: |
-            zephyrproject/zephyr/twister-out/twister.log
-            zephyrproject/zephyr/twister-out/twister.xml
-            zephyrproject/zephyr/twister_report.xml
-          retention-days: 1
+            twister-out/twister.log
+            twister-out/twister.xml
+            twister-out/twister.json
+          retention-days: 7
 
   publish-test-results:
-    name: 'Publish GCC Twister Results'
-    needs: [runTwister]
+    name: 'Publish Test Results'
+    needs: [run_twister]
     runs-on: fmos-ubuntu-latest
     continue-on-error: true
     if: always()
@@ -75,7 +143,7 @@ jobs:
         uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/results-publisher@main
         with:
           files: 'artifacts/**/twister.xml'
-          check_name: 'GCC Twister Results'
+          check_name: 'Test Results using twister'
           comment_mode: off
           compare_to_earlier_commit: false
 
@@ -84,7 +152,7 @@ jobs:
   # For this build workflow, no actions are taken by Intel-CI-Passed, just status
   # echo.
   Intel-CI-Passed:
-    needs: [runTwister]
+    needs: [run_twister]
     runs-on: fmos-ubuntu-latest
     steps:
       - name: Post run steps
