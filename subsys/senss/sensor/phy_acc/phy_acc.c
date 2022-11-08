@@ -146,12 +146,12 @@ static int phy_acc_sensitivity_test(const struct device *dev,
 	if (index >= 0 && index < ARRAY_SIZE(ctx->sensitivity)) {
 		reached = abs(curr->readings[0].v[index]
 				- last->readings[0].v[index])
-			>= ctx->sensitivity[index];
+			>= sensitivity;
 	} else if (index == SENSS_INDEX_ALL) {
 		for (i = 0; i < ARRAY_SIZE(ctx->sensitivity); ++i) {
 			reached |= abs(curr->readings[0].v[i]
 					- last->readings[0].v[i])
-				>= ctx->sensitivity[i];
+				>= sensitivity;
 		}
 	} else {
 		LOG_ERR("%s: test sensitivity: invalid index: %d", dev->name,
