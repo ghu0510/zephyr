@@ -126,6 +126,13 @@ if XTENSA_MMU
 		help
 		  Each table can address up to 4MB memory address.
 
+	config XTENSA_MMU_WA_NO_PTE_CACHE
+		bool "No caching in page table entries (workaround)"
+		help
+		  Workaround issue with hardware where caching does not
+		  work well when MMU enabled. This is intended for
+		  debugging and hardware bring-up.
+
 endif # XTENSA_MMU
 
 endif # CPU_HAS_MMU

@@ -9,8 +9,15 @@
 
 #define Z_XTENSA_MMU_X  BIT(0)
 #define Z_XTENSA_MMU_W  BIT(1)
+
+#ifndef CONFIG_XTENSA_MMU_WA_NO_PTE_CACHE
 #define Z_XTENSA_MMU_CACHED_WB BIT(2)
 #define Z_XTENSA_MMU_CACHED_WT BIT(3)
+#else
+#define Z_XTENSA_MMU_CACHED_WB 0
+#define Z_XTENSA_MMU_CACHED_WT 0
+#endif
+
 #define Z_XTENSA_MMU_ILLEGAL (BIT(3) | BIT(2))
 
 /* Struct used to map a memory region */
