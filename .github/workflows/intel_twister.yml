@@ -28,9 +28,9 @@ jobs:
         include:
           - toolchain: 'xcc'
             platform: 'intel_adsp_ace15_mtpm'
-            toolchain_ver: 'RG-2019.12-linux'
+            toolchain_ver: 'RI-2021.7-linux'
             xtensa_core: 'ace10_LX7HiFi4'
-            variant: 'xcc'
+            variant: 'xcc-clang'
             subset: 1
           - toolchain: 'xcc'
             platform: 'intel_adsp_cavs15'
@@ -52,7 +52,7 @@ jobs:
             subset: 4
     timeout-minutes: 60
     env:
-      TWISTER_OPTS: "-v -M -x=USE_CCACHE=0 --inline-logs --retry-failed 3 --retry-interval 60 --force-color --no-skipped-report --integration -j 64"
+      TWISTER_OPTS: "-v -M -x=USE_CCACHE=0 --inline-logs --retry-failed 3 --retry-interval 60 --force-color --no-skipped-report --integration -j 64 -k"
     steps:
       - name: Clean
         run: |
@@ -63,7 +63,7 @@ jobs:
         uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 0
-      - name: Set Creds for internal repos
+      - name: Environment Setup
         run: |
           touch $HOME/.git-credentials
           touch $HOME/.gitconfig
@@ -71,21 +71,34 @@ jobs:
           git config --global user.name "Github Builder CI"
           git config --global credential.helper 'store --file=$HOME/.git-credentials'
           west init -l . || true
+          west config --global update.narrow true
+          # we need this here because our local manifest does import this repo
+          echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
+          west update || true
           for r in `west  list -f {url} | grep intel-innersource | sed 's#https://##'`; do
-            echo -e "https://$TOKEN:$TOKEN@$r" >> $HOME/.git-credentials
+          echo -e "https://$TOKEN:$TOKEN@$r" >> $HOME/.git-credentials
           done
           # debug
           cat $HOME/.git-credentials
           git config --global --add safe.directory ${PWD}
-
-      - name: Environment Setup
-        run: |
-          west config --global update.narrow true
           west update
           west forall -c 'git reset --hard HEAD'
 
+      - name: Build RIMAGE
+        run: |
+          pushd ../sof/rimage
+          cmake -B build/
+          make  -C build/
+          sudo make -C build/ install
+          popd
+
       - name: Build
         run: |
+
+          export XTENSA_BUILDS_DIR=/opt/toolchains/xcc/install/builds
+          if [ '${{ matrix.twister_options }}x' != 'x' ]; then
+            export EXTRA_TWISTER_OPTS="${{ matrix.twister_options }}"
+          fi
 
           if [ ${{ matrix.toolchain }} == 'gcc' ]; then
 
@@ -93,7 +106,8 @@ jobs:
             ./scripts/twister \
               ${TWISTER_OPTS} \
               --subset  ${{matrix.subset}}/4 \
-              -T tests
+              -T tests \
+              -e cmsis_dsp
 
           elif [ ${{ matrix.toolchain }} == 'xcc' ]; then
 
@@ -101,16 +115,15 @@ jobs:
             export XTENSA_TOOLCHAIN_PATH=/opt/toolchains/xcc/install/tools
             export XTENSA_CORE=${{ matrix.xtensa_core }}
             export TOOLCHAIN_VER=${{ matrix.toolchain_ver }}
-            export XTENSA_BUILDS_DIR=/opt/toolchains/xcc/install/builds
-
             ./scripts/twister \
-              ${TWISTER_OPTS} \
+              ${TWISTER_OPTS} ${EXTRA_TWISTER_OPTS} \
               --retry-build-errors \
               --quarantine-list .github/workflows/xcc-twister-quarantine.yml \
-              --build-only \
               --disable-warnings-as-errors \
               -p ${{ matrix.platform }} \
-              -T tests -e cmsis_dsp
+              --build-only \
+              -T tests \
+              -e cmsis_dsp
           fi
 
 
