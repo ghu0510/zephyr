@@ -56,8 +56,9 @@ jobs:
     steps:
       - name: Clean
         run: |
+          # set dotglob so rm will remove dot files and dirs - (.west, etc.)
           shopt -s dotglob
-          rm -rf *
+          sudo rm -rf *
       - name: Checkout
         uses: actions/checkout@v3.1.0
         with:
