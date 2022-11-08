@@ -308,7 +308,7 @@ static int phy_acc_get_sensitivity(const struct device *dev,
 		*value = ctx->sensitivity[index];
 	} else if (index == SENSS_INDEX_ALL) {
 		for (i = 1; i < ARRAY_SIZE(ctx->sensitivity); ++i) {
-			if (ctx->sensitivity[i] == ctx->sensitivity[0]) {
+			if (ctx->sensitivity[i] != ctx->sensitivity[0]) {
 				LOG_ERR("%s: sensitivities are different, please get it one by one",
 						dev->name);
 				return -ESPIPE;
