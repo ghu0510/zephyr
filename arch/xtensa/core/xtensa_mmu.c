@@ -149,9 +149,16 @@ void z_xtensa_mmu_init(void)
 		map_memory_range(&mmu_zephyr_ranges[entry]);
 	}
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
 	for (entry = 0; entry < xtensa_soc_mmu_ranges_num; entry++) {
 		map_memory_range(&xtensa_soc_mmu_ranges[entry]);
 	}
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 	xthal_dcache_all_writeback();
 
