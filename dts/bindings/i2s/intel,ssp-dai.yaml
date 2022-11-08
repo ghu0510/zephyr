@@ -23,3 +23,10 @@ properties:
 
   dma-names:
     required: true
+
+  shim2:
+    type: array
+    required: false
+    description: |
+      Intel HD Audio Multiple Links Capability Structure
+      for I2S / PCM Link.
