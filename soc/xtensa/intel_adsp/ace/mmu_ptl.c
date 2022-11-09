@@ -58,6 +58,12 @@ const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {
 		.attrs = Z_XTENSA_MMU_X | Z_XTENSA_MMU_W,
 		.name = "imr",
 	},
+	{
+		.start = (uint32_t)LP_SRAM_BASE,
+		.end   = (uint32_t)(LP_SRAM_BASE + LP_SRAM_SIZE),
+		.attrs = Z_XTENSA_MMU_W,
+		.name = "lpsram",
+	},
 };
 
 int xtensa_soc_mmu_ranges_num = ARRAY_SIZE(xtensa_soc_mmu_ranges);
