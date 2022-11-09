@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - main-intel
+      - sensor_framework
   workflow_dispatch:
 
 concurrency:
