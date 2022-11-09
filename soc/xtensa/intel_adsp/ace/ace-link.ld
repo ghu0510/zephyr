@@ -37,8 +37,13 @@ ENTRY(rom_entry);
  */
 #ifdef CONFIG_KERNEL_COHERENCE
 #define RPO_SET(addr, reg) ((addr & 0x1fffffff) | (reg << 29))
+#ifdef CONFIG_MMU
+#define SEGSTART_CACHED   RPO_SET(ALIGN(CONFIG_MMU_PAGE_SIZE), CONFIG_XTENSA_CACHED_REGION)
+#define SEGSTART_UNCACHED RPO_SET(ALIGN(CONFIG_MMU_PAGE_SIZE), CONFIG_XTENSA_UNCACHED_REGION)
+#else
 #define SEGSTART_CACHED   RPO_SET(ALIGN(64), CONFIG_XTENSA_CACHED_REGION)
 #define SEGSTART_UNCACHED RPO_SET(ALIGN(64), CONFIG_XTENSA_UNCACHED_REGION)
+#endif
 #else
 #define SEGSTART_CACHED   .
 #define SEGSTART_UNCACHED .
@@ -55,6 +60,14 @@ ENTRY(rom_entry);
  */
 #define NOLOAD_BASE 0x20000
 #define NOLOAD_SIZE 0x100000
+
+#ifdef CONFIG_MMU
+#define MMU_PAGE_ALIGN . = ALIGN(CONFIG_MMU_PAGE_SIZE);
+#define HDR_4K_OR_MMU_PAGE_ALIGN ALIGN(CONFIG_MMU_PAGE_SIZE)
+#else
+#define MMU_PAGE_ALIGN
+#define HDR_4K_OR_MMU_PAGE_ALIGN ALIGN(4096)
+#endif
 
 MEMORY {
   vector_base_text :
@@ -233,7 +246,7 @@ SECTIONS {
     _DoubleExceptionVector_text_end = .;
   } >vector_double_text
 
-  .text : ALIGN(4096)
+  .text : HDR_4K_OR_MMU_PAGE_ALIGN
   {
     __text_region_start = .;
     _image_ram_start = .;
@@ -248,10 +261,11 @@ SECTIONS {
     *(.fini.literal)
     KEEP(*(.fini))
     *(.gnu.version)
+    MMU_PAGE_ALIGN
     __text_region_end = .;
   } >ram
 
-  .rodata : ALIGN(4096)
+  .rodata : HDR_4K_OR_MMU_PAGE_ALIGN
   {
     __rodata_region_start = .;
     *(.rodata)
@@ -287,6 +301,7 @@ SECTIONS {
     LONG(_bss_start)
     LONG(_bss_end)
     _bss_table_end = .;
+    MMU_PAGE_ALIGN
     __rodata_region_end = .;
   } >ram
 
@@ -298,16 +313,17 @@ SECTIONS {
 
 #define RAMABLE_REGION ram
 #define ROMABLE_REGION ram
-#include <zephyr/linker/common-rom.ld>
 
-  .fw_ready : {
-    KEEP(*(".fw_ready"));
-    KEEP (*(.fw_ready_metadata))
-  } >ram
+  __common_rom_region_start = .;
+#include <zephyr/linker/common-rom.ld>
+  __common_rom_region_end = .;
 
   .noinit SEGSTART_UNCACHED : {
+    __noinit_region_start = .;
     *(.noinit)
     *(.noinit.*)
+    MMU_PAGE_ALIGN
+    __noinit_region_end = .;
   } >ucram
 
   .data SEGSTART_UNCACHED : {
@@ -349,7 +365,14 @@ SECTIONS {
 #define RAMABLE_REGION ucram
 #define ROMABLE_REGION ucram
 
+  .fw_ready SEGSTART_UNCACHED : {
+    KEEP(*(".fw_ready"));
+    KEEP (*(.fw_ready_metadata))
+  } > ucram
+
+  __common_ram_region_start = .;
 #include <zephyr/linker/common-ram.ld>
+  __common_ram_region_end = .;
 
   .tm_clone_table : {
     *(.tm_clone_table)
@@ -389,6 +412,7 @@ SECTIONS {
     *(.gnu.linkonce.b.*)
     *(COMMON)
     . = ALIGN(8);
+    MMU_PAGE_ALIGN
     _bss_end = .;
   } >ucram
 

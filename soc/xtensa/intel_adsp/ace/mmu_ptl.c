@@ -8,8 +8,31 @@ extern char _cached_start[];
 extern char _cached_end[];
 extern char _imr_start[];
 extern char _imr_end[];
+extern char __common_rom_region_start[];
+extern char __common_rom_region_end[];
+extern char __common_ram_region_start[];
+extern char __common_ram_region_end[];
+extern char __noinit_region_start[];
+extern char __noinit_region_end[];
 
 const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {
+	{
+		.start = (uint32_t)__common_rom_region_start,
+		.end   = (uint32_t)__common_rom_region_end,
+		.name = "common-rom",
+	},
+	{
+		.start = (uint32_t)__common_ram_region_start,
+		.end   = (uint32_t)__common_ram_region_end,
+		.attrs = Z_XTENSA_MMU_W,
+		.name = "common-ram",
+	},
+	{
+		.start = (uint32_t)__noinit_region_start,
+		.end   = (uint32_t)__noinit_region_end,
+		.attrs = Z_XTENSA_MMU_W,
+		.name = "noinit",
+	},
 	{
 		.start = (uint32_t)VECBASE_RESET_PADDR_SRAM,
 		.end   = (uint32_t)VECBASE_RESET_PADDR_SRAM + VECTOR_TBL_SIZE,
