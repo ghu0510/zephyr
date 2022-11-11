@@ -17,7 +17,6 @@ jobs:
     runs-on: uzdo128
     container:
       image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main
-      options: -v/opt/toolchains:/opt/toolchains
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     strategy:
