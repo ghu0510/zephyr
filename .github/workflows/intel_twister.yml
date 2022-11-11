@@ -94,6 +94,8 @@ jobs:
       - name: Build
         run: |
 
+          # for nsim simulator
+          export PATH=$PATH:/opt/nSIM_64/bin/
           export XTENSA_BUILDS_DIR=/opt/toolchains/xcc/install/builds
           if [ '${{ matrix.twister_options }}x' != 'x' ]; then
             export EXTRA_TWISTER_OPTS="${{ matrix.twister_options }}"
