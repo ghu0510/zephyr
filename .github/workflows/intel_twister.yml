@@ -104,6 +104,7 @@ jobs:
             export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
             ./scripts/twister \
               ${TWISTER_OPTS} \
+              --quarantine-list .github/data/twister-quarantine-list.yml \
               --subset  ${{matrix.subset}}/4 \
               -T tests \
               -e cmsis_dsp
@@ -117,7 +118,7 @@ jobs:
             ./scripts/twister \
               ${TWISTER_OPTS} ${EXTRA_TWISTER_OPTS} \
               --retry-build-errors \
-              --quarantine-list .github/workflows/xcc-twister-quarantine.yml \
+              --quarantine-list .github/data/xcc-twister-quarantine.yml \
               --disable-warnings-as-errors \
               -p ${{ matrix.platform }} \
               --build-only \
