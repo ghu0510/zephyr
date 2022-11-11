@@ -1,3 +1,11 @@
+simulation:
+  - renode
+  - nsim
+architectures:
+  - sparc
+  - mips
+  - nios2
+tests:
 - scenarios:
     - kernel.timer.monotonic
   platforms:
