@@ -49,7 +49,7 @@ jobs:
             xtensa_core: 'cavs2x_LX6HiFi3_2017_8'
             variant: 'xcc'
             subset: 4
-    timeout-minutes: 60
+    timeout-minutes: 80
     env:
       TWISTER_OPTS: "-v -M -x=USE_CCACHE=0 --inline-logs --retry-failed 3 --retry-interval 60 --force-color --no-skipped-report --integration -j 64 -k"
     steps:
