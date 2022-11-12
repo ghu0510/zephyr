@@ -1,0 +1,206 @@
+name: Run tests on Hardware (Intel)
+on:
+  push:
+    branches:
+      - main-intel-testing
+  schedule:
+    - cron:  '15 5 * * *' # once daily @ 05:15 UTC, for now, to avoid conflicts.
+  pull_request:
+    branches:
+      - main-intel-testing
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run_twister:
+    name: '[HW] Run tests on hardware'
+    defaults:
+      run:
+        shell: bash
+    continue-on-error: true
+    container:
+      image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main
+      env:
+        TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform_group: [1, 2, 3, 4, 5, 6]
+        include:
+          - platform_group: 1
+            toolchain: 'zephyr'
+            platform: "intel_adsp_cavs25"
+            scope: acceptance
+            hwtype: device
+            runner: fmos-ubuntu-latest
+          - platform_group: 2
+            toolchain: 'zephyr'
+            platform: "intel_adsp_cavs15"
+            scope: smoke
+            hwtype: device
+            runner: fmos-ubuntu-latest
+          - platform_group: 3
+            toolchain: 'zephyr'
+            platform: "intel_adsp_cavs18"
+            scope: smoke
+            hwtype: device
+            runner: fmos-ubuntu-latest
+          - platform_group: 4
+            scope: acceptance
+            hwtype: simulator
+            toolchain: 'xcc'
+            platform: 'intel_adsp_ace15_mtpm_sim'
+            toolchain_ver: 'RI-2021.7-linux'
+            xtensa_core: 'ace10_LX7HiFi4'
+            variant: 'zephyr'
+            runner: fmos-ubuntu-latest
+          - platform_group: 5
+            scope: smoke
+            hwtype: simulator
+            toolchain: 'xcc'
+            platform: 'intel_adsp_ace30_ptl_sim'
+            toolchain_ver: 'RI-2021.8-linux'
+            xtensa_core: 'ace30_LX7HiFi4'
+            variant: 'xcc-clang'
+            runner: fmos-ubuntu-latest
+          - platform_group: 6
+            scope: acceptance
+            hwtype: simulator
+            platform: 'nsim_em'
+            variant: 'zephyr'
+            runner: uzdo128
+
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - name: Clean Workspace
+        run: |
+          # set dotglob so rm will remove dot files and dirs - (.west, etc.)
+          shopt -s dotglob
+          pwd
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+          ls -la ./
+      - name: Checkout
+        uses: actions/checkout@v3.1.0
+        with:
+          fetch-depth: 0
+      - name: Environment Setup
+        run: |
+          touch $HOME/.git-credentials
+          touch $HOME/.gitconfig
+          git config --global user.email "sys_tmbuild@intel.com"
+          git config --global user.name "Github Builder CI"
+          git config --global credential.helper 'store --file=$HOME/.git-credentials'
+          west init -l . || true
+          west config --global update.narrow true
+          # we need this here because our local manifest does import this repo
+          echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
+          west update  2>&1 1> west.update.log || ( rm -rf ../intel ../modules ../bootloader ../tools && west update )
+          for r in `west  list -f {url} | grep intel-innersource | sed 's#https://##'`; do
+            echo -e "https://$TOKEN:$TOKEN@$r" >> $HOME/.git-credentials
+          done
+          # debug
+          cat $HOME/.git-credentials
+          git config --global --add safe.directory ${PWD}
+          west update
+          west forall -c 'git reset --hard HEAD'
+
+      - name: Build RIMAGE
+        run: |
+          pushd ../modules/audio/sof/rimage
+          cmake -B build/
+          make  -C build/
+          sudo make -C build/ install
+          popd
+      - name: Execute Tests
+        run: |
+
+          # device vs sim
+          if [ ${{ matrix.hwtype }} == 'device' ]; then
+            export DEV_TYPE="--device-testing --hardware-map .github/data/map.yaml"
+          fi
+          # toolchain
+          if [ ${{ matrix.toolchain }} == 'xcc' ]; then
+            export ZEPHYR_TOOLCHAIN_VARIANT=${{ matrix.variant }}
+            export XTENSA_TOOLCHAIN_PATH=/opt/toolchains/xcc/install/tools
+            export XTENSA_CORE=${{ matrix.xtensa_core }}
+            export TOOLCHAIN_VER=${{ matrix.toolchain_ver }}
+            export XTENSA_BUILDS_DIR=/opt/toolchains/xcc/install/builds
+          fi
+
+          rm -f tests_to_run.txt
+          TESTS_SMOKE="tests/boards,samples/synchronization,tests/kernel/threads"
+          TESTS_ACCEPTANCE="${TESTS_SMOKE},tests/kernel,tests/arch,tests/boards,tests/lib,tests/drivers,tests/subsys/logging"
+          TEST_COV=${{ matrix.scope }}
+          SELECTED=TESTS_${TEST_COV^^}
+          TESTS=${!SELECTED}
+          IFS=',' read -r -a tests <<< "$TESTS"
+          for t in "${tests[@]}"; do
+            echo "-T" >> tests_to_run.txt
+            echo $t >> tests_to_run.txt
+          done
+          cat tests_to_run.txt
+
+
+          # For nsim
+          export PATH=$PATH:/opt/nSIM_64/bin
+
+          ./scripts/twister -M -x=USE_CCACHE=0 --inline-logs \
+            --force-color -v \
+            --quarantine-list .github/data/twister-quarantine-list.yml \
+            --disable-suite-name-check \
+            --retry-failed 2 \
+            $DEV_TYPE \
+            -p ${{ matrix.platform }} \
+            -e cmsis_dsp -e posix -e cmsis_rtos -e smf -e filessystem -e benchmark -e onoff -e tinycrypt \
+            -e can -e hwinfo -e test_framework -e shell -e sensor -e disk -e uart -e led \
+            +tests_to_run.txt
+
+      - name: Upload Unit Test Results
+        if: success() || failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Unit Test Results (Subset ${{ matrix.platform_group }})
+          path: |
+            twister-out/twister.log
+            twister-out/twister.xml
+            twister-out/twister.json
+          retention-days: 14
+
+  publish-test-results:
+    env:
+      ELASTICSEARCH_KEY: ${{ secrets.ELASTICSEARCH_KEY }}
+    name: '[HW] Publish Test Results'
+    needs: [run_twister]
+    runs-on: fmos-ubuntu-latest
+    continue-on-error: true
+    if: success() || failure()
+    steps:
+      - name: Clean
+        run: |
+          rm -rf artifacts
+      - name: Checkout
+        uses: actions/checkout@v3.1.0
+        with:
+          fetch-depth: 0
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: Upload to ElasticSearch Instance
+        run: |
+          pip3 install elasticsearch
+          python3 ./scripts/ci/upload_test_results_es.py -i tests-zephyr-main-intel artifacts/**/twister.json
+
+      - name: Publish Unit Test Results
+        uses: intel-innersource/os.rtos.zephyr.devops.ci/actions/results-publisher@main
+        with:
+          files: 'artifacts/**/twister.xml'
+          check_name: 'Hardware Test Results'
+          comment_mode: off
+          compare_to_earlier_commit: false
