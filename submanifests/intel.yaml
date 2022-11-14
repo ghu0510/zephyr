@@ -2,6 +2,8 @@ manifest:
   remotes:
     - name: intel
       url-base: https://github.com/intel-innersource
+    - name: thesofproject
+      url-base: https://github.com/thesofproject
   projects:
     - name: std_sim
       path: intel/std_sim
@@ -11,9 +13,15 @@ manifest:
     - name: sof
       repo-path: drivers.audio.firmware.converged
       revision: 3e5cadff2297b68cc30cba7d65177fc879182204
-      path: sof
+      path: modules/audio/sof
       remote: intel
-      import:
-        name-whitelist:
-          - rimage
-          - tomlc99
+    - name: rimage
+      repo-path: drivers.audio.firmware.rimage
+      path: modules/audio/sof/rimage
+      revision: 663b53c3dc7ddec950a750167520886ddeab25d2
+      remote: intel
+    - name: tomlc99
+      remote: thesofproject
+      repo-path: tomlc99
+      path: modules/audio/sof/rimage/tomlc99
+      revision: e3a03f5ec7d8d33be705c5ce8a632d998ce9b4d1
