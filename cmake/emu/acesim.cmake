@@ -20,7 +20,6 @@ set(ACESIM_FLAGS
   --soc ${CONFIG_SOC}
   --rimage ${APPLICATION_BINARY_DIR}/zephyr/zephyr.ri
   --gdb ${CMAKE_GDB}
-  --trace
   )
 
 add_custom_target(run_acesim
