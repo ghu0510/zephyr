@@ -49,6 +49,7 @@ jobs:
           pip3 install wheel
           pip3 install python-magic junitparser==2.7.0 gitlint pylint pykwalify
           pip3 install west
+          pip3 install lxml
 
       - name: Set Creds for internal repos
         run: |
