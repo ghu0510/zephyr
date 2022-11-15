@@ -47,8 +47,8 @@ static ATOMIC_DEFINE(l2_page_tables_track, CONFIG_XTENSA_MMU_NUM_L2_TABLES);
 
 extern char _heap_end[];
 extern char _heap_start[];
-extern char _data_start[];
-extern char _data_end[];
+extern char __data_start[];
+extern char __data_end[];
 extern char _bss_start[];
 extern char _bss_end[];
 
@@ -66,8 +66,8 @@ static const struct xtensa_mmu_range mmu_zephyr_ranges[] = {
 	 * cacheable, read / write and non-executable
 	 */
 	{
-		.start = (uint32_t)&_data_start,
-		.end   = (uint32_t)&_data_end,
+		.start = (uint32_t)&__data_start,
+		.end   = (uint32_t)&__data_end,
 		.attrs = Z_XTENSA_MMU_W,
 		.name = "data",
 	},
