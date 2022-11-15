@@ -86,7 +86,7 @@ jobs:
 
       - name: Build RIMAGE
         run: |
-          pushd ../sof/rimage
+          pushd ../modules/audio/sof/rimage
           cmake -B build/
           make  -C build/
           sudo make -C build/ install
