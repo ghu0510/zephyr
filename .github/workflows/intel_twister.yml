@@ -58,7 +58,13 @@ jobs:
         run: |
           # set dotglob so rm will remove dot files and dirs - (.west, etc.)
           shopt -s dotglob
+          pwd
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+          # just to be sure...
           sudo rm -rf *
+          ls -la ./
       - name: Checkout
         uses: actions/checkout@v3.1.0
         with:
@@ -74,7 +80,7 @@ jobs:
           west config --global update.narrow true
           # we need this here because our local manifest does import this repo
           echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
-          west update || true
+          west update  2>&1 1> west.update.log || ( rm -rf ../intel ../modules ../bootloader ../tools && west update )
           for r in `west  list -f {url} | grep intel-innersource | sed 's#https://##'`; do
           echo -e "https://$TOKEN:$TOKEN@$r" >> $HOME/.git-credentials
           done
