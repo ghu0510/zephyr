@@ -146,7 +146,7 @@ jobs:
     needs: [run_twister]
     runs-on: fmos-ubuntu-latest
     continue-on-error: true
-    if: always()
+    if: success() || failure()
     steps:
       - run: env
       - name: Clean
