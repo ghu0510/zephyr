@@ -8,7 +8,7 @@ toolchain:
   - zephyr
   - xcc-clang
 testing:
-  timeout_multiplier: 8
+  timeout_multiplier: 4
   ignore_tags:
     - net
     - bluetooth
