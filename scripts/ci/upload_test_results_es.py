@@ -14,7 +14,8 @@ import os
 import json
 import argparse
 
-host = "https://elasticsearch.zephyrproject.io:443"
+host = "https://gale.hf.intel.com:9200"
+port = 443
 
 def gendata(f, index):
     with open(f, "r") as j:
@@ -39,7 +40,7 @@ def main():
     if args.index:
         index_name = args.index
     else:
-        index_name = 'tests-zephyr-1'
+        index_name = 'tests-zephyr-main-intel'
 
     settings = {
             "index": {
