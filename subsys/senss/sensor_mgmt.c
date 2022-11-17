@@ -1002,8 +1002,6 @@ static void sensor_later_config(struct senss_mgmt_context *ctx)
 		config_sensor(sensor);
 		sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
 	}
-
-	__ASSERT(sys_slist_is_empty(&ctx->cfg_list), "config list should be empty");
 }
 
 void sensor_event_process(struct senss_mgmt_context *ctx, k_timeout_t timeout)
