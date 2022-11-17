@@ -112,12 +112,12 @@ static inline uint32_t *alloc_l2_table(void)
 	return NULL;
 }
 
-static void map_memory_range(const struct xtensa_mmu_range *range)
+static void map_memory_range(uint32_t start, uint32_t end, uint32_t attrs)
 {
 	uint32_t page, *table;
 
-	for (page = range->start; page < range->end; page += CONFIG_MMU_PAGE_SIZE) {
-		uint32_t pte = Z_XTENSA_PTE(page, 0, range->attrs);
+	for (page = start; page < end; page += CONFIG_MMU_PAGE_SIZE) {
+		uint32_t pte = Z_XTENSA_PTE(page, 0, attrs);
 		uint32_t l2_pos = Z_XTENSA_L2_POS(page);
 		uint32_t l1_pos = page >> 22;
 
@@ -146,7 +146,15 @@ void z_xtensa_mmu_init(void)
 	}
 
 	for (entry = 0; entry < ARRAY_SIZE(mmu_zephyr_ranges); entry++) {
-		map_memory_range(&mmu_zephyr_ranges[entry]);
+		struct xtensa_mmu_range range = mmu_zephyr_ranges[entry];
+
+		map_memory_range(range.start, range.end,
+			(range.attrs & ~Z_XTENSA_MMU_MAP_UNCACHED));
+		if ((range.attrs & Z_XTENSA_MMU_MAP_UNCACHED) != 0) {
+			map_memory_range(POINTER_TO_UINT(z_soc_uncached_ptr((void *)range.start)),
+				POINTER_TO_UINT(z_soc_uncached_ptr((void *)range.end)),
+				(range.attrs & ~Z_XTENSA_MMU_MAP_UNCACHED));
+		}
 	}
 
 #if defined(__GNUC__)
@@ -154,7 +162,15 @@ void z_xtensa_mmu_init(void)
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
 	for (entry = 0; entry < xtensa_soc_mmu_ranges_num; entry++) {
-		map_memory_range(&xtensa_soc_mmu_ranges[entry]);
+		struct xtensa_mmu_range range = xtensa_soc_mmu_ranges[entry];
+
+		map_memory_range(range.start, range.end,
+			(range.attrs & ~Z_XTENSA_MMU_MAP_UNCACHED));
+		if ((range.attrs & Z_XTENSA_MMU_MAP_UNCACHED) != 0) {
+			map_memory_range(POINTER_TO_UINT(z_soc_uncached_ptr((void *)range.start)),
+				POINTER_TO_UINT(z_soc_uncached_ptr((void *)range.end)),
+				(range.attrs & ~Z_XTENSA_MMU_MAP_UNCACHED));
+		}
 	}
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop

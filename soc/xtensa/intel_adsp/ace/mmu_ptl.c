@@ -48,26 +48,20 @@ const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {
 	{
 		.start = (uint32_t)HP_SRAM_WIN0_BASE,
 		.end   = (uint32_t)HP_SRAM_WIN0_BASE + (uint32_t)HP_SRAM_WIN0_SIZE,
-		.attrs = Z_XTENSA_MMU_W,
+		.attrs = Z_XTENSA_MMU_W | Z_XTENSA_MMU_MAP_UNCACHED,
 		.name = "win0",
 	},
 	{
 		.start = (uint32_t)HP_SRAM_WIN2_BASE,
 		.end   = (uint32_t)HP_SRAM_WIN2_BASE + (uint32_t)HP_SRAM_WIN2_SIZE,
-		.attrs = Z_XTENSA_MMU_W,
+		.attrs = Z_XTENSA_MMU_W | Z_XTENSA_MMU_MAP_UNCACHED,
 		.name = "win2",
 	},
 	{
 		.start = (uint32_t)HP_SRAM_WIN3_BASE,
 		.end   = (uint32_t)HP_SRAM_WIN3_BASE + (uint32_t)HP_SRAM_WIN3_SIZE,
-		.attrs = Z_XTENSA_MMU_W,
+		.attrs = Z_XTENSA_MMU_W | Z_XTENSA_MMU_MAP_UNCACHED,
 		.name = "win3",
-	},
-	{
-		.start = 0x4002a000,
-		.end   = 0x4002a000 + HP_SRAM_WIN3_SIZE,
-		.attrs = Z_XTENSA_MMU_W,
-		.name = "win3-uncached",
 	},
 	{
 		.start = (uint32_t)z_mapped_start,

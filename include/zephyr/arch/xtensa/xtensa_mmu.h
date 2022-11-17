@@ -18,6 +18,14 @@
 #define Z_XTENSA_MMU_CACHED_WT 0
 #endif
 
+
+/*
+ * This BIT tells the mapping code whether the
+ * uncached pointer should be mapped. That is not
+ * used in the HW, it is just for the implementation.
+ */
+#define Z_XTENSA_MMU_MAP_UNCACHED  BIT(31)
+
 #define Z_XTENSA_MMU_ILLEGAL (BIT(3) | BIT(2))
 
 /* Struct used to map a memory region */
