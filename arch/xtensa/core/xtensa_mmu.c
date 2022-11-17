@@ -52,8 +52,6 @@ extern char __data_end[];
 extern char _bss_start[];
 extern char _bss_end[];
 
-__weak const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {};
-__weak int xtensa_soc_mmu_ranges_num;
 /*
  * Static definition of all code & data memory regions of the
  * current Zephyr image. This information must be available &
