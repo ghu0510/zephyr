@@ -783,9 +783,11 @@ static void dai_ssp_pm_runtime_dis_ssp_power(struct dai_intel_ssp *dp, uint32_t 
 }
 
 static void dai_ssp_program_channel_map(struct dai_intel_ssp *dp,
-					uint16_t pcmsycm, uint32_t index)
+		const struct dai_config *cfg, uint32_t index)
 {
 #ifdef CONFIG_SOC_INTEL_ACE20_LNL
+	uint16_t pcmsycm = cfg->link_config;
+
 	if (DAI_INTEL_SSP_IS_BIT_SET(pcmsycm, 15)) {
 		uint32_t reg_add = dai_ip_base(dp) + 0x1000 * index + PCMS0CM_OFFSET;
 		/* Program HDA output stream parameters */
@@ -797,7 +799,7 @@ static void dai_ssp_program_channel_map(struct dai_intel_ssp *dp,
 	}
 #else
 	ARG_UNUSED(dp);
-	ARG_UNUSED(pcmsym);
+	ARG_UNUSED(cfg);
 	ARG_UNUSED(index);
 #endif /* CONFIG_SOC_INTEL_ACE20_LNL */
 }
@@ -1894,10 +1896,10 @@ static int dai_ssp_config_set(const struct device *dev, const struct dai_config 
 	struct dai_intel_ssp *dp = (struct dai_intel_ssp *)dev->data;
 
 	if (cfg->type == DAI_INTEL_SSP) {
-		dai_ssp_program_channel_map(dp, cfg->link_config, dp->index);
+		dai_ssp_program_channel_map(dp, cfg, dp->index);
 		return dai_ssp_set_config_tplg(dp, cfg, bespoke_cfg);
 	} else {
-		dai_ssp_program_channel_map(dp, cfg->link_config, dp->index);
+		dai_ssp_program_channel_map(dp, cfg, dp->index);
 		return dai_ssp_set_config_blob(dp, cfg, bespoke_cfg);
 	}
 }
