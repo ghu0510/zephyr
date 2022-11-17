@@ -342,7 +342,7 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 	/* sensor is not in polling mode or sensor interval still not set yet,
 	 * no need to poll, return directly
 	 */
-	if (sensor->mode != SENSOR_TRIGGER_MODE_POLLING || sensor->cfg.interval == UINT32_MAX) {
+	if (sensor->mode != SENSOR_TRIGGER_MODE_POLLING || sensor->cfg.interval == 0) {
 		LOG_DBG("sensor %s not in polling mode:%d or sensor interval:%d not opened yet",
 			sensor->dev->name, sensor->mode, sensor->cfg.interval);
 		sensor->next_exec_time = EXEC_TIME_OFF;

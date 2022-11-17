@@ -130,7 +130,7 @@ static void init_sensor_config(struct sensor_config *config, int type)
 {
 	int i;
 
-	config->interval = SENSOR_INTERVAL_MAX;
+	config->interval = 0;
 	config->sensitivity_count = get_max_valid_index(type);
 
 	__ASSERT(config->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
@@ -224,9 +224,10 @@ static void init_each_connection(struct senss_mgmt_context *ctx,
 	conn->sample.data = malloc(source->data_size);
 	__ASSERT(conn->sample.data, "alloc memory for sample data error");
 	conn->sample.size = source->data_size;
-	conn->interval = SENSOR_INTERVAL_MAX;
+	conn->interval = 0;
+
 	for (i = 0; i < CONFIG_SENSS_MAX_SENSITIVITY_COUNT; i++) {
-		conn->sensitivity[i] = CONFIG_SENSS_MAX_SENSITIVITY_COUNT;
+		conn->sensitivity[i] = SENSOR_SENSITIVITY_MAX;
 	}
 }
 
@@ -828,26 +829,26 @@ int senss_sensor_set_data_ready(const struct device *dev, bool data_ready)
 static uint32_t arbitrate_interval(struct senss_sensor *sensor)
 {
 	struct connection *conn;
-	uint32_t min_ri = SENSOR_INTERVAL_MAX;
+	uint32_t min_interval = SENSOR_INTERVAL_MAX;
 	uint32_t interval;
 
 	/* search from all clients, arbitrate the interval */
 	for_each_sensor_client(sensor, conn) {
 		LOG_DBG("%s, for each client, conn:%d, sensor:%s, mode:%d, interval:%d",
 			__func__, conn->index, sensor->dev->name, sensor->mode, conn->interval);
-		if (conn->interval != 0 && conn->interval < min_ri) {
-			min_ri = conn->interval;
+		if (conn->interval != 0 && conn->interval < min_interval) {
+			min_interval = conn->interval;
 		}
 	}
-	/* min_ri == SENSOR_INTERVAL_MAX means sensor is not opened by any clients
+	/* min_interval == SENSOR_INTERVAL_MAX means sensor is not opened by any clients
 	 * if no client open the sensor, interval should be 0
 	 */
-	interval = (min_ri == SENSOR_INTERVAL_MAX ? 0 : min_ri);
+	interval = (min_interval == SENSOR_INTERVAL_MAX ? 0 : min_interval);
 
-	LOG_INF("%s, sensor:%s, interval:%d, min_ri:%d, next_exec_time:%lld",
-		__func__, sensor->dev->name, interval, min_ri, sensor->next_exec_time);
+	LOG_INF("%s, sensor:%s, interval:%d, min_interval:%d, next_exec_time:%lld",
+		__func__, sensor->dev->name, interval, min_interval, sensor->next_exec_time);
 
-	/* interval == 0  means sensor is not opened by any clients
+	/* interval == 0 means sensor is not opened by any client
 	 */
 	if (interval == 0) {
 		/* sensor is closed by all clients, reset next_exec_time as EXEC_TIME_OFF
@@ -900,18 +901,21 @@ static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
 	struct connection *conn;
 	uint32_t min_sensitivity = SENSOR_SENSITIVITY_MAX;
 
+	/* search from all clients, arbitrate the sensitivity */
 	for_each_sensor_client(sensor, conn) {
-		LOG_DBG("%s, for each client, conn:%d, index:%d, sens:%d, min_sen:%d",
-			__func__, conn->index, index, conn->sensitivity[index], min_sensitivity);
+		LOG_INF("%s, for each client, sensor:%s, conn:%d, index:%d, sens:%d, min_sen:%d",
+					__func__, sensor->dev->name, conn->index, index,
+					conn->sensitivity[index], min_sensitivity);
 		if (conn->sensitivity[index] < min_sensitivity) {
 			min_sensitivity = conn->sensitivity[index];
 		}
 	}
-
 	LOG_INF("%s, min_sensitivity:%d", __func__, min_sensitivity);
 
-	/* SENSOR_SENSITIVITY_MAX means sensitivity is not configured by any client */
-	return min_sensitivity;
+	/* min_sensitivity == SENSOR_SENSITIVITY_MAX means sensitivity is not configured
+	 * by any client, in this case, return sensitivity 0
+	 */
+	return (min_sensitivity == SENSOR_SENSITIVITY_MAX ? 0 : min_sensitivity);
 }
 
 static int set_arbitrate_sensitivity(struct senss_sensor *sensor, int index, uint32_t sensitivity)
