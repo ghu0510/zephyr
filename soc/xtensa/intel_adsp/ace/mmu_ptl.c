@@ -52,6 +52,12 @@ const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {
 		.name = "win0",
 	},
 	{
+		.start = (uint32_t)HP_SRAM_WIN1_BASE,
+		.end   = (uint32_t)HP_SRAM_WIN1_BASE + (uint32_t)HP_SRAM_WIN1_SIZE,
+		.attrs = Z_XTENSA_MMU_W,
+		.name = "win2",
+	},
+	{
 		.start = (uint32_t)HP_SRAM_WIN2_BASE,
 		.end   = (uint32_t)HP_SRAM_WIN2_BASE + (uint32_t)HP_SRAM_WIN2_SIZE,
 		.attrs = Z_XTENSA_MMU_W | Z_XTENSA_MMU_MAP_UNCACHED,
@@ -70,7 +76,7 @@ const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {
 		.name = "stack",
 	},
 	{
-		.start = (uint32_t)_imr_start,
+		.start = (uint32_t)IMR_BOOT_LDR_MANIFEST_BASE,
 		.end   = (uint32_t)_imr_end,
 		.attrs = Z_XTENSA_MMU_X | Z_XTENSA_MMU_W,
 		.name = "imr",
