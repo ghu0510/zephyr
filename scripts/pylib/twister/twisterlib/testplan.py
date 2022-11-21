@@ -15,6 +15,14 @@ from itertools import islice
 import logging
 import copy
 import shutil
+import yaml
+
+try:
+    # Use the C LibYAML parser if available, rather than the Python parser.
+    # It's much faster.
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
 
 logger = logging.getLogger('twister')
 logger.setLevel(logging.DEBUG)
@@ -59,6 +67,13 @@ class Filters:
     SKIP = 'Skip filter'
 
 
+class Plan:
+    name = None
+    levels = []
+    scenarios = []
+    default_platforms = []
+    build_on_all = True
+
 class TestPlan:
     config_re = re.compile('(CONFIG_[A-Za-z0-9_]+)[=]\"?([^\"]*)\"?$')
     dt_re = re.compile('([A-Za-z0-9_]+)[=]\"?([^\"]*)\"?$')
@@ -90,12 +105,54 @@ class TestPlan:
         self.instances = dict()
         self.warnings = 0
 
+        self.scenarios = []
+
         self.hwm = env.hwm
         # used during creating shorter build paths
         self.link_dir_counter = 0
         self.modules = []
 
         self.run_individual_testsuite = []
+        self.plans = []
+
+
+    def get_plan(self, name):
+        plan = next(
+            (p for p in self.plans if p.name == name),
+            None
+        )
+        return plan
+
+    def parse_configuration(self):
+        with open(self.options.test_config, "r") as config:
+            test_config = yaml.load(config, Loader=SafeLoader)
+
+        self.test_config = test_config
+        plans = test_config.get('plans', [])
+
+        # Do first pass on plans to get initial data.
+        for plan in plans:
+            adds = []
+            for s in  plan.get('adds', []):
+                r = re.compile(s)
+                adds.extend(list(filter(r.fullmatch, self.scenarios)))
+
+            p = Plan()
+            p.name = plan['name']
+            p.scenarios = adds
+            p.levels = plan.get('inherits', [])
+            self.plans.append(p)
+
+        # Go over plans again to resolve inheritance.
+        for plan in plans:
+            inherit = plan.get('inherits', [])
+            _plan = self.get_plan(plan['name'])
+            if inherit:
+                for inherted_plan in inherit:
+                    _inherited = self.get_plan(inherted_plan)
+                    _inherited_scenarios = _inherited.scenarios
+                    plan_scenarios = _plan.scenarios
+                    plan_scenarios.extend(_inherited_scenarios)
 
     def find_subtests(self):
         sub_tests = self.options.sub_test
@@ -122,6 +179,11 @@ class TestPlan:
             raise TwisterRuntimeError("No test cases found at the specified location...")
 
         self.find_subtests()
+        # get list of scenarios we have parsed into one list
+        for _, ts in self.testsuites.items():
+            self.scenarios.append(ts.id)
+
+        self.parse_configuration()
         self.add_configurations()
 
         if self.load_errors:
@@ -251,10 +313,7 @@ class TestPlan:
         return 1
 
     def report_duplicates(self):
-        all_identifiers = []
-        for _, ts in self.testsuites.items():
-            all_identifiers.append(ts.id)
-        dupes = [item for item, count in collections.Counter(all_identifiers).items() if count > 1]
+        dupes = [item for item, count in collections.Counter(self.scenarios).items() if count > 1]
         if dupes:
             print("Tests with duplicate identifiers:")
             for dupe in dupes:
@@ -365,37 +424,47 @@ class TestPlan:
                     if platform.name in [p.name for p in self.platforms]:
                         logger.error(f"Duplicate platform {platform.name} in {file}")
                         raise Exception(f"Duplicate platform identifier {platform.name} found")
-                    if platform.twister:
-                        self.platforms.append(platform)
+
+                    if not platform.twister:
+                        continue
+
+                    self.platforms.append(platform)
+                    if self.test_config['platforms']['inherit']:
                         if platform.default:
+                            logger.info(f"adding {platform.name} to default platforms")
                             self.default_platforms.append(platform.name)
-                        # support board@revision
-                        # if there is already an existed <board>_<revision>.yaml, then use it to
-                        # load platform directly, otherwise, iterate the directory to
-                        # get all valid board revision based on each <board>_<revision>.conf.
-                        if not "@" in platform.name:
-                            tmp_dir = os.listdir(os.path.dirname(file))
-                            for item in tmp_dir:
-                                # Need to make sure the revision matches
-                                # the permitted patterns as described in
-                                # cmake/modules/extensions.cmake.
-                                revision_patterns = ["[A-Z]",
-                                                     "[0-9]+",
-                                                     "(0|[1-9][0-9]*)(_[0-9]+)*(_[0-9]+)*"]
+                    else:
+                        if platform.name in self.test_config['platforms']['default']:
+                            logger.info(f"adding {platform.name} to default platforms")
+                            self.default_platforms.append(platform.name)
 
-                                for pattern in revision_patterns:
-                                    result = re.match(f"{platform.name}_(?P<revision>{pattern})\\.conf", item)
-                                    if result:
-                                        revision = result.group("revision")
-                                        yaml_file = f"{platform.name}_{revision}.yaml"
-                                        if yaml_file not in tmp_dir:
-                                            platform_revision = copy.deepcopy(platform)
-                                            revision = revision.replace("_", ".")
-                                            platform_revision.name = f"{platform.name}@{revision}"
-                                            platform_revision.default = False
-                                            self.platforms.append(platform_revision)
+                    # support board@revision
+                    # if there is already an existed <board>_<revision>.yaml, then use it to
+                    # load platform directly, otherwise, iterate the directory to
+                    # get all valid board revision based on each <board>_<revision>.conf.
+                    if not "@" in platform.name:
+                        tmp_dir = os.listdir(os.path.dirname(file))
+                        for item in tmp_dir:
+                            # Need to make sure the revision matches
+                            # the permitted patterns as described in
+                            # cmake/modules/extensions.cmake.
+                            revision_patterns = ["[A-Z]",
+                                                    "[0-9]+",
+                                                    "(0|[1-9][0-9]*)(_[0-9]+)*(_[0-9]+)*"]
 
-                                        break
+                            for pattern in revision_patterns:
+                                result = re.match(f"{platform.name}_(?P<revision>{pattern})\\.conf", item)
+                                if result:
+                                    revision = result.group("revision")
+                                    yaml_file = f"{platform.name}_{revision}.yaml"
+                                    if yaml_file not in tmp_dir:
+                                        platform_revision = copy.deepcopy(platform)
+                                        revision = revision.replace("_", ".")
+                                        platform_revision.name = f"{platform.name}@{revision}"
+                                        platform_revision.default = False
+                                        self.platforms.append(platform_revision)
+
+                                    break
 
 
                 except RuntimeError as e:
@@ -429,13 +498,11 @@ class TestPlan:
                 logger.debug("Found possible testsuite in " + dirpath)
 
                 suite_yaml_path = os.path.join(dirpath, filename)
+                suite_path = os.path.dirname(suite_yaml_path)
 
                 try:
                     parsed_data = TwisterConfigParser(suite_yaml_path, self.suite_schema)
                     parsed_data.load()
-
-                    suite_path = os.path.dirname(suite_yaml_path)
-
                     subcases, ztest_suite_names = scan_testsuite_path(suite_path)
 
                     for name in parsed_data.scenarios.keys():
@@ -553,7 +620,6 @@ class TestPlan:
         default_platforms = False
         emulation_platforms = False
 
-
         if all_filter:
             logger.info("Selecting all possible platforms per test case")
             # When --all used, any --platform arguments ignored
@@ -573,7 +639,7 @@ class TestPlan:
         elif arch_filter:
             platforms = list(filter(lambda p: p.arch in arch_filter, self.platforms))
         elif default_platforms:
-            _platforms = list(filter(lambda p: p.default, self.platforms))
+            _platforms = list(filter(lambda p: p.name in self.default_platforms, self.platforms))
             platforms = []
             # default platforms that can't be run are dropped from the list of
             # the default platforms list. Default platforms should always be
@@ -587,13 +653,13 @@ class TestPlan:
         else:
             platforms = self.platforms
 
+        platform_config = self.test_config.get('platforms', {})
         logger.info("Building initial testsuite list...")
 
         keyed_tests = {}
 
         for ts_name, ts in self.testsuites.items():
-
-            if ts.build_on_all and not platform_filter:
+            if ts.build_on_all and not platform_filter and platform_config.get('build_on_all', True):
                 platform_scope = self.platforms
             elif ts.integration_platforms and self.options.integration:
                 self.verify_platforms_existence(
@@ -614,8 +680,10 @@ class TestPlan:
                 b = set(filter(lambda item: item.name in ts.platform_allow, self.platforms))
                 c = a.intersection(b)
                 if not c:
-                    platform_scope = list(filter(lambda item: item.name in ts.platform_allow, \
+                    _platform_scope = list(filter(lambda item: item.name in ts.platform_allow, \
                                              self.platforms))
+                    if len(_platform_scope) > 0:
+                        platform_scope = _platform_scope[:1]
 
 
             # list of instances per testsuite, aka configurations.
@@ -648,6 +716,12 @@ class TestPlan:
                 if ts.modules and self.modules:
                     if not set(ts.modules).issubset(set(self.modules)):
                         instance.add_filter(f"one or more required modules not available: {','.join(ts.modules)}", Filters.TESTSUITE)
+
+                if self.options.plan:
+                    plan = self.get_plan(self.options.plan)
+                    planned_scenarios = plan.scenarios
+                    if ts.id not in planned_scenarios and not set(ts.plans).intersection(set(plan.levels)):
+                        instance.add_filter("Not part of requested test plan", Filters.TESTSUITE)
 
                 if runnable and not instance.run:
                     instance.add_filter("Not runnable on device", Filters.PLATFORM)
@@ -780,7 +854,7 @@ class TestPlan:
                     else:
                         self.add_instances(instance_list)
                 else:
-                    instances = list(filter(lambda ts: ts.platform.default, instance_list))
+                    instances = list(filter(lambda ts: ts.platform.name in self.default_platforms, instance_list))
                     self.add_instances(instances)
             elif integration:
                 instances = list(filter(lambda item:  item.platform.name in ts.integration_platforms, instance_list))

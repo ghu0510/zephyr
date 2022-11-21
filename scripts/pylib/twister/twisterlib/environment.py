@@ -268,6 +268,13 @@ structure in the main Zephyr tree: boards/<arch>/<board_name>/""")
                              "Default to html. "
                              "Valid options are html, xml, csv, txt, coveralls, sonarqube.")
 
+    parser.add_argument("--test-config", action="store", default=os.path.join(ZEPHYR_BASE, "tests", "test_config.yaml"),
+        help="Test configuration with plans and test configurations.")
+
+    parser.add_argument("--plan", action="store",
+        help="Test plan to used, by default, no plans are used for filtering"
+             "and do the selection based on existing filters.")
+
     parser.add_argument(
         "-D", "--all-deltas", action="store_true",
         help="Show all footprint deltas, positive or negative. Implies "

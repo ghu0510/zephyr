@@ -49,6 +49,12 @@ mapping:
       "ignore_qemu_crash":
         type: bool
         required: false
+      "plans":
+        type: seq
+        required: false
+        sequence:
+          - type: str
+            enum: ["smoke", "unit", "integration", "acceptance", "sanity", "functional"]
       "testcases":
         type: seq
         required: false
@@ -206,6 +212,12 @@ mapping:
           "filter":
             type: str
             required: false
+          "plans":
+            type: seq
+            required: false
+            sequence:
+              - type: str
+                enum: ["smoke", "unit", "integration", "acceptance", "sanity", "functional"]
           "integration_platforms":
             type: seq
             required: false

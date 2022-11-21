@@ -1,0 +1,19 @@
+platforms:
+  inherit: true
+  build_on_all: true
+plans:
+  - name: smoke
+    description: >
+      A plan to be used verifying basic zephyr features on hardware.
+    adds:
+      - kernel.threads.*
+      - kernel.timer.behavior
+      - arch.interrupt
+      - boards.*
+  - name: acceptance
+    description: >
+      More coverage
+    adds:
+      - kernel.*
+      - arch.interrupt
+      - boards.*
