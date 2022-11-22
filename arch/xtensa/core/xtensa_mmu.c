@@ -86,13 +86,14 @@ static const struct xtensa_mmu_range mmu_zephyr_ranges[] = {
 	{
 		.start = (uint32_t)__text_region_start,
 		.end   = (uint32_t)__text_region_end,
-		.attrs = Z_XTENSA_MMU_X,
+		.attrs = Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WB,
 		.name = "text",
 	},
 	/* Mark rodata segment cacheable, read only and non-executable */
 	{
 		.start = (uint32_t)__rodata_region_start,
 		.end   = (uint32_t)__rodata_region_end,
+		.attrs = Z_XTENSA_MMU_CACHED_WB,
 		.name = "rodata",
 	},
 };

@@ -72,7 +72,7 @@ const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {
 	{
 		.start = (uint32_t)z_mapped_start,
 		.end   = (uint32_t)IMR_BOOT_LDR_MANIFEST_BASE,
-		.attrs = Z_XTENSA_MMU_W | Z_XTENSA_MMU_X,
+		.attrs = Z_XTENSA_MMU_W | Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WB,
 		.name = "stack",
 	},
 	{
@@ -84,7 +84,7 @@ const struct xtensa_mmu_range xtensa_soc_mmu_ranges[] = {
 	{
 		.start = (uint32_t)LP_SRAM_BASE,
 		.end   = (uint32_t)(LP_SRAM_BASE + LP_SRAM_SIZE),
-		.attrs = Z_XTENSA_MMU_W,
+		.attrs = Z_XTENSA_MMU_W | Z_XTENSA_MMU_CACHED_WB,
 		.name = "lpsram",
 	},
 };
