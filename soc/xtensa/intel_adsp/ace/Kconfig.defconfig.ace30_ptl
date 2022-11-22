@@ -13,7 +13,7 @@ config MP_MAX_NUM_CPUS
 
 config XTENSA_MMU_WA_NO_PTE_CACHE
 	# FIXME: Workaround caching issue
-	default y if MMU
+	default n if MMU
 
 config SYS_CLOCK_HW_CYCLES_PER_SEC
 	default 400000000 if XTENSA_TIMER
