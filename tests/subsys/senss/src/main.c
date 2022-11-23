@@ -4,19 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
 #include <zephyr/ztest.h>
 #include <zephyr/senss/senss.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/sys_clock.h>
+#include "senss_sensor.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(test_senss, LOG_LEVEL_INF);
 
 #define INTERVAL_10HZ (100 * USEC_PER_MSEC)
 #define INTERVAL_20HZ (50 * USEC_PER_MSEC)
+#define INTERVAL_40HZ (25 * USEC_PER_MSEC)
 #define INVALID_INTERVAL_US 1 /* 1 us is smaller than the minimal interval */
 
 struct senss_tests_fixture {
+	const struct device *dev;
 	atomic_t acc_0_samples;
 	atomic_t acc_1_samples;
 	atomic_t user_0_samples;
@@ -31,6 +36,8 @@ struct senss_tests_fixture {
 static void *setup(void)
 {
 	static struct senss_tests_fixture fixture;
+
+	fixture.dev = DEVICE_DT_GET(DT_INST(0, zephyr_senss_phy_accel));
 
 	zassert_equal(senss_init(), 0, "senss_init failed");
 
@@ -601,7 +608,7 @@ static int user_1_callback(int handle, void *buf, int size, void *param)
 }
 
 /**
- * @brief Test multiple instanses of ACC 0
+ * @brief Test multiple instances of ACC 0
  *
  * This test verifies two users use acc 0 at the same time.
  */
@@ -691,4 +698,168 @@ ZTEST_F(senss_tests, test_acc_0_with_2_users)
 			atomic_get(&fixture->user_1_samples), expect_1);
 	zassert_within(atomic_get(&fixture->user_1_samples), expect_1,
 			1, "Samples num out of range");
+}
+
+/**
+ * @brief Test set arbitrate interval of ACC 0, ACC1, ACC2
+ *
+ * This test verifies arbitrate ACC 0, ACC1, ACC2 interval.
+ */
+ZTEST_F(senss_tests, test_acc_0_1_2_interval_arbitrate)
+{
+	const struct senss_sensor_api *api;
+	int acc_0, acc_1, acc_2;
+	uint32_t value;
+	int ret;
+
+	/* Open ACC 0 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&acc_0);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	/* Open ACC 1 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&acc_1);
+	zassert_equal(ret, 0, "Open ACC 1 failed");
+
+	/* Open ACC 2 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&acc_2);
+	zassert_equal(ret, 0, "Open ACC 2 failed");
+
+	/* Set ACC 0, 1, 2 interval 10, 20, 40hz */
+	ret = senss_set_interval(acc_0, INTERVAL_10HZ);
+	zassert_equal(ret, 0, "ACC 0 set interval failed");
+
+	ret = senss_set_interval(acc_1, INTERVAL_20HZ);
+	zassert_equal(ret, 0, "ACC 1 set interval failed");
+
+	ret = senss_set_interval(acc_2, INTERVAL_40HZ);
+	zassert_equal(ret, 0, "ACC 2 set interval failed");
+
+	LOG_INF("Sleep a while for senss to arbitrate and set interval");
+	k_sleep(K_MSEC(200));
+
+	/* Test ACC 0, 1, 2 arbitrate interval */
+	api = fixture->dev->api;
+	value = 0;
+	ret = api->get_interval(fixture->dev, &value);
+	zassert_equal(ret, 0, "Get arbitrate interval failed");
+	zassert_equal(value, INTERVAL_40HZ, "Value is not equal to INTERVAL_40HZ");
+
+	/* Test whether arbitrate interval work well when set ACC 2 interval 0 */
+	ret = senss_set_interval(acc_2, 0);
+	zassert_equal(ret, 0, "ACC 2 set interval failed");
+
+	LOG_INF("Sleep a while for senss to arbitrate and set interval");
+	k_sleep(K_MSEC(200));
+
+	ret = api->get_interval(fixture->dev, &value);
+	zassert_equal(ret, 0, "Get arbitrate interval failed");
+	zassert_equal(value, INTERVAL_20HZ, "Value is not equal to INTERVAL_20HZ");
+
+	/* Test whether arbitrate interval work well when close ACC 1 */
+	ret = senss_close_sensor(acc_1);
+	zassert_equal(ret, 0, "Close ACC 1 failed");
+
+	LOG_INF("Sleep a while for senss to arbitrate and set interval");
+	k_sleep(K_MSEC(200));
+
+	ret = api->get_interval(fixture->dev, &value);
+	zassert_equal(ret, 0, "Get arbitrate interval failed");
+	zassert_equal(value, INTERVAL_10HZ, "Value is not equal to INTERVAL_10HZ");
+
+	ret = senss_close_sensor(acc_0);
+	zassert_equal(ret, 0, "Close ACC 0 failed");
+
+	ret = senss_close_sensor(acc_2);
+	zassert_equal(ret, 0, "Close ACC 2 failed");
+}
+
+/**
+ * @brief Test set arbitrate sensitivity of ACC 0, ACC1, ACC2
+ *
+ * This test verifies arbitrate ACC 0, ACC1, ACC2 sensitivity.
+ */
+ZTEST_F(senss_tests, test_acc_0_1_2_sensitivity_arbitrate)
+{
+	const struct senss_sensor_api *api;
+	int acc_0, acc_1, acc_2;
+	uint32_t value;
+	int ret;
+
+	/* Open ACC 0 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&acc_0);
+	zassert_equal(ret, 0, "Open ACC 0 failed");
+
+	/* Open ACC 1 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&acc_1);
+	zassert_equal(ret, 0, "Open ACC 1 failed");
+
+	/* Open ACC 2 */
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
+			&acc_2);
+	zassert_equal(ret, 0, "Open ACC 2 failed");
+
+	/* Set ACC 0, 1, 2 interval and sensitivity */
+	ret = senss_set_interval(acc_0, INTERVAL_10HZ);
+	zassert_equal(ret, 0, "ACC 0 set interval failed");
+
+	ret = senss_set_interval(acc_1, INTERVAL_20HZ);
+	zassert_equal(ret, 0, "ACC 1 set interval failed");
+
+	ret = senss_set_interval(acc_2, INTERVAL_40HZ);
+	zassert_equal(ret, 0, "ACC 2 set interval failed");
+
+	ret = senss_set_sensitivity(acc_0, 0, 100);
+	zassert_equal(ret, 0, "ACC 0 set index 0 sensitivity failed");
+
+	ret = senss_set_sensitivity(acc_1, 0, 200);
+	zassert_equal(ret, 0, "ACC 1 set index 0 sensitivity failed");
+
+	ret = senss_set_sensitivity(acc_2, 0, 300);
+	zassert_equal(ret, 0, "ACC 2 set index 0 sensitivity failed");
+
+	LOG_INF("Sleep a while for senss to arbitrate and set sensitivity");
+	k_sleep(K_MSEC(200));
+
+	/* Test ACC 0, 1, 2 arbitrate sensitivity */
+	api = fixture->dev->api;
+	value = 0;
+	ret = api->get_sensitivity(fixture->dev, 0, &value);
+	zassert_equal(ret, 0, "Get arbitrate sensitivity failed");
+	zassert_equal(value, 100, "Value is not equal to 100");
+
+	/* Test whether arbitrate sensitivity work well when set ACC 0 interval 0 */
+	ret = senss_set_interval(acc_0, 0);
+	zassert_equal(ret, 0, "ACC 0 set interval failed");
+
+	LOG_INF("Sleep a while for senss to arbitrate and set sensitivity");
+	k_sleep(K_MSEC(200));
+
+	/* Test ACC 0, 1, 2 arbitrate sensitivity */
+	api = fixture->dev->api;
+	value = 0;
+	ret = api->get_sensitivity(fixture->dev, 0, &value);
+	zassert_equal(ret, 0, "Get arbitrate sensitivity failed");
+	zassert_equal(value, 200, "Value is not equal to 200");
+
+	/* Test whether arbitrate sensitivity work well when close ACC 1 */
+	ret = senss_close_sensor(acc_1);
+	zassert_equal(ret, 0, "Close ACC 1 failed");
+
+	LOG_INF("Sleep a while for senss to arbitrate and set sensitivity");
+	k_sleep(K_MSEC(200));
+
+	ret = api->get_sensitivity(fixture->dev, 0, &value);
+	zassert_equal(ret, 0, "Get arbitrate sensitivity failed");
+	zassert_equal(value, 300, "Value is not equal to 300");
+
+	ret = senss_close_sensor(acc_0);
+	zassert_equal(ret, 0, "Close ACC 0 failed");
+
+	ret = senss_close_sensor(acc_2);
+	zassert_equal(ret, 0, "Close ACC 2 failed");
 }
