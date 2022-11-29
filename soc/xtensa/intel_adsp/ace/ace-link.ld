@@ -257,7 +257,10 @@ SECTIONS {
     *(.iram0.text)
     KEEP(*(.init))
     KEEP(*(.lps_vector))
-    *(.literal .text .literal.* .text.* .stub .gnu.warning .gnu.linkonce.literal.* .gnu.linkonce.t.*.literal .gnu.linkonce.t.*)
+    *(.literal .literal.* .stub .gnu.warning .gnu.linkonce.literal.* .gnu.linkonce.t.*.literal .gnu.linkonce.t.*)
+#include <zephyr/linker/kobject-text.ld>
+    *(.text)
+    *(.text.*)
     *(.fini.literal)
     KEEP(*(.fini))
     *(.gnu.version)
@@ -275,6 +278,7 @@ SECTIONS {
 
     . = ALIGN(4);
     #include <snippets-rodata.ld>
+    #include <zephyr/linker/kobject-rom.ld>
 
     __XT_EXCEPTION_TABLE__ = .;
     KEEP (*(.xt_except_table))
@@ -323,8 +327,11 @@ SECTIONS {
     *(.noinit)
     *(.noinit.*)
     MMU_PAGE_ALIGN
-    __noinit_region_end = .;
   } >ucram
+
+#include <zephyr/linker/kobject-priv-stacks.ld>
+    . = SEGSTART_UNCACHED;
+    __noinit_region_end = .;
 
   .data SEGSTART_UNCACHED : {
     __data_start = .;
@@ -345,7 +352,10 @@ SECTIONS {
     _trace_ctx_end = ABSOLUTE(.);
     *(.gna_model)
     __data_end = .;
+    MMU_PAGE_ALIGN
   } >ucram
+
+#include <zephyr/linker/kobject-data.ld>
 
   .lit4 SEGSTART_CACHED : {
     _lit4_start = .;
