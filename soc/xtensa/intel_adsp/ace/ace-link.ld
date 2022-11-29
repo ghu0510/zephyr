@@ -327,6 +327,11 @@ SECTIONS {
     *(.noinit)
     *(.noinit.*)
     MMU_PAGE_ALIGN
+#ifdef CONFIG_USERSPACE
+	z_user_stacks_start = .;
+	*(.user_stacks*)
+	z_user_stacks_end = .;
+#endif /* CONFIG_USERSPACE */
   } >ucram
 
 #include <zephyr/linker/kobject-priv-stacks.ld>
@@ -381,6 +386,18 @@ SECTIONS {
   } > ucram
 
   __common_ram_region_start = .;
+
+#ifdef CONFIG_USERSPACE
+
+#define APP_SHARED_ALIGN MMU_PAGE_ALIGN
+#define EMPTY_APP_SHARED_ALIGN APP_SHARED_ALIGN
+
+	/* APP SHARED MEMORY REGION */
+#include <app_smem.ld>
+	_app_smem_num_words = _app_smem_size >> 2;
+	_app_smem_rom_start = LOADADDR(_APP_SMEM_SECTION_NAME);
+#endif /* CONFIG_USERSPACE */
+
 #include <zephyr/linker/common-ram.ld>
   __common_ram_region_end = .;
 
