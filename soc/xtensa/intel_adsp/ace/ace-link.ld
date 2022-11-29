@@ -309,7 +309,7 @@ SECTIONS {
     __rodata_region_end = .;
   } >ram
 
-  .module_init : {
+  .module_init : HDR_4K_OR_MMU_PAGE_ALIGN {
     _module_init_start = .;
     *(*.initcall)
     _module_init_end = .;
@@ -318,7 +318,7 @@ SECTIONS {
 #define RAMABLE_REGION ram
 #define ROMABLE_REGION ram
 
-  __common_rom_region_start = .;
+  __common_rom_region_start = SEGSTART_CACHED;
 #include <zephyr/linker/common-rom.ld>
   __common_rom_region_end = .;
 
