@@ -35,19 +35,19 @@ jobs:
             platform: "intel_adsp_cavs25"
             scope: acceptance
             hwtype: device
-            runner: fmos-ubuntu-latest
+            runner: fmos-ubuntu-cavs25
           - platform_group: 2
             toolchain: 'zephyr'
             platform: "intel_adsp_cavs15"
             scope: smoke
             hwtype: device
-            runner: fmos-ubuntu-latest
+            runner: fmos-ubuntu-cavs15
           - platform_group: 3
             toolchain: 'zephyr'
             platform: "intel_adsp_cavs18"
             scope: smoke
             hwtype: device
-            runner: fmos-ubuntu-latest
+            runner: fmos-ubuntu-cavs18
           - platform_group: 4
             scope: acceptance
             hwtype: simulator
