@@ -140,7 +140,7 @@ jobs:
         if: failure() || success()
         uses: actions/upload-artifact@v2
         with:
-          name: twister_log_${{ matrix.subset }}_of_${{ strategy.job-total }}
+          name: artifacts_${{ matrix.subset }}_${{ matrix.toolchain }}
           path: |
             twister-out/twister.log
             twister-out/twister.xml
