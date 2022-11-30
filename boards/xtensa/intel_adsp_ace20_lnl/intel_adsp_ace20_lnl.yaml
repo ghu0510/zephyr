@@ -3,8 +3,8 @@ name: ACE 2.0 LNL Audio DSP
 type: mcu
 arch: xtensa
 toolchain:
-  - zephyr
   - xcc
+  - xcc-clang
 supported:
   - dma
 testing:
