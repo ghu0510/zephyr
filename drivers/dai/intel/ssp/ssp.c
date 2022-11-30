@@ -716,7 +716,7 @@ static void dai_ssp_pm_runtime_en_ssp_power(struct dai_intel_ssp *dp, uint32_t i
 	int ret;
 
 	LOG_INF("%s en_ssp_power index %d", __func__, index);
-#ifdef CONFIG_SOC_INTEL_ACE15_MTPM
+#if CONFIG_SOC_INTEL_ACE15_MTPM || CONFIG_SOC_SERIES_INTEL_ADSP_CAVS
 	sys_write32(sys_read32(dai_ip_base(dp) + I2SLCTL_OFFSET) | I2SLCTL_SPA(index),
 		    dai_ip_base(dp) + I2SLCTL_OFFSET);
 
@@ -734,7 +734,7 @@ static void dai_ssp_pm_runtime_en_ssp_power(struct dai_intel_ssp *dp, uint32_t i
 					      DAI_INTEL_SSP_MAX_SEND_TIME_PER_SAMPLE);
 #else
 #error need to define SOC
-#endif /* CONFIG_SOC_INTEL_ACE15_MTPM / CONFIG_SOC_INTEL_ACE20_LNL */
+#endif
 	if (ret) {
 		LOG_WRN("%s warning: timeout", __func__);
 	}
@@ -752,7 +752,7 @@ static void dai_ssp_pm_runtime_dis_ssp_power(struct dai_intel_ssp *dp, uint32_t 
 	int ret;
 
 	LOG_INF("%s index %d", __func__, index);
-#ifdef CONFIG_SOC_INTEL_ACE15_MTPM
+#if CONFIG_SOC_INTEL_ACE15_MTPM || CONFIG_SOC_SERIES_INTEL_ADSP_CAVS
 	sys_write32(sys_read32(dai_ip_base(dp) + I2SLCTL_OFFSET) & (~I2SLCTL_SPA(index)),
 		    dai_ip_base(dp) + I2SLCTL_OFFSET);
 
@@ -770,7 +770,7 @@ static void dai_ssp_pm_runtime_dis_ssp_power(struct dai_intel_ssp *dp, uint32_t 
 					      DAI_INTEL_SSP_MAX_SEND_TIME_PER_SAMPLE);
 #else
 #error need to define SOC
-#endif /* CONFIG_SOC_INTEL_ACE15_MTPM / CONFIG_SOC_INTEL_ACE20_LNL */
+#endif
 	if (ret) {
 		LOG_WRN("%s warning: timeout", __func__);
 	}
