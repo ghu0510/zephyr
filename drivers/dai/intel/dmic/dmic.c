@@ -317,6 +317,22 @@ static inline void dai_dmic_en_clk_gating(const struct dai_intel_dmic *dmic)
 #endif
 }
 
+static inline void dai_dmic_program_channel_map(const struct dai_intel_dmic *dmic,
+						const struct dai_config *cfg,
+						uint32_t index)
+{
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30_PTL)
+	uint16_t pcmsycm = cfg->link_config;
+	uint32_t reg_add = dmic->shim_base + DMICXPCMSyCM_OFFSET + 0x0004*index;
+
+	sys_write16(pcmsycm, reg_add);
+#else
+	ARG_UNUSED(dmic);
+	ARG_UNUSED(cfg);
+	ARG_UNUSED(index);
+#endif /* defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30_PTL) */
+}
+
 static inline void dai_dmic_en_power(const struct dai_intel_dmic *dmic)
 {
 #ifndef CONFIG_SOC_SERIES_INTEL_CAVS_V15
@@ -813,7 +829,8 @@ static int dai_dmic_set_config(const struct device *dev,
 		return -EINVAL;
 	}
 
-	__ASSERT_NO_MSG(dmic->created);
+	dai_dmic_program_channel_map(dmic, cfg, di);
+
 	key = k_spin_lock(&dmic->lock);
 
 #if CONFIG_DAI_INTEL_DMIC_TPLG_PARAMS
