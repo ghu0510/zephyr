@@ -168,7 +168,7 @@ bool intel_adsp_ipc_send_message_sync(const struct device *dev,
 
 #if DT_NODE_EXISTS(INTEL_ADSP_IPC_HOST_DTNODE)
 
-#if defined(CONFIG_SOC_INTEL_ACE15_MTPM)
+#ifdef CONFIG_SOC_SERIES_INTEL_ACE
 static inline void ace_ipc_intc_unmask(void)
 {
 	ACE_DINT[0].ie[ACE_INTL_HIPC] = BIT(0);
