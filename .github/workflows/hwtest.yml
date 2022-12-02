@@ -2,12 +2,12 @@ name: Run tests on Hardware (Intel)
 on:
   push:
     branches:
-      - main-intel-testing
+      - main-intel
   schedule:
     - cron:  '15 5 * * *' # once daily @ 05:15 UTC, for now, to avoid conflicts.
   pull_request:
     branches:
-      - main-intel-testing
+      - main-intel
   workflow_dispatch:
 
 concurrency:
@@ -137,6 +137,11 @@ jobs:
           TESTS_SMOKE="tests/boards,samples/synchronization,tests/kernel/threads"
           TESTS_ACCEPTANCE="${TESTS_SMOKE},tests/kernel,tests/arch,tests/boards,tests/lib,tests/drivers,tests/subsys/logging"
           TEST_COV=${{ matrix.scope }}
+          if [ "${{github.event_name}}" = "pull_request" ]; then
+            TEST_COV=smoke
+          else
+            TEST_COV=${{ matrix.scope }}
+          fi
           SELECTED=TESTS_${TEST_COV^^}
           TESTS=${!SELECTED}
           IFS=',' read -r -a tests <<< "$TESTS"
@@ -185,6 +190,7 @@ jobs:
         run: |
           rm -rf artifacts
       - name: Checkout
+        if: github.event_name == 'schedule' || github.event_name == 'push'
         uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 0
@@ -193,6 +199,7 @@ jobs:
         with:
           path: artifacts
       - name: Upload to ElasticSearch Instance
+        if: github.event_name == 'schedule' || github.event_name == 'push'
         run: |
           pip3 install elasticsearch
           python3 ./scripts/ci/upload_test_results_es.py -i tests-zephyr-main-intel artifacts/**/twister.json
