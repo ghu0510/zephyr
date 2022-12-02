@@ -37,7 +37,7 @@ static void *setup(void)
 {
 	static struct senss_tests_fixture fixture;
 
-	fixture.dev = DEVICE_DT_GET(DT_INST(0, zephyr_senss_phy_accel));
+	fixture.dev = DEVICE_DT_GET(DT_INST(0, zephyr_senss_phy_3d_sensor));
 
 	zassert_equal(senss_init(), 0, "senss_init failed");
 

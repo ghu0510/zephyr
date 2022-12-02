@@ -110,7 +110,7 @@ config SENSS_DISPATCH_THREAD_PRIORITY
 	  thread priority should be higher than runtime thread
 	  Typical values are 8
 
-source "subsys/senss/sensor/phy_acc/Kconfig"
+source "subsys/senss/sensor/phy_3d_sensor/Kconfig"
 source "subsys/senss/sensor/motion_detector/Kconfig"
 source "subsys/senss/sensor/hinge_angle/Kconfig"
 

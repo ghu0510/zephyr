@@ -1,9 +1,0 @@
-# Copyright (c) 2022 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0
-
-config SENSS_SENSOR_PHY_ACC
-	bool "Senss physical accelerometer sensor"
-	default y
-	depends on DT_HAS_ZEPHYR_SENSS_PHY_ACCEL_ENABLED
-	help
-	  Enable senss physical accelerometer sensor.

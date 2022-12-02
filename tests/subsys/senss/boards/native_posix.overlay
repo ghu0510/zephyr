@@ -25,7 +25,7 @@
 		status = "okay";
 
 		base_accel: base-accel {
-			compatible = "zephyr,senss-phy-accel";
+			compatible = "zephyr,senss-phy-3d-sensor";
 			status = "okay";
 			sensor-type = <0x73>;
 			sensor-index = <0>;
@@ -40,7 +40,7 @@
 		};
 
 		lid_accel: lid-accel {
-			compatible = "zephyr,senss-phy-accel";
+			compatible = "zephyr,senss-phy-3d-sensor";
 			status = "okay";
 			sensor-type = <0x73>;
 			sensor-index = <1>;

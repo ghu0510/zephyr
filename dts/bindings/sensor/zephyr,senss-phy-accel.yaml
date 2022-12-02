@@ -1,9 +1,0 @@
-# Copyright (c) 2022, Intel Corporation
-# SPDX-License-Identifier: Apache-2.0
-#
-
-description: Sensor subsystem (senss) physical accelerometer sensor bindings.
-
-compatible: "zephyr,senss-phy-accel"
-
-include: zephyr,senss-phy-sensor.yaml
