@@ -10,22 +10,45 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys_clock.h>
+#include <zephyr/senss/senss.h>
 #include <zephyr/sys/util.h>
 
 #include <senss_sensor.h>
+#include "phy_3d_sensor.h"
 
 LOG_MODULE_REGISTER(phy_3d_sensor, CONFIG_SENSS_LOG_LEVEL);
 
 #define PHY_3D_SENSOR_SLOPE_DURATION 2
 
-struct phy_3d_sensor_context {
-	const struct device *dev;
-	const struct device *hw_dev;
-	struct sensor_trigger trig;
-	uint32_t interval;
-	uint32_t samples;
-	uint32_t sensitivity[3];
+static const struct phy_3d_sensor_custom custom_accel = {
+	.chan_base = SENSOR_CHAN_ACCEL_X,
+	.chan_all = SENSOR_CHAN_ACCEL_XYZ,
+	.unit_convert_si_to_int32 = sensor_ms2_to_ug,
+	.unit_convert_int32_to_si = sensor_ug_to_ms2,
 };
+
+static const struct phy_3d_sensor_custom custom_gyro = {
+	.chan_base = SENSOR_CHAN_GYRO_X,
+	.chan_all = SENSOR_CHAN_GYRO_XYZ,
+	.unit_convert_si_to_int32 = sensor_rad_to_10udegrees,
+	.unit_convert_int32_to_si = sensor_10udegrees_to_rad,
+};
+
+static int phy_3d_sensor_index_to_channel(struct phy_3d_sensor_context *ctx,
+		int index, enum sensor_channel *chan)
+{
+	if (index >= PHY_3D_SENSOR_CHANNEL_NUM || index < SENSS_INDEX_ALL) {
+		return -EINVAL;
+	}
+
+	if (index == SENSS_INDEX_ALL) {
+		*chan = ctx->custom->chan_all;
+	} else {
+		*chan = ctx->custom->chan_base + index;
+	}
+
+	return 0;
+}
 
 static void phy_3d_sensor_data_ready_handler(const struct device *dev,
 		const struct sensor_trigger *trig)
@@ -45,7 +68,7 @@ static int phy_3d_sensor_enable_data_ready(struct phy_3d_sensor_context *ctx,
 	int ret = 0;
 
 	ctx->trig.type = SENSOR_TRIG_DATA_READY;
-	ctx->trig.chan = SENSOR_CHAN_ACCEL_XYZ;
+	ctx->trig.chan = ctx->custom->chan_all;
 
 	if (enable) {
 		ret = senss_sensor_set_data_ready(ctx->dev, true);
@@ -79,6 +102,19 @@ static int phy_3d_sensor_init(const struct device *dev,
 	ctx = senss_sensor_get_ctx_data(dev);
 	ctx->dev = dev;
 
+	switch (ctx->sensor_type) {
+	case SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D:
+		ctx->custom = &custom_accel;
+		break;
+	case SENSS_SENSOR_TYPE_MOTION_GYROMETER_3D:
+		ctx->custom = &custom_gyro;
+		break;
+	default:
+		LOG_ERR("phy_3d_sensor doesn't support sensor type %d",
+				ctx->sensor_type);
+		return -ENOTSUP;
+	}
+
 	LOG_INF("%s: Underlying device: %s", dev->name, ctx->hw_dev->name);
 
 	/* Try to enable the data ready mode */
@@ -99,8 +135,8 @@ static int phy_3d_sensor_read_sample(const struct device *dev,
 {
 	struct phy_3d_sensor_context *ctx;
 	struct senss_sensor_value_3d_int32 *sample = buf;
-	struct sensor_value accel[3];
-	int ret;
+	struct sensor_value value[PHY_3D_SENSOR_CHANNEL_NUM];
+	int i, ret;
 
 	ctx = senss_sensor_get_ctx_data(dev);
 
@@ -110,16 +146,17 @@ static int phy_3d_sensor_read_sample(const struct device *dev,
 		return ret;
 	}
 
-	ret = sensor_channel_get(ctx->hw_dev, SENSOR_CHAN_ACCEL_XYZ,
-			accel);
+	ret = sensor_channel_get(ctx->hw_dev, ctx->custom->chan_all, value);
 	if (ret) {
 		LOG_ERR("%s: channel get failed: %d", dev->name, ret);
 		return ret;
 	}
 
-	sample->readings[0].x = sensor_ms2_to_ug(&accel[0]);
-	sample->readings[0].y = sensor_ms2_to_ug(&accel[1]);
-	sample->readings[0].z = sensor_ms2_to_ug(&accel[2]);
+	for (i = 0; i < PHY_3D_SENSOR_CHANNEL_NUM; ++i) {
+		sample->readings[0].v[i] =
+			ctx->custom->unit_convert_si_to_int32(&value[i]);
+	}
+
 	sample->header.reading_count = 1;
 
 	LOG_DBG("%s: Sample data:\t x: %d, y: %d, z: %d",
@@ -186,13 +223,13 @@ static int phy_3d_sensor_set_interval(const struct device *dev, uint32_t value)
 		return ret;
 	}
 
-	ret = sensor_attr_set(ctx->hw_dev, SENSOR_CHAN_ACCEL_XYZ,
+	ret = sensor_attr_set(ctx->hw_dev, ctx->custom->chan_all,
 			SENSOR_ATTR_SAMPLING_FREQUENCY, &odr);
 	if (ret) {
-		LOG_ERR("%s: Cannot set sampling frequency %u for accelerometer. ret:%d",
+		LOG_ERR("%s: Cannot set sampling frequency %u. ret:%d",
 				dev->name, (uint32_t)freq, ret);
 	} else {
-		LOG_INF("%s: Set sampling frequency %u for accelerometer.",
+		LOG_INF("%s: Set sampling frequency %u.",
 				dev->name, (uint32_t)freq);
 		ctx->interval = value;
 	}
@@ -220,8 +257,7 @@ static int phy_3d_sensor_set_slope(struct phy_3d_sensor_context *ctx,
 	enum sensor_attribute attr;
 	int ret = 0;
 
-	attr_value.val1 = value / 1000000;
-	attr_value.val2 = value % 1000000;
+	ctx->custom->unit_convert_int32_to_si((int32_t)value, &attr_value);
 	attr = SENSOR_ATTR_SLOPE_TH;
 
 	ret = sensor_attr_set(ctx->hw_dev, chan, attr, &attr_value);
@@ -268,13 +304,10 @@ static int phy_3d_sensor_set_sensitivity(const struct device *dev,
 
 	if (index >= 0 && index < ARRAY_SIZE(ctx->sensitivity)) {
 		ctx->sensitivity[index] = value;
-		chan = SENSOR_CHAN_ACCEL_X + index;
 	} else if (index == SENSS_INDEX_ALL) {
 		for (i = 0; i < ARRAY_SIZE(ctx->sensitivity); ++i) {
 			ctx->sensitivity[i] = value;
 		}
-
-		chan = SENSOR_CHAN_ACCEL_XYZ;
 	} else {
 		LOG_ERR("%s: set sensitivity: invalid index: %d",
 				dev->name, index);
@@ -287,7 +320,13 @@ static int phy_3d_sensor_set_sensitivity(const struct device *dev,
 	/* Disable data ready before enable any-motion */
 	phy_3d_sensor_enable_data_ready(ctx, false);
 
-	ret = phy_3d_sensor_set_slope(ctx, chan, value);
+	ret = phy_3d_sensor_index_to_channel(ctx, index, &chan);
+	if (ret) {
+		LOG_WRN("%s: set sensitivity index(%d) to channel failed. ret:%d",
+				dev->name, index, ret);
+	} else {
+		ret = phy_3d_sensor_set_slope(ctx, chan, value);
+	}
 	if (ret) {
 		/* Try to enable data ready if enable any-motion failed */
 		phy_3d_sensor_enable_data_ready(ctx, true);
@@ -342,16 +381,14 @@ static int phy_3d_sensor_set_range(const struct device *dev,
 	ctx = senss_sensor_get_ctx_data(dev);
 	attr = SENSOR_ATTR_FULL_SCALE;
 
-	if (index >= 0 && index <= SENSOR_CHAN_ACCEL_Z - SENSOR_CHAN_ACCEL_X) {
-		chan = SENSOR_CHAN_ACCEL_X + index;
-	} else if (index == SENSS_INDEX_ALL) {
-		chan = SENSOR_CHAN_ACCEL_XYZ;
-	} else {
-		LOG_ERR("%s: set range: invalid index: %d", dev->name, index);
-		return -EINVAL;
+	ret = phy_3d_sensor_index_to_channel(ctx, index, &chan);
+	if (ret) {
+		LOG_ERR("%s: set range index(%d) to channel failed. ret:%d",
+				dev->name, index, ret);
+		return ret;
 	}
 
-	sensor_g_to_ms2(value / 1000000, &attr_value);
+	ctx->custom->unit_convert_int32_to_si((int32_t)value, &attr_value);
 
 	ret = sensor_attr_set(ctx->hw_dev, chan, attr, &attr_value);
 	if (ret) {
@@ -374,13 +411,11 @@ static int phy_3d_sensor_get_range(const struct device *dev,
 	ctx = senss_sensor_get_ctx_data(dev);
 	attr = SENSOR_ATTR_FULL_SCALE;
 
-	if (index >= 0 && index <= SENSOR_CHAN_ACCEL_Z - SENSOR_CHAN_ACCEL_X) {
-		chan = SENSOR_CHAN_ACCEL_X + index;
-	} else if (index == SENSS_INDEX_ALL) {
-		chan = SENSOR_CHAN_ACCEL_XYZ;
-	} else {
-		LOG_ERR("%s: get range: invalid index: %d", dev->name, index);
-		return -EINVAL;
+	ret = phy_3d_sensor_index_to_channel(ctx, index, &chan);
+	if (ret) {
+		LOG_ERR("%s: get range index(%d) to channel failed. ret:%d",
+				dev->name, index, ret);
+		return ret;
 	}
 
 	ret = sensor_attr_get(ctx->hw_dev, chan, attr, &attr_value);
@@ -390,7 +425,7 @@ static int phy_3d_sensor_get_range(const struct device *dev,
 		return -ENOSYS;
 	}
 
-	*value = sensor_ms2_to_ug(&attr_value);
+	*value = ctx->custom->unit_convert_si_to_int32(&attr_value);
 
 	LOG_INF("%s: get range index: %d value: %u", dev->name, index, *value);
 
@@ -435,17 +470,14 @@ static int phy_3d_sensor_set_offset(const struct device *dev,
 	ctx = senss_sensor_get_ctx_data(dev);
 	attr = SENSOR_ATTR_OFFSET;
 
-	if (index >= 0 && index <= SENSOR_CHAN_ACCEL_Z - SENSOR_CHAN_ACCEL_X) {
-		chan = SENSOR_CHAN_ACCEL_X + index;
-	} else if (index == SENSS_INDEX_ALL) {
-		chan = SENSOR_CHAN_ACCEL_XYZ;
-	} else {
-		LOG_ERR("%s: set offset: invalid index: %d", dev->name, index);
-		return -EINVAL;
+	ret = phy_3d_sensor_index_to_channel(ctx, index, &chan);
+	if (ret) {
+		LOG_ERR("%s: set offset index(%d) to channel failed. ret:%d",
+				dev->name, index, ret);
+		return ret;
 	}
 
-	attr_value.val1 = value;
-	attr_value.val2 = 0;
+	ctx->custom->unit_convert_int32_to_si(value, &attr_value);
 
 	ret = sensor_attr_set(ctx->hw_dev, chan, attr, &attr_value);
 	if (ret) {
@@ -467,13 +499,11 @@ static int phy_3d_sensor_get_offset(const struct device *dev,
 	ctx = senss_sensor_get_ctx_data(dev);
 	attr = SENSOR_ATTR_OFFSET;
 
-	if (index >= 0 && index <= SENSOR_CHAN_ACCEL_Z - SENSOR_CHAN_ACCEL_X) {
-		chan = SENSOR_CHAN_ACCEL_X + index;
-	} else if (index == SENSS_INDEX_ALL) {
-		chan = SENSOR_CHAN_ACCEL_XYZ;
-	} else {
-		LOG_ERR("%s: Get offset: invalid index: %d", dev->name, index);
-		return -EINVAL;
+	ret = phy_3d_sensor_index_to_channel(ctx, index, &chan);
+	if (ret) {
+		LOG_ERR("%s: get offset index(%d) to channel failed. ret:%d",
+				dev->name, index, ret);
+		return ret;
 	}
 
 	ret = sensor_attr_get(ctx->hw_dev, chan, attr, &attr_value);
@@ -481,7 +511,7 @@ static int phy_3d_sensor_get_offset(const struct device *dev,
 		LOG_ERR("%s: Cannot get offset %d.", dev->name, ret);
 	}
 
-	*value = attr_value.val1;
+	*value = ctx->custom->unit_convert_si_to_int32(&attr_value);
 
 	LOG_DBG("%s: get offset index: %d value: %d", dev->name,
 			index, *value);
@@ -517,6 +547,7 @@ static const struct senss_sensor_register_info phy_3d_sensor_reg = {
 		.hw_dev = DEVICE_DT_GET(				\
 				DT_PHANDLE(DT_DRV_INST(_inst),		\
 				underlying_device)),			\
+		.sensor_type = DT_PROP(DT_DRV_INST(_inst), sensor_type),\
 	};								\
 	SENSS_SENSOR_DT_DEFINE(DT_DRV_INST(_inst),			\
 		&phy_3d_sensor_reg, &_CONCAT(ctx, _inst),		\
