@@ -249,7 +249,10 @@ void z_xtensa_mmu_init(void)
 		Z_XTENSA_PTE(vecbase, 0,
 			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
 		Z_XTENSA_AUTOFILL_TLB_ENTRY(vecbase));
-
+	xtensa_dtlb_entry_write_sync(
+		Z_XTENSA_PTE(vecbase, 0,
+			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
+		Z_XTENSA_AUTOFILL_TLB_ENTRY(vecbase));
 }
 
 static bool l2_page_table_map(void *vaddr, uintptr_t phys, uint32_t flags)
