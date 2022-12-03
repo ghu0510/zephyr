@@ -58,7 +58,7 @@ jobs:
             variant: 'zephyr'
             runner: fmos-ubuntu-latest
           - platform_group: 5
-            scope: smoke
+            scope: acceptance
             hwtype: simulator
             toolchain: 'xcc'
             platform: 'intel_adsp_ace30_ptl_sim'
