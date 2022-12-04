@@ -76,6 +76,25 @@ static int hinge_init(const struct device *dev,
 	return 0;
 }
 
+static int hinge_reset(const struct device *dev)
+{
+	struct hinge_angle_context *ctx = senss_sensor_get_ctx_data(dev);
+
+	hinge_angle_algo_reset(ctx->algo_handle);
+
+	return 0;
+}
+
+static int hinge_deinit(const struct device *dev)
+{
+	struct hinge_angle_context *ctx = senss_sensor_get_ctx_data(dev);
+
+	hinge_angle_algo_destroy(ctx->algo_handle);
+	ctx->algo_handle = NULL;
+
+	return 0;
+}
+
 static int hinge_set_interval(const struct device *dev, uint32_t value)
 {
 	int ret;
@@ -201,6 +220,8 @@ static int hinge_sensitivity_test(const struct device *dev, int index,
 
 static struct senss_sensor_api hinge_api = {
 	.init = hinge_init,
+	.reset = hinge_reset,
+	.deinit = hinge_deinit,
 	.get_interval = hinge_get_interval,
 	.set_interval = hinge_set_interval,
 	.get_sensitivity = hinge_get_sensitivity,
