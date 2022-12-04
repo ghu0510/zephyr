@@ -75,6 +75,25 @@ static int md_init(const struct device *dev,
 	return 0;
 }
 
+static int md_reset(const struct device *dev)
+{
+	struct motion_detector_context *ctx = senss_sensor_get_ctx_data(dev);
+
+	motion_detector_algo_reset(ctx->algo_handle);
+
+	return 0;
+}
+
+static int md_deinit(const struct device *dev)
+{
+	struct motion_detector_context *ctx = senss_sensor_get_ctx_data(dev);
+
+	motion_detector_algo_destroy(ctx->algo_handle);
+	ctx->algo_handle = NULL;
+
+	return 0;
+}
+
 static int md_set_interval(const struct device *dev, uint32_t value)
 {
 	int ret;
@@ -184,6 +203,8 @@ static int md_sensitivity_test(const struct device *dev, int index,
 
 static struct senss_sensor_api md_api = {
 	.init = md_init,
+	.reset = md_reset,
+	.deinit = md_deinit,
 	.get_interval = md_get_interval,
 	.set_interval = md_set_interval,
 	.get_sensitivity = md_get_sensitivity,
