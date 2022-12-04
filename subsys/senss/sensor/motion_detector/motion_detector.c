@@ -124,38 +124,6 @@ static int md_get_interval(const struct device *dev, uint32_t *value)
 	return 0;
 }
 
-static int md_set_sensitivity(const struct device *dev, int index,
-	uint32_t value)
-{
-	int ret;
-	struct motion_detector_context *ctx = senss_sensor_get_ctx_data(dev);
-
-	LOG_INF("[%s] name: %s, value %d", __func__, dev->name, value);
-
-	ret = senss_set_sensitivity(ctx->acc_handle, -1, value);
-	if (ret) {
-		return ret;
-	}
-
-	ctx->sensitivity = value;
-
-	return 0;
-}
-
-static int md_get_sensitivity(const struct device *dev, int index,
-	uint32_t *value)
-{
-	struct motion_detector_context *ctx = senss_sensor_get_ctx_data(dev);
-
-	LOG_INF("[%s] name: %s", __func__, dev->name);
-
-	if (value) {
-		*value = ctx->sensitivity;
-	}
-
-	return 0;
-}
-
 static int md_process(const struct device *dev, int32_t reporter, void *buf,
 	int32_t size)
 {
@@ -207,8 +175,6 @@ static struct senss_sensor_api md_api = {
 	.deinit = md_deinit,
 	.get_interval = md_get_interval,
 	.set_interval = md_set_interval,
-	.get_sensitivity = md_get_sensitivity,
-	.set_sensitivity = md_set_sensitivity,
 	.process = md_process,
 	.sensitivity_test = md_sensitivity_test,
 };
