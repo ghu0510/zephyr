@@ -25,6 +25,8 @@ struct phy_3d_sensor_context {
 	const int32_t sensor_type;
 	const struct phy_3d_sensor_custom *custom;
 	struct sensor_trigger trig;
+	bool data_ready_enabled;
+	bool data_ready_support;
 	uint32_t interval;
 	uint32_t samples;
 	uint32_t sensitivity[PHY_3D_SENSOR_CHANNEL_NUM];

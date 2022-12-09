@@ -71,19 +71,25 @@ static int phy_3d_sensor_enable_data_ready(struct phy_3d_sensor_context *ctx,
 	ctx->trig.chan = ctx->custom->chan_all;
 
 	if (enable) {
-		ret = senss_sensor_set_data_ready(ctx->dev, true);
-		if (sensor_trigger_set(ctx->hw_dev, &ctx->trig,
+		if (!ctx->data_ready_enabled) {
+			ret = senss_sensor_set_data_ready(ctx->dev, true);
+			if (sensor_trigger_set(ctx->hw_dev, &ctx->trig,
 					phy_3d_sensor_data_ready_handler) < 0) {
-			ret = senss_sensor_set_data_ready(ctx->dev, false);
-			LOG_INF("%s: Configured for polled sampling.",
-					ctx->dev->name);
-		} else {
-			LOG_INF("%s: Configured for triggered sampling.",
-					ctx->dev->name);
+				ret = senss_sensor_set_data_ready(ctx->dev,
+						false);
+				ctx->data_ready_enabled = false;
+				LOG_INF("%s: Configured for polled sampling.",
+						ctx->dev->name);
+			} else {
+				LOG_INF("%s: Configured for triggered sampling.",
+						ctx->dev->name);
+				ctx->data_ready_enabled = true;
+			}
 		}
 	} else {
 		sensor_trigger_set(ctx->hw_dev, &ctx->trig, NULL);
 		ret = senss_sensor_set_data_ready(ctx->dev, false);
+		ctx->data_ready_enabled = false;
 	}
 
 	return ret;
@@ -95,6 +101,7 @@ static int phy_3d_sensor_init(const struct device *dev,
 		int reporters_count)
 {
 	struct phy_3d_sensor_context *ctx;
+	int ret;
 
 	ARG_UNUSED(reporter_handles);
 	ARG_UNUSED(reporters_count);
@@ -118,7 +125,16 @@ static int phy_3d_sensor_init(const struct device *dev,
 	LOG_INF("%s: Underlying device: %s", dev->name, ctx->hw_dev->name);
 
 	/* Try to enable the data ready mode */
-	return phy_3d_sensor_enable_data_ready(ctx, true);
+	ret = phy_3d_sensor_enable_data_ready(ctx, true);
+	if (!ret) {
+		ctx->data_ready_support = true;
+		ctx->data_ready_enabled = true;
+	} else {
+		ctx->data_ready_support = false;
+		ctx->data_ready_enabled = false;
+	}
+
+	return ret;
 }
 
 static int phy_3d_sensor_deinit(const struct device *dev)
@@ -211,30 +227,36 @@ static int phy_3d_sensor_set_interval(const struct device *dev, uint32_t value)
 	ctx = senss_sensor_get_ctx_data(dev);
 
 	if (value) {
+		if (ctx->data_ready_support) {
+			phy_3d_sensor_enable_data_ready(ctx, true);
+		}
+
 		freq = (double)USEC_PER_SEC / value;
+		ret = sensor_value_from_double(&odr, freq);
+		if (ret) {
+			LOG_ERR("%s: Cannot translate freq %u to sensor value. ret:%d",
+					dev->name, (uint32_t)freq, ret);
+			return ret;
+		}
+
+		ret = sensor_attr_set(ctx->hw_dev, ctx->custom->chan_all,
+				SENSOR_ATTR_SAMPLING_FREQUENCY, &odr);
+		if (ret) {
+			LOG_ERR("%s: Cannot set sampling frequency %u. ret:%d",
+					dev->name, (uint32_t)freq, ret);
+		} else {
+			LOG_INF("%s: Set sampling frequency %u.",
+					dev->name, (uint32_t)freq);
+		}
 	} else {
-		freq = 0;
+		if (ctx->data_ready_support) {
+			phy_3d_sensor_enable_data_ready(ctx, false);
+		}
 	}
 
-	ret = sensor_value_from_double(&odr, freq);
-	if (ret) {
-		LOG_ERR("%s: Cannot translate freq %u to sensor value. ret:%d",
-				dev->name, (uint32_t)freq, ret);
-		return ret;
-	}
+	ctx->interval = value;
 
-	ret = sensor_attr_set(ctx->hw_dev, ctx->custom->chan_all,
-			SENSOR_ATTR_SAMPLING_FREQUENCY, &odr);
-	if (ret) {
-		LOG_ERR("%s: Cannot set sampling frequency %u. ret:%d",
-				dev->name, (uint32_t)freq, ret);
-	} else {
-		LOG_INF("%s: Set sampling frequency %u.",
-				dev->name, (uint32_t)freq);
-		ctx->interval = value;
-	}
-
-	return ret;
+	return 0;
 }
 
 static int phy_3d_sensor_get_interval(const struct device *dev,
@@ -318,7 +340,9 @@ static int phy_3d_sensor_set_sensitivity(const struct device *dev,
 			index, value);
 
 	/* Disable data ready before enable any-motion */
-	phy_3d_sensor_enable_data_ready(ctx, false);
+	if (ctx->data_ready_support) {
+		phy_3d_sensor_enable_data_ready(ctx, false);
+	}
 
 	ret = phy_3d_sensor_index_to_channel(ctx, index, &chan);
 	if (ret) {
@@ -329,7 +353,9 @@ static int phy_3d_sensor_set_sensitivity(const struct device *dev,
 	}
 	if (ret) {
 		/* Try to enable data ready if enable any-motion failed */
-		phy_3d_sensor_enable_data_ready(ctx, true);
+		if (ctx->data_ready_support) {
+			phy_3d_sensor_enable_data_ready(ctx, true);
+		}
 	}
 
 	return 0;
