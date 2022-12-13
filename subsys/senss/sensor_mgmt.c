@@ -475,15 +475,24 @@ int senss_init(void)
 	ctx->senss_initialized = true;
 
 	/* sensor subsystem runtime thread: sensor scheduling and sensor data processing */
-	k_thread_create(&ctx->runtime_thread, runtime_stack, CONFIG_SENSS_RUNTIME_THREAD_STACK_SIZE,
+	ctx->runtime_id = k_thread_create(&ctx->runtime_thread, runtime_stack,
+			CONFIG_SENSS_RUNTIME_THREAD_STACK_SIZE,
 			(k_thread_entry_t) senss_runtime_thread, ctx, NULL, NULL,
 			CONFIG_SENSS_RUNTIME_THREAD_PRIORITY, 0, K_NO_WAIT);
+	if (!ctx->runtime_id) {
+		LOG_ERR("create runtime thread error");
+		return -EAGAIN;
+	}
 
 	/* sensor dispatch thread: get sensor data from senss and dispatch data */
-	k_thread_create(&ctx->dispatch_thread, dispatch_stack,
+	ctx->dispatch_id = k_thread_create(&ctx->dispatch_thread, dispatch_stack,
 			CONFIG_SENSS_DISPATCH_THREAD_STACK_SIZE,
 			(k_thread_entry_t) senss_dispatch_thread, ctx, NULL, NULL,
 			CONFIG_SENSS_DISPATCH_THREAD_PRIORITY, 0, K_NO_WAIT);
+	if (!ctx->dispatch_id) {
+		LOG_ERR("create dispatch thread error");
+		return -EAGAIN;
+	}
 
 	return ret;
 }
@@ -518,6 +527,9 @@ int senss_deinit(void)
 	}
 	ctx->sensor_num = 0;
 	ctx->senss_initialized = false;
+	k_thread_abort(ctx->runtime_id);
+	k_thread_abort(ctx->dispatch_id);
+
 	LOG_INF("%s complete", __func__);
 
 	return ret;

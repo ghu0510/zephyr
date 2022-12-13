@@ -170,6 +170,8 @@ struct senss_mgmt_context {
 	struct k_mutex cfg_mutex;
 	struct k_thread runtime_thread;
 	struct k_thread dispatch_thread;
+	k_tid_t runtime_id;
+	k_tid_t dispatch_id;
 	sys_slist_t cfg_list;
 	struct ring_buf sensor_ring_buf;
 	uint8_t buf[CONFIG_SENSS_RING_BUF_SIZE];
