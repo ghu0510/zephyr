@@ -516,6 +516,9 @@ int senss_deinit(void)
 		}
 		free(sensor);
 	}
+	ctx->sensor_num = 0;
+	ctx->senss_initialized = false;
+	LOG_INF("%s complete", __func__);
 
 	return ret;
 }
