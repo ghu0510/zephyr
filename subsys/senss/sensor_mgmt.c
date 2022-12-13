@@ -837,9 +837,12 @@ static uint32_t arbitrate_interval(struct senss_sensor *sensor)
 
 	/* search from all clients, arbitrate the interval */
 	for_each_sensor_client(sensor, conn) {
-		LOG_DBG("%s, for each client, conn:%d, sensor:%s, mode:%d, interval:%d",
-			__func__, conn->index, sensor->dev->name, sensor->mode, conn->interval);
-		if (conn->interval != 0 && conn->interval < min_interval) {
+		LOG_INF("%s, for each client, sensor:%s, conn:%d, interval:%d(us)",
+			__func__, sensor->dev->name, conn->index, conn->interval);
+		if (!is_client_request_data(conn)) {
+			continue;
+		}
+		if (conn->interval < min_interval) {
 			min_interval = conn->interval;
 		}
 	}
