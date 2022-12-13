@@ -128,8 +128,6 @@ static struct senss_sensor *allocate_sensor(uint16_t conns_num, uint16_t sample_
 
 static void init_sensor_config(struct sensor_config *config, int type)
 {
-	int i;
-
 	config->interval = 0;
 	config->sensitivity_count = get_max_valid_index(type);
 
@@ -137,9 +135,7 @@ static void init_sensor_config(struct sensor_config *config, int type)
 			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
 			config->sensitivity_count);
 
-	for (i = 0; i < config->sensitivity_count; i++) {
-		config->sensitivity[i] = SENSOR_SENSITIVITY_MAX;
-	}
+	memset(config->sensitivity, 0x00, sizeof(config->sensitivity));
 }
 
 /* create struct senss_sensor *sensor according to sensor device tree */
@@ -214,8 +210,6 @@ static void init_each_connection(struct senss_mgmt_context *ctx,
 				struct senss_sensor *sink,
 				bool dynamic)
 {
-	int i;
-
 	__ASSERT(conn, "invalid connection");
 	conn->source = source;
 	conn->sink = sink;
@@ -225,10 +219,7 @@ static void init_each_connection(struct senss_mgmt_context *ctx,
 	__ASSERT(conn->sample.data, "alloc memory for sample data error");
 	conn->sample.size = source->data_size;
 	conn->interval = 0;
-
-	for (i = 0; i < CONFIG_SENSS_MAX_SENSITIVITY_COUNT; i++) {
-		conn->sensitivity[i] = SENSOR_SENSITIVITY_MAX;
-	}
+	memset(conn->sensitivity, 0x00, sizeof(conn->sensitivity));
 }
 
 /* initial sensor connections: connection between client and its reporter */
@@ -944,10 +935,6 @@ static int set_arbitrate_sensitivity(struct senss_sensor *sensor, int index, uin
 	if (!sensor_api->set_sensitivity) {
 		LOG_WRN("sensor:%s set_sensitivity callback is not set", sensor->dev->name);
 		return -ENODEV;
-	}
-	if (sensitivity == SENSOR_SENSITIVITY_MAX) {
-		LOG_INF("sensitivity is not set by any client, ignore");
-		return 0;
 	}
 
 	return sensor_api->set_sensitivity(sensor->dev, index, sensitivity);
