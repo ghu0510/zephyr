@@ -906,9 +906,12 @@ static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
 
 	/* search from all clients, arbitrate the sensitivity */
 	for_each_sensor_client(sensor, conn) {
-		LOG_INF("%s, for each client, sensor:%s, conn:%d, index:%d, sens:%d, min_sen:%d",
-					__func__, sensor->dev->name, conn->index, index,
-					conn->sensitivity[index], min_sensitivity);
+		LOG_INF("%s, each sensor:%s, conn:%d, interval:%d, index:%d, sens:%d, min_sen:%d",
+				__func__, sensor->dev->name, conn->index, conn->interval, index,
+				conn->sensitivity[index], min_sensitivity);
+		if (!is_client_request_data(conn)) {
+			continue;
+		}
 		if (conn->sensitivity[index] < min_sensitivity) {
 			min_sensitivity = conn->sensitivity[index];
 		}
