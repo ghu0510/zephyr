@@ -19,8 +19,6 @@ extern "C" {
 
 /* indicates that this sensor is not polling yet */
 #define EXEC_TIME_OFF UINT64_MAX
-/* indicates sensor is opened now */
-#define SENSOR_INTERVAL_MAX UINT32_MAX
 #define EXEC_TIME_INIT 0
 #define EXEC_TIME_OFF UINT64_MAX
 

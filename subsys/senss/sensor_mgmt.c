@@ -832,7 +832,7 @@ int senss_sensor_set_data_ready(const struct device *dev, bool data_ready)
 static uint32_t arbitrate_interval(struct senss_sensor *sensor)
 {
 	struct connection *conn;
-	uint32_t min_interval = SENSOR_INTERVAL_MAX;
+	uint32_t min_interval = UINT32_MAX;
 	uint32_t interval;
 
 	/* search from all clients, arbitrate the interval */
@@ -846,13 +846,13 @@ static uint32_t arbitrate_interval(struct senss_sensor *sensor)
 			min_interval = conn->interval;
 		}
 	}
-	/* min_interval == SENSOR_INTERVAL_MAX means sensor is not opened by any clients
+	/* min_interval == UINT32_MAX means sensor is not opened by any clients
 	 * if no client open the sensor, interval should be 0
 	 */
-	interval = (min_interval == SENSOR_INTERVAL_MAX ? 0 : min_interval);
+	interval = (min_interval == UINT32_MAX ? 0 : min_interval);
 
-	LOG_INF("%s, sensor:%s, interval:%d, min_interval:%d, next_exec_time:%lld",
-		__func__, sensor->dev->name, interval, min_interval, sensor->next_exec_time);
+	LOG_INF("%s, sensor:%s, interval:%d(us), next_exec_time:%lld",
+		__func__, sensor->dev->name, interval, sensor->next_exec_time);
 
 	/* interval == 0 means sensor is not opened by any client
 	 */
