@@ -10,10 +10,12 @@ choice
 
 	config SOC_INTEL_ACE20_LNL
 		bool "ACE 2.0 Lunar Lake PCH"
+		select HAS_NO_PM
 		depends on SOC_SERIES_INTEL_ACE
 
 	config SOC_INTEL_ACE30_PTL
 		bool "ACE 3.0 Panther Lake"
+		select HAS_NO_PM
 		depends on SOC_SERIES_INTEL_ACE
 endchoice
 
