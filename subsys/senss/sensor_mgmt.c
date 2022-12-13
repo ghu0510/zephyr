@@ -505,16 +505,13 @@ int senss_deinit(void)
 	int ret = 0;
 	int i, j;
 
-	/* close all opened sensors */
+	/* close all sensors */
 	for (i = 0; i < CONFIG_SENSS_MAX_HANDLE_COUNT; i++) {
 		conn = ctx->conns[i];
 		if (!conn) {
 			continue;
 		}
 		ret |= close_sensor(conn);
-		if (ret) {
-			LOG_ERR("close connection:%d failed", conn->index);
-		}
 	}
 
 	/* free connection sample data and sensor */
