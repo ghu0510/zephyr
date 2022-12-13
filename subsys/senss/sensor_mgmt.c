@@ -902,7 +902,7 @@ static int config_interval(struct senss_sensor *sensor)
 static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
 {
 	struct connection *conn;
-	uint32_t min_sensitivity = SENSOR_SENSITIVITY_MAX;
+	uint32_t min_sensitivity = UINT32_MAX;
 
 	/* search from all clients, arbitrate the sensitivity */
 	for_each_sensor_client(sensor, conn) {
@@ -918,10 +918,11 @@ static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
 	}
 	LOG_INF("%s, min_sensitivity:%d", __func__, min_sensitivity);
 
-	/* min_sensitivity == SENSOR_SENSITIVITY_MAX means sensitivity is not configured
+	/* min_sensitivity == UINT32_MAX means no client is requesting to open sensor,
 	 * by any client, in this case, return sensitivity 0
 	 */
-	return (min_sensitivity == SENSOR_SENSITIVITY_MAX ? 0 : min_sensitivity);
+
+	return (min_sensitivity == UINT32_MAX ? 0 : min_sensitivity);
 }
 
 static int set_arbitrate_sensitivity(struct senss_sensor *sensor, int index, uint32_t sensitivity)
