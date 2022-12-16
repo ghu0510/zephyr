@@ -51,6 +51,9 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 			/* get data_size from header, and then read sensor data from ring buf */
 			wanted_size = data_size;
 		} else if (rd_size == sizeof(*header) + wanted_size) {
+			/* read next sample header */
+			wanted_size = sizeof(*header);
+			rd_size = 0;
 			conn = ctx->conns[conn_index];
 			if (!conn || !conn->data_evt_cb) {
 				LOG_WRN("%s, connection is NULL or event callback isn't registered",
@@ -59,9 +62,6 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 			}
 			ret = conn->data_evt_cb((int)conn_index, buf + sizeof(*header),
 								data_size, conn->cb_param);
-			/* read next sample header */
-			wanted_size = sizeof(*header);
-			rd_size = 0;
 		} else {
 			LOG_ERR("%s, invalid ret_size:%d, rd_size:%d", __func__, ret_size, rd_size);
 			ret = -EINVAL;
