@@ -55,9 +55,12 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 			wanted_size = sizeof(*header);
 			rd_size = 0;
 			conn = ctx->conns[conn_index];
-			if (!conn || !conn->data_evt_cb) {
-				LOG_WRN("%s, connection is NULL or event callback isn't registered",
-								__func__);
+			if (!conn) {
+				LOG_WRN("%s, connection is NULL", __func__);
+				continue;
+			} else if (!conn->data_evt_cb) {
+				LOG_WRN("%s, connection:%d event-callback not registered",
+							__func__, conn->index);
 				continue;
 			}
 			ret = conn->data_evt_cb((int)conn_index, buf + sizeof(*header),
