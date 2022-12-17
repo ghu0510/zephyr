@@ -29,7 +29,7 @@ K_THREAD_STACK_DEFINE(dispatch_stack, CONFIG_SENSS_DISPATCH_THREAD_STACK_SIZE);
 
 static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 {
-	struct sensor_data_headar *header;
+	struct sensor_data_header *header;
 	struct connection *conn;
 	uint8_t buf[CONFIG_SENSS_MAX_SENSOR_DATA_SIZE];
 	uint32_t wanted_size = sizeof(*header);
@@ -41,7 +41,7 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 	while ((ret_size = ring_buf_get(&ctx->sensor_ring_buf, buf + rd_size, wanted_size)) > 0) {
 		rd_size += ret_size;
 		if (rd_size == sizeof(*header)) {
-			header = (struct sensor_data_headar *)buf;
+			header = (struct sensor_data_header *)buf;
 			data_size = header->data_size;
 			__ASSERT(data_size + sizeof(*header) <= CONFIG_SENSS_MAX_SENSOR_DATA_SIZE,
 						"invalid data size:%d", header->data_size);

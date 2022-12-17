@@ -175,7 +175,7 @@ struct senss_mgmt_context {
 	bool data_to_ring_buf;
 };
 
-struct sensor_data_headar {
+struct sensor_data_header {
 	uint16_t data_size;
 	uint16_t conn_index;
 } __packed;

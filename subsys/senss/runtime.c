@@ -56,7 +56,7 @@ static void add_data_to_sensor_buf(struct senss_mgmt_context *ctx,
 				   struct senss_sensor *sensor,
 				   struct connection *conn)
 {
-	struct sensor_data_headar *header;
+	struct sensor_data_header *header;
 	uint8_t data[CONFIG_SENSS_MAX_SENSOR_DATA_SIZE];
 	uint32_t data_size;
 
@@ -68,7 +68,7 @@ static void add_data_to_sensor_buf(struct senss_mgmt_context *ctx,
 		"data_size:%d is too large, should enlarge max_sensor_data_size:%d",
 		sensor->data_size, CONFIG_SENSS_MAX_SENSOR_DATA_SIZE);
 
-	header = (struct sensor_data_headar *)data;
+	header = (struct sensor_data_header *)data;
 	header->data_size = sensor->data_size;
 	header->conn_index = conn->index;
 
