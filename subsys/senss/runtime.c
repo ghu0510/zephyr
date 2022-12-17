@@ -216,11 +216,9 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 			client->next_exec_time = EXEC_TIME_INIT;
 
 		conn->new_data_arrive = true;
-
-		if (!conn->dynamic) {
-			memcpy(conn->sample.data, sensor->data_buf, sensor->data_size);
-			conn->sample.size = sensor->data_size;
-		} else {
+		memcpy(conn->sample.data, sensor->data_buf, sensor->data_size);
+		conn->sample.size = sensor->data_size;
+		if (conn->dynamic) {
 			add_data_to_sensor_buf(ctx, sensor, conn);
 			ctx->data_to_ring_buf = true;
 		}
