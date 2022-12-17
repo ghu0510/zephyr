@@ -52,9 +52,9 @@ static int calc_sleep_time(struct senss_mgmt_context *ctx, uint64_t cur_time)
 	return sleep_time;
 }
 
-static void add_data_to_sensor_buf(struct senss_mgmt_context *ctx,
-				   struct senss_sensor *sensor,
-				   struct connection *conn)
+static void add_data_to_sensor_ring_buf(struct senss_mgmt_context *ctx,
+					struct senss_sensor *sensor,
+					struct connection *conn)
 {
 	struct sensor_data_header *header;
 	uint8_t data[CONFIG_SENSS_MAX_SENSOR_DATA_SIZE];
@@ -219,7 +219,7 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		memcpy(conn->sample.data, sensor->data_buf, sensor->data_size);
 		conn->sample.size = sensor->data_size;
 		if (conn->dynamic) {
-			add_data_to_sensor_buf(ctx, sensor, conn);
+			add_data_to_sensor_ring_buf(ctx, sensor, conn);
 			ctx->data_to_ring_buf = true;
 		}
 	}
