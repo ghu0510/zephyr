@@ -101,8 +101,8 @@ static int sensor_sensitivity_test(struct senss_sensor *sensor,
 		LOG_ERR("sensor:%s not register sensitivity callback", sensor->dev->name);
 		return -ENODEV;
 	}
-	for (i = 0; i < sensor->cfg.sensitivity_count; i++) {
-		ret |= sensor_api->sensitivity_test(sensor->dev, i, sensor->cfg.sensitivity[i],
+	for (i = 0; i < sensor->sensitivity_count; i++) {
+		ret |= sensor_api->sensitivity_test(sensor->dev, i, sensor->sensitivity[i],
 						last_sample, last_size, cur_sample, cur_size);
 	}
 
@@ -120,7 +120,7 @@ static bool sensor_test_sensitivity(struct senss_sensor *sensor, struct connecti
 	}
 
 	/* skip checking if sensitivity equals to 0 */
-	if (!is_filtering_sensitivity(&sensor->cfg)) {
+	if (!is_filtering_sensitivity(&sensor->sensitivity[0])) {
 		return true;
 	}
 
@@ -249,10 +249,10 @@ static int process_streaming_data(struct senss_sensor *sensor, uint64_t cur_time
 	 * update sample time according to current time
 	 */
 	next_time = (*sample_time == 0 ? cur_time :
-				MIN(cur_time, *sample_time + sensor->cfg.interval));
+				MIN(cur_time, *sample_time + sensor->interval));
 
 	LOG_DBG("%s, cur:%lld, sampe:%lld, ri:%d, next:%lld",
-			__func__, cur_time, *sample_time, sensor->cfg.interval, next_time);
+			__func__, cur_time, *sample_time, sensor->interval, next_time);
 
 	sensor_api = sensor->dev->api;
 	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
@@ -342,9 +342,9 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 	/* sensor is not in polling mode or sensor interval still not set yet,
 	 * no need to poll, return directly
 	 */
-	if (sensor->mode != SENSOR_TRIGGER_MODE_POLLING || sensor->cfg.interval == 0) {
+	if (sensor->mode != SENSOR_TRIGGER_MODE_POLLING || sensor->interval == 0) {
 		LOG_DBG("sensor %s not in polling mode:%d or sensor interval:%d not opened yet",
-			sensor->dev->name, sensor->mode, sensor->cfg.interval);
+			sensor->dev->name, sensor->mode, sensor->interval);
 		sensor->next_exec_time = EXEC_TIME_OFF;
 		return false;
 	}
@@ -352,15 +352,15 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 	/* sensor is in polling mode, first time execute, will poll data at next interval */
 	if (sensor->next_exec_time == EXEC_TIME_INIT) {
 		LOG_INF("sensor:%s first time exe, cur time:%lld, interval:%d",
-				sensor->dev->name, cur_time, sensor->cfg.interval);
-		sensor->next_exec_time = cur_time + sensor->cfg.interval;
+				sensor->dev->name, cur_time, sensor->interval);
+		sensor->next_exec_time = cur_time + sensor->interval;
 		return false;
 	}
 
 	/* execute time arrived, excute this polling data, meanwhile calculate next execute time */
 	if (sensor->next_exec_time <= cur_time) {
 		poll = true;
-		sensor->next_exec_time += sensor->cfg.interval;
+		sensor->next_exec_time += sensor->interval;
 	}
 
 	LOG_DBG("%s, sensor:%s, need_poll:%u, cur:%llu, next_exec_time:%llu, mode:%d",
@@ -373,7 +373,7 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 static bool sensor_need_exec(struct senss_sensor *sensor, uint64_t cur_time)
 {
 	LOG_DBG("sensor:%s need to execute, next_exec_time:%lld, mode:%d, interval:%d",
-		sensor->dev->name, sensor->next_exec_time, sensor->mode, sensor->cfg.interval);
+		sensor->dev->name, sensor->next_exec_time, sensor->mode, sensor->interval);
 
 	if (!is_sensor_opened(sensor)) {
 		return false;

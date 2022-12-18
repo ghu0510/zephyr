@@ -131,18 +131,6 @@ static struct senss_sensor *allocate_sensor(uint16_t conns_num, uint16_t sample_
 	return sensor;
 }
 
-static void init_sensor_config(struct sensor_config *config, int type)
-{
-	config->interval = 0;
-	config->sensitivity_count = get_sensitivity_count(type);
-
-	__ASSERT(config->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
-			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
-			config->sensitivity_count);
-
-	memset(config->sensitivity, 0x00, sizeof(config->sensitivity));
-}
-
 /* create struct senss_sensor *sensor according to sensor device tree */
 static struct senss_sensor *create_sensor_obj(struct senss_sensor_dt_info *dt)
 {
@@ -167,7 +155,12 @@ static struct senss_sensor *create_sensor_obj(struct senss_sensor_dt_info *dt)
 	LOG_INF("%s, sensor:%s, min_ri:%d(us)",
 		__func__, sensor->dev->name, sensor->dt_info->info.minimal_interval);
 
-	init_sensor_config(&sensor->cfg, sensor->dt_info->info.type);
+	sensor->interval = 0;
+	sensor->sensitivity_count = get_sensitivity_count(dt->info.type);
+	__ASSERT(sensor->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
+			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
+			sensor->sensitivity_count);
+	memset(sensor->sensitivity, 0x00, sizeof(sensor->sensitivity));
 
 	sensor->state = SENSS_SENOSR_STATE_NOT_READY;
 
@@ -409,15 +402,15 @@ static int set_reporter_sensitivity(struct senss_mgmt_context *ctx,
 
 	LOG_INF("%s, sesnor:%s, index:%d, sensitivity:%d, sensitivity_count:%d",
 				__func__, sensor->dev->name, index,
-				sensitivity, sensor->cfg.sensitivity_count);
+				sensitivity, sensor->sensitivity_count);
 
-	if (index < SENSS_INDEX_ALL || index >= sensor->cfg.sensitivity_count) {
+	if (index < SENSS_INDEX_ALL || index >= sensor->sensitivity_count) {
 		LOG_ERR("sensor:%s sensitivity index:%d is invalid", sensor->dev->name, index);
 		return -EINVAL;
 	}
 
 	if (index == SENSS_INDEX_ALL) {
-		for (i = 0; i < sensor->cfg.sensitivity_count; i++) {
+		for (i = 0; i < sensor->sensitivity_count; i++) {
 			conn->sensitivity[i] = sensitivity;
 		}
 	} else {
@@ -592,8 +585,12 @@ int open_sensor(int type, int sensor_index)
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
-	init_sensor_config(&client_sensor->cfg, type);
-
+	client_sensor->interval = 0;
+	client_sensor->sensitivity_count = get_sensitivity_count(type);
+	__ASSERT(client_sensor->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
+			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
+			client_sensor->sensitivity_count);
+	memset(client_sensor->sensitivity, 0x00, sizeof(client_sensor->sensitivity));
 	client_sensor->conns_num = conns_num;
 	conn = &client_sensor->conns[0];
 
@@ -738,14 +735,14 @@ int get_sensitivity(struct connection *conn, int index, uint32_t *value)
 
 	*value = UINT32_MAX;
 
-	if (index < SENSS_INDEX_ALL || index >= sensor->cfg.sensitivity_count) {
+	if (index < SENSS_INDEX_ALL || index >= sensor->sensitivity_count) {
 		LOG_ERR("sensor:%s sensitivity index:%d is invalid", sensor->dev->name, index);
 		return -EINVAL;
 	}
 
 	if (index == SENSS_INDEX_ALL) {
 		/* each sensitivity index value should be same for global sensitivity */
-		for (i = 1; i < sensor->cfg.sensitivity_count; i++) {
+		for (i = 1; i < sensor->sensitivity_count; i++) {
 			if (conn->sensitivity[i] != conn->sensitivity[0]) {
 				LOG_ERR("sensitivity[%d]:%d should be same as senstivity:%d",
 					i, conn->sensitivity[i], conn->sensitivity[0]);
@@ -913,7 +910,7 @@ static int set_arbitrate_interval(struct senss_sensor *sensor, uint32_t interval
 	sensor_api = sensor->dev->api;
 	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
 
-	sensor->cfg.interval = interval;
+	sensor->interval = interval;
 	/* reset sensor next_exec_time as soon as sensor interval is changed */
 	sensor->next_exec_time = interval > 0 ? EXEC_TIME_INIT : EXEC_TIME_OFF;
 
@@ -969,7 +966,7 @@ static int set_arbitrate_sensitivity(struct senss_sensor *sensor, int index, uin
 	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
 
 	/* update sensor sensitivity */
-	sensor->cfg.sensitivity[index] = sensitivity;
+	sensor->sensitivity[index] = sensitivity;
 
 	if (!sensor_api->set_sensitivity) {
 		LOG_WRN("sensor:%s set_sensitivity callback is not set", sensor->dev->name);
@@ -999,7 +996,7 @@ static int config_sensor(struct senss_sensor *sensor)
 		LOG_WRN("sensor:%s config interval error", sensor->dev->name);
 	}
 
-	for (i = 0; i < sensor->cfg.sensitivity_count; i++) {
+	for (i = 0; i < sensor->sensitivity_count; i++) {
 		ret = config_sensitivity(sensor, i);
 		if (ret) {
 			LOG_WRN("sensor:%s config sensitivity index:%d error",

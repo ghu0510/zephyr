@@ -78,16 +78,6 @@ struct senss_sensor_dt_info {
 	uint16_t reporters[CONFIG_SENSS_MAX_REPORTER_COUNT];
 };
 
-/**
- * @struct sensor_config
- * @brief config data to be used by sensor
- */
-struct sensor_config {
-	uint32_t interval;
-	uint8_t sensitivity_count;
-	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
-};
-
 struct sensor_sample {
 	uint16_t size;
 	void *data;
@@ -141,7 +131,9 @@ struct senss_sensor {
 	/* client handles, updated in senss_init() */
 	int clients_count;
 	sys_slist_t client_list;
-	struct sensor_config cfg;
+	uint32_t interval;
+	uint8_t sensitivity_count;
+	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
 	sys_snode_t cfg_node;
 	enum senss_sensor_state state;
 	enum sensor_trigger_mode mode;
@@ -268,12 +260,13 @@ static inline bool cfg_list_has_sensor(struct senss_mgmt_context *ctx,
 /* this function is used to decide whether filtering sensitivity checking
  * for example: filter sensitivity checking if sensitivity value is 0.
  */
-static inline bool is_filtering_sensitivity(struct sensor_config *cfg)
+static inline bool is_filtering_sensitivity(int *sensitivity)
 {
 	bool filtering = false;
 
+	__ASSERT(sensitivity, "sensitivity should not be NULL");
 	for (int i = 0; i < CONFIG_SENSS_MAX_SENSITIVITY_COUNT; i++) {
-		if (cfg->sensitivity[i] != 0) {
+		if (sensitivity[i] != 0) {
 			filtering = true;
 			break;
 		}
@@ -309,7 +302,7 @@ static inline bool is_client_request_data(struct connection *conn)
 
 static inline bool is_sensor_opened(struct senss_sensor *sensor)
 {
-	return sensor->cfg.interval != 0;
+	return sensor->interval != 0;
 }
 
 /* sensor not in polling mode, meanwhile data ready arrived from phyisal driver */
