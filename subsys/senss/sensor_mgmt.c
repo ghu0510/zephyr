@@ -214,8 +214,8 @@ static int init_each_connection(struct senss_mgmt_context *ctx,
 	conn->sink = sink;
 	conn->dynamic = dynamic;
 	/* malloc connection sample buf to copy data from source data buf */
-	conn->sample.data = malloc(source->data_size);
-	if (!conn->sample.data) {
+	conn->data = malloc(source->data_size);
+	if (!conn->data) {
 		LOG_ERR("malloc memory for connection data error");
 		return -ENOMEM;
 	}
@@ -519,11 +519,11 @@ int senss_deinit(void)
 		ret |= close_sensor(conn);
 	}
 
-	/* free connection sample data and sensor */
+	/* free connection data and sensor */
 	for_each_sensor(ctx, i, sensor) {
 		LOG_INF("%s, free sensor:%s data and senss_sensor", __func__, sensor->dev->name);
 		for_each_sensor_connection(j, sensor, conn) {
-			free(conn->sample.data);
+			free(conn->data);
 		}
 		free(sensor);
 	}

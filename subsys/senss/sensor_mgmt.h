@@ -78,11 +78,6 @@ struct senss_sensor_dt_info {
 	uint16_t reporters[CONFIG_SENSS_MAX_REPORTER_COUNT];
 };
 
-struct sensor_sample {
-	uint16_t size;
-	void *data;
-};
-
 /**
  * @struct connection information
  * @brief connection indicates connection from reporter sensor(source) to client sensor(sink)
@@ -94,8 +89,8 @@ struct connection {
 	/* interval and sensitivity set from client(sink) to reporter(source) */
 	uint32_t interval;
 	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
-	/* copy sample to connection from reporter */
-	struct sensor_sample sample;
+	/* copy sensor data to connection data buf from reporter */
+	void *data;
 	/* client(sink) next consume time */
 	uint64_t next_consume_time;
 	/* when new data arrive, set flag to true, after data processing, clear the flag */

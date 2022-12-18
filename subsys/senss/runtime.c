@@ -86,10 +86,8 @@ static int sensor_sensitivity_test(struct senss_sensor *sensor,
 				   struct connection *conn)
 {
 	const struct senss_sensor_api *sensor_api;
-	void *last_sample = conn->sample.data;
+	void *last_sample = conn->data;
 	void *cur_sample = sensor->data_buf;
-	int last_size = conn->sample.size;
-	int cur_size = sensor->data_size;
 	int i;
 	int ret = 0;
 
@@ -103,7 +101,7 @@ static int sensor_sensitivity_test(struct senss_sensor *sensor,
 	}
 	for (i = 0; i < sensor->sensitivity_count; i++) {
 		ret |= sensor_api->sensitivity_test(sensor->dev, i, sensor->sensitivity[i],
-						last_sample, last_size, cur_sample, cur_size);
+				last_sample, sensor->data_size, cur_sample, sensor->data_size);
 	}
 
 	return ret;
@@ -218,8 +216,8 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		}
 
 		conn->new_data_arrive = true;
-		memcpy(conn->sample.data, sensor->data_buf, sensor->data_size);
-		conn->sample.size = sensor->data_size;
+
+		memcpy(conn->data, sensor->data_buf, sensor->data_size);
 		if (conn->dynamic) {
 			add_data_to_sensor_ring_buf(ctx, sensor, conn);
 			ctx->data_to_ring_buf = true;
@@ -298,8 +296,8 @@ static int virtual_sensor_process_data(struct senss_sensor *sensor)
 		}
 		ret |= sensor_api->process(sensor->dev,
 					conn->index,
-					conn->sample.data,
-					conn->sample.size);
+					conn->data,
+					sensor->data_size);
 		conn->new_data_arrive = false;
 	}
 
