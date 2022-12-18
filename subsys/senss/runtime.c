@@ -205,15 +205,17 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 
 		update_client_consume_time(sensor, conn);
 
-		if (!sensi_pass)
+		if (!sensi_pass) {
 			continue;
+		}
 
 		/* pass the polling mode to its client */
 		client->mode = sensor->mode;
 		/* if client sensor switch to polling mode, next execute time should not be OFF */
 		if (client->mode == SENSOR_TRIGGER_MODE_POLLING &&
-						client->next_exec_time == EXEC_TIME_OFF)
+						client->next_exec_time == EXEC_TIME_OFF) {
 			client->next_exec_time = EXEC_TIME_INIT;
+		}
 
 		conn->new_data_arrive = true;
 		memcpy(conn->sample.data, sensor->data_buf, sensor->data_size);
