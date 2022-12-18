@@ -318,28 +318,23 @@ static inline bool is_sensor_data_ready(struct senss_sensor *sensor)
 	return sensor->mode == SENSOR_TRIGGER_MODE_DATA_READY;
 }
 
-static inline int get_max_valid_index(int32_t type)
+static inline int get_sensitivity_count(int32_t type)
 {
-	#define SENSS_SENSOR_TYPE_COLOR_ALS 0x141
-	#define COLOR_ALS_SENSOR_SENSITIVITY_COUNT 5
-	#define IMU_SENSOR_SENSITIVITY_COUNT 3
-	#define DEFAULT_SENSITIVITY_COUNT 1
+	#define SENSITIVITY_COUNT_3D_SENSOR 3
+	#define SENSITIVITY_COUNT_DEFAULT 1
 
-	int max_valid_index = DEFAULT_SENSITIVITY_COUNT;
+	int sensitivity_count = SENSITIVITY_COUNT_DEFAULT;
 
 	switch (type) {
-	case SENSS_SENSOR_TYPE_COLOR_ALS:
-		max_valid_index = COLOR_ALS_SENSOR_SENSITIVITY_COUNT;
-		break;
 	case SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D:
 	case SENSS_SENSOR_TYPE_MOTION_GYROMETER_3D:
-		max_valid_index = IMU_SENSOR_SENSITIVITY_COUNT;
+		sensitivity_count = SENSITIVITY_COUNT_3D_SENSOR;
 		break;
 	default:
 		break;
 	}
 
-	return max_valid_index;
+	return sensitivity_count;
 }
 /**
  * @}

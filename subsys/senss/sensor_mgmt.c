@@ -134,7 +134,7 @@ static struct senss_sensor *allocate_sensor(uint16_t conns_num, uint16_t sample_
 static void init_sensor_config(struct sensor_config *config, int type)
 {
 	config->interval = 0;
-	config->sensitivity_count = get_max_valid_index(type);
+	config->sensitivity_count = get_sensitivity_count(type);
 
 	__ASSERT(config->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
 			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
