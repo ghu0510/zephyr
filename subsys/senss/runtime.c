@@ -6,8 +6,8 @@
 #include <zephyr/sys/__assert.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <zephyr/logging/log.h>
-#include <senss_sensor.h>
-#include <sensor_mgmt.h>
+#include "senss_sensor.h"
+#include "sensor_mgmt.h"
 
 LOG_MODULE_DECLARE(senss, CONFIG_SENSS_LOG_LEVEL);
 
