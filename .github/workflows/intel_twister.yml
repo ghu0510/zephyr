@@ -17,7 +17,7 @@ jobs:
         shell: bash
     runs-on: uzdo128
     container:
-      image: amr-registry.caas.intel.com/zephyrproject/sdk-docker-intel:main
+      image: amr-registry.caas.intel.com/zephyrproject/ci-sdk:v0.24.8
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     strategy:
