@@ -1126,3 +1126,234 @@ ZTEST_F(senss_tests, test_motion_detector_2users)
 	zassert_true(reading_count2 > reading_count1,
 		"test_motion_detector_2users reading_count2 ret not expected");
 }
+
+static int hinge_angle_data_callback(int handle, void *buf, int size, void *param)
+{
+	struct senss_sensor_value_int32 *sample = (struct senss_sensor_value_int32 *)buf;
+	uint32_t *reading_count = (uint32_t *)param;
+	uint32_t i;
+
+	for (i = 0; i < sample->header.reading_count; i++) {
+		(*reading_count)++;
+	}
+
+	return 0;
+}
+
+ZTEST_F(senss_tests, test_hinge_angle_open_and_close)
+{
+	int ret;
+	int handle;
+
+	/* positive test */
+	handle = SENSS_SENSOR_INVALID_HANDLE;
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_HINGE_ANGLE, 0, &handle);
+	zassert_true(ret == 0,
+		"test_hinge_angle_open_and_close open index 0 ret not expected");
+	zassert_true(handle != SENSS_SENSOR_INVALID_HANDLE,
+		"test_hinge_angle_open_and_close open index 0 handle not expected");
+
+	ret = senss_close_sensor(handle);
+	zassert_true(ret == 0,
+		"test_hinge_angle_open_and_close close index 0 ret not expected");
+
+	/* negative test */
+	handle = SENSS_SENSOR_INVALID_HANDLE;
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_HINGE_ANGLE, 1, &handle);
+	zassert_true(ret != 0,
+		"test_hinge_angle_open_and_close open index 1 ret not expected");
+	zassert_true(handle == SENSS_SENSOR_INVALID_HANDLE,
+		"test_hinge_angle_open_and_close open index 1 handle not expected");
+
+	ret = senss_close_sensor(handle);
+	zassert_true(ret != 0,
+		"test_hinge_angle_open_and_close close index 1 ret not expected");
+}
+
+ZTEST_F(senss_tests, test_hinge_angle_set_and_get_sensitivity)
+{
+	int ret;
+	int handle;
+	uint32_t sensitivity;
+
+	handle = SENSS_SENSOR_INVALID_HANDLE;
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_HINGE_ANGLE, 0, &handle);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_sensitivity open ret not expected");
+	zassert_true(handle != SENSS_SENSOR_INVALID_HANDLE,
+		"test_hinge_angle_set_and_get_sensitivity open handle not expected");
+
+	/* set and get sensitivity 5 */
+	ret = senss_set_sensitivity(handle, SENSS_INDEX_ALL, 5);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_sensitivity 1st set ret not expected");
+	sensitivity = SENSITIVITY_MAX;
+	ret = senss_get_sensitivity(handle, SENSS_INDEX_ALL, &sensitivity);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_sensitivity 1st get ret not expected");
+	zassert_true(sensitivity == 5,
+		"test_hinge_angle_set_and_get_sensitivity 1st get sensitivity not expected");
+
+	/* set and get sensitivity 0 */
+	ret = senss_set_sensitivity(handle, SENSS_INDEX_ALL, 0);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_sensitivity 2nd set ret not expected");
+	sensitivity = SENSITIVITY_MAX;
+	ret = senss_get_sensitivity(handle, SENSS_INDEX_ALL, &sensitivity);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_sensitivity 2nd get ret not expected");
+	zassert_true(sensitivity == 0,
+		"test_hinge_angle_set_and_get_sensitivity 2nd get sensitivity not expected");
+
+	ret = senss_close_sensor(handle);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_sensitivity close ret not expected");
+}
+
+ZTEST_F(senss_tests, test_hinge_angle_set_and_get_interval)
+{
+	int ret;
+	int handle;
+	uint32_t interval;
+
+	handle = SENSS_SENSOR_INVALID_HANDLE;
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_HINGE_ANGLE, 0, &handle);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_interval open ret not expected");
+	zassert_true(handle != SENSS_SENSOR_INVALID_HANDLE,
+		"test_hinge_angle_set_and_get_interval open handle not expected");
+
+	/* set and get interval INTERVAL_10HZ */
+	ret = senss_set_interval(handle, INTERVAL_10HZ);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_interval 1st set ret not expected");
+	interval = INVALID_INTERVAL_US;
+	ret = senss_get_interval(handle, &interval);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_interval 1st get ret not expected");
+	zassert_true(interval == INTERVAL_10HZ,
+		"test_hinge_angle_set_and_get_interval 1st get interval not expected");
+
+	/* set and get interval 0 */
+	ret = senss_set_interval(handle, 0);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_interval 2nd set ret not expected");
+	interval = INVALID_INTERVAL_US;
+	ret = senss_get_interval(handle, &interval);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_interval 2nd get ret not expected");
+	zassert_true(interval == 0,
+		"test_hinge_angle_set_and_get_interval 2nd get interval not expected");
+
+	ret = senss_close_sensor(handle);
+	zassert_true(ret == 0,
+		"test_hinge_angle_set_and_get_interval close ret not expected");
+}
+
+ZTEST_F(senss_tests, test_hinge_angle_1user)
+{
+	int ret;
+	int handle;
+	uint32_t reading_count;
+
+	handle = SENSS_SENSOR_INVALID_HANDLE;
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_HINGE_ANGLE, 0, &handle);
+	zassert_true(ret == 0,
+		"test_hinge_angle_1user open ret not expected");
+	ret = senss_register_data_event_callback(handle, hinge_angle_data_callback,
+		&reading_count);
+	zassert_true(ret == 0,
+		"test_hinge_angle_1user register callback ret not expected");
+
+	/* set sensitivity 0, INTERVAL_10HZ, expected reading_count greater than 0 */
+	ret = senss_set_sensitivity(handle, SENSS_INDEX_ALL, 0);
+	zassert_true(ret == 0,
+		"test_hinge_angle_1user 1st set sensitivity ret not expected");
+	reading_count = 0;
+	ret = senss_set_interval(handle, INTERVAL_10HZ);
+	zassert_true(ret == 0,
+		"test_hinge_angle_1user 1st set interval ret not expected");
+	k_sleep(K_SECONDS(1));
+	zassert_true(reading_count > 0,
+		"test_hinge_angle_1user 1st reading_count not expected");
+
+	/* set interval 0, expected reading_count equal to 0 */
+	reading_count = 0;
+	ret = senss_set_interval(handle, 0);
+	zassert_true(ret == 0,
+		"test_hinge_angle_1user 2nd set interval 0 ret not expected");
+	k_sleep(K_SECONDS(1));
+	zassert_true(reading_count == 0,
+		"test_hinge_angle_1user 2nd reading_count not expected");
+
+	/* set SENSITIVITY_MAX, INTERVAL_10HZ, expected reading_count equal to 1 */
+	ret = senss_set_sensitivity(handle, SENSS_INDEX_ALL, SENSITIVITY_MAX);
+	zassert_true(ret == 0,
+		"test_hinge_angle_1user 3rd set sensitivity ret not expected");
+	reading_count = 0;
+	ret = senss_set_interval(handle, INTERVAL_10HZ);
+	zassert_true(ret == 0,
+		"test_hinge_angle_1user 3rd set interval ret not expected");
+	k_sleep(K_SECONDS(1));
+	zassert_true(reading_count == 1,
+		"test_hinge_angle_1user 3rd reading_count not expected");
+
+	ret = senss_close_sensor(handle);
+	zassert_true(ret == 0,
+		"test_hinge_angle_1user close ret not expected");
+}
+
+ZTEST_F(senss_tests, test_hinge_angle_2users)
+{
+	int ret;
+	int handle1, handle2;
+	uint32_t reading_count1, reading_count2;
+
+	/* handle1 open, register callback, set sensitivity, set interval */
+	handle1 = SENSS_SENSOR_INVALID_HANDLE;
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_HINGE_ANGLE, 0, &handle1);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users handle1 open ret not expected");
+	ret = senss_register_data_event_callback(handle1, hinge_angle_data_callback,
+		&reading_count1);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users handle1 register callback ret not expected");
+	reading_count1 = 0;
+	ret = senss_set_sensitivity(handle1, SENSS_INDEX_ALL, 0);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users handle1 set sensitivity ret not expected");
+	ret = senss_set_interval(handle1, INTERVAL_10HZ);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users handle1 set interval ret not expected");
+
+	/* handle2 open, register callback, set sensitivity, set interval */
+	handle2 = SENSS_SENSOR_INVALID_HANDLE;
+	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_HINGE_ANGLE, 0, &handle2);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users handle2 open ret not expected");
+	ret = senss_register_data_event_callback(handle2, hinge_angle_data_callback,
+		&reading_count2);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users handle2 register callback ret not expected");
+	reading_count2 = 0;
+	ret = senss_set_sensitivity(handle2, SENSS_INDEX_ALL, 0);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users handle2 set sensitivity ret not expected");
+	ret = senss_set_interval(handle2, INTERVAL_10HZ);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users handle2 set interval ret not expected");
+
+	/* handle2 closes 1 second later than handle1 and expected more reading_count */
+	k_sleep(K_SECONDS(1));
+	ret = senss_close_sensor(handle1);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users close handle1 ret not expected");
+	k_sleep(K_SECONDS(1));
+	ret = senss_close_sensor(handle2);
+	zassert_true(ret == 0,
+		"test_hinge_angle_2users close handle2 ret not expected");
+	zassert_true(reading_count1 > 0,
+		"test_hinge_angle_2users reading_count1 ret not expected");
+	zassert_true(reading_count2 > reading_count1,
+		"test_hinge_angle_2users reading_count2 ret not expected");
+}
