@@ -250,8 +250,8 @@ static int init_sensor_connections(struct senss_mgmt_context *ctx, struct senss_
 		conn->index = ctx->fixed_connection_count++;
 		LOG_INF("%s, report:%s, client:%s, connection:%d",
 			__func__, reporter_sensor->dev->name, sensor->dev->name, conn->index);
-		__ASSERT(conn->index < CONFIG_SENSS_MAX_SENSOR_COUNT,
-			"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
+		__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
+			"sensor connection number:%d exceed SENSS_MAX_HANDLE_COUNT", conn->index);
 
 		ctx->conns[conn->index] = conn;
 		/* link connection to its repoter's client_list */
@@ -601,7 +601,7 @@ int open_sensor(int type, int sensor_index)
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 	conn->index = find_first_free_connection(ctx);
-	__ASSERT(conn->index < CONFIG_SENSS_MAX_SENSOR_COUNT,
+	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
 		"connection index:%d should less than MAX_SENSOR_COUNT", conn->index);
 
 	/* multi applications could open sensor simultaneously, mutex protect to global variable */
@@ -639,7 +639,7 @@ int close_sensor(struct connection *conn)
 			break;
 		}
 	}
-	__ASSERT(conn->index < CONFIG_SENSS_MAX_SENSOR_COUNT,
+	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
 		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
 
 	if (client->conns != conn) {

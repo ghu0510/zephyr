@@ -229,7 +229,7 @@ static inline int find_first_free_connection(struct senss_mgmt_context *ctx)
 {
 	int i;
 
-	for (i = ctx->fixed_connection_count; i < CONFIG_SENSS_MAX_SENSOR_COUNT; i++) {
+	for (i = ctx->fixed_connection_count; i < CONFIG_SENSS_MAX_HANDLE_COUNT; i++) {
 		if (!ctx->conns[i]) {
 			break;
 		}
