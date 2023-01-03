@@ -123,8 +123,6 @@ struct senss_sensor {
 	struct senss_sensor_dt_info *dt_info;
 	int conns_num;
 	struct connection *conns;
-	/* client handles, updated in senss_init() */
-	int clients_count;
 	sys_slist_t client_list;
 	uint32_t interval;
 	uint8_t sensitivity_count;

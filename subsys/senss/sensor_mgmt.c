@@ -256,7 +256,6 @@ static int init_sensor_connections(struct senss_mgmt_context *ctx, struct senss_
 		ctx->conns[conn->index] = conn;
 		/* link connection to its repoter's client_list */
 		sys_slist_append(&reporter_sensor->client_list, &conn->snode);
-		reporter_sensor->clients_count++;
 	}
 
 	return ret;
@@ -608,7 +607,6 @@ int open_sensor(int type, int sensor_index)
 	k_mutex_lock(&ctx->rpt_mutex, K_FOREVER);
 	ctx->conns[conn->index] = conn;
 	sys_slist_append(&reporter_sensor->client_list, &conn->snode);
-	reporter_sensor->clients_count++;
 	k_mutex_unlock(&ctx->rpt_mutex);
 
 	LOG_INF("open_sensor_successfully, sensor:%s, state:0x%x, conn_index:%d",
