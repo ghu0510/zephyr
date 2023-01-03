@@ -367,39 +367,6 @@ static void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_
 	k_sem_give(&ctx->event_sem);
 }
 
-static int set_reporter_sensitivity(struct senss_mgmt_context *ctx,
-				    struct senss_sensor *sensor,
-				    struct connection *conn,
-				    int index,
-				    uint32_t sensitivity)
-{
-	int i;
-
-	LOG_INF("%s, sesnor:%s, index:%d, sensitivity:%d, sensitivity_count:%d",
-				__func__, sensor->dev->name, index,
-				sensitivity, sensor->sensitivity_count);
-
-	if (index < SENSS_INDEX_ALL || index >= sensor->sensitivity_count) {
-		LOG_ERR("sensor:%s sensitivity index:%d is invalid", sensor->dev->name, index);
-		return -EINVAL;
-	}
-
-	if (index == SENSS_INDEX_ALL) {
-		for (i = 0; i < sensor->sensitivity_count; i++) {
-			conn->sensitivity[i] = sensitivity;
-		}
-	} else {
-		conn->sensitivity[index] = sensitivity;
-	}
-
-	/* save current sensor config first, will uniformly config sensitivity after enumerating
-	 * all sensors to avoid multiple configuration to certain sensor
-	 */
-	save_config_and_notify(ctx, sensor);
-
-	return 0;
-}
-
 int senss_init(void)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
@@ -671,34 +638,40 @@ int get_interval(struct connection *conn, uint32_t *value)
 	return 0;
 }
 
-/* client sensor request to set sensitivity to connection sensor
- * 1) struct senss_sensor *sensor: conn sensor, whose sensitivity to be set
- * 2) struct senss_sensor *sensor: client sensor, who will set sensitivity to its conn
- * 3) index: which sensitivity item to be set
- * 4) value: sensitiviyt value to be set
- */
-int set_sensitivity(struct connection *conn, int index, uint32_t value)
+/* client sensor request to set sensitivity to connection sensor */
+int set_sensitivity(struct connection *conn, int index, uint32_t sensitivity)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct senss_sensor *reporter_sensor;
-	struct connection *tmp_conn;
+	struct senss_sensor *sensor;
+	int i;
 
 	__ASSERT(conn && conn->source, "set sensitivity, connection or reporter not be NULL");
 
-	reporter_sensor = conn->source;
+	sensor = conn->source;
 
-	LOG_INF("%s, sensor:%s, conn:%d, dynamic_connection:%d, index:%d, sensitivity:%u",
-		__func__, reporter_sensor->dev->name, conn->index, conn->dynamic, index, value);
+	LOG_INF("%s, sensor:%s, conn:%d, dynamic:%d, index:%d, sensitivity:%d, count:%d",
+			__func__, sensor->dev->name, conn->index, conn->dynamic, index,
+			sensitivity, sensor->sensitivity_count);
 
-	for_each_sensor_client(reporter_sensor, tmp_conn) {
-		if (tmp_conn == conn) {
-			return set_reporter_sensitivity(ctx, reporter_sensor, conn, index, value);
-		}
+	if (index < SENSS_INDEX_ALL || index >= sensor->sensitivity_count) {
+		LOG_ERR("sensor:%s sensitivity index:%d is invalid", sensor->dev->name, index);
+		return -EINVAL;
 	}
 
-	LOG_ERR("cannot set sensor:%s sensitivity", reporter_sensor->dev->name);
+	if (index == SENSS_INDEX_ALL) {
+		for (i = 0; i < sensor->sensitivity_count; i++) {
+			conn->sensitivity[i] = sensitivity;
+		}
+	} else {
+		conn->sensitivity[index] = sensitivity;
+	}
 
-	return -EINVAL;
+	/* save current sensor config first, will uniformly config sensitivity after enumerating
+	 * all sensors to avoid multiple configuration to certain sensor
+	 */
+	save_config_and_notify(ctx, sensor);
+
+	return 0;
 }
 
 /* sensor sensitivity is arbitrated by all clients, get_sensitivity() would return interval set by
