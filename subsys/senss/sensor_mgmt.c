@@ -919,7 +919,7 @@ static int set_arbitrate_interval(struct senss_sensor *sensor, uint32_t interval
 	LOG_INF("%s, interval:%d, next_exec_time:%lld", __func__, interval, sensor->next_exec_time);
 
 	if (!sensor_api->set_interval) {
-		LOG_WRN("sensor:%s set_interval callback is not set yet", sensor->dev->name);
+		LOG_ERR("sensor:%s set_interval callback is not set yet", sensor->dev->name);
 		return -ENODEV;
 	}
 
