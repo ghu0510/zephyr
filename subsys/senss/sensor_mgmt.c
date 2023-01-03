@@ -849,7 +849,7 @@ int senss_sensor_set_data_ready(const struct device *dev, bool data_ready)
 
 	__ASSERT(sensor, "senss sensor set data ready, senss_sensor is NULL");
 
-	sensor->mode = !data_ready ? SENSOR_TRIGGER_MODE_POLLING : SENSOR_TRIGGER_MODE_DATA_READY;
+	sensor->mode = data_ready ? SENSOR_TRIGGER_MODE_DATA_READY : SENSOR_TRIGGER_MODE_POLLING;
 	LOG_INF("%s, sensor:%s, data_ready:%d, trigger_mode:%d",
 			__func__, sensor->dev->name, data_ready, sensor->mode);
 
