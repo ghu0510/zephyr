@@ -72,8 +72,8 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 	}
 
 	if (ret_size == 0 && wanted_size != sizeof(*header)) {
-		LOG_ERR("%s(%d), ret_size:%d, wanted_size:%d",
-					__func__, __LINE__, ret_size, wanted_size);
+		LOG_ERR("%s, ret_size:%d, wanted_size:%d not expected:%d",
+			__func__, ret_size, wanted_size, sizeof(*header));
 		__ASSERT(wanted_size, "wanted_size:%d", wanted_size);
 	}
 
@@ -209,7 +209,7 @@ static int init_each_connection(struct senss_mgmt_context *ctx,
 				struct senss_sensor *sink,
 				bool dynamic)
 {
-	__ASSERT(conn, "invalid connection");
+	__ASSERT(conn, "init each connection, invalid connection");
 	conn->source = source;
 	conn->sink = sink;
 	conn->dynamic = dynamic;
@@ -235,7 +235,8 @@ static int init_sensor_connections(struct senss_mgmt_context *ctx, struct senss_
 
 	sensor->conns_num = sensor->dt_info->reporter_num;
 	if (sensor->conns_num == 0) {
-		__ASSERT(!sensor->conns, "conns should be NULL if sensor has no connection");
+		__ASSERT(!sensor->conns,
+			"init sensor connections, conns be NULL if sensor has no connection");
 		return 0;
 	}
 
@@ -243,7 +244,7 @@ static int init_sensor_connections(struct senss_mgmt_context *ctx, struct senss_
 	for_each_sensor_connection(i, sensor, conn) {
 		reporter_sensor = get_reporter_sensor(ctx, sensor, i);
 		__ASSERT(reporter_sensor, "sensor's reporter should not be NULL");
-		/* device tree required sensor connection cannot be opened or closed any more,
+		/* device tree required sensor connection not to be opened or closed any more,
 		 * so it is called fixed connection. dynamic: false
 		 */
 		ret |= init_each_connection(ctx, conn, reporter_sensor, sensor, false);
@@ -269,7 +270,8 @@ static void get_connections_index(struct senss_mgmt_context *ctx,
 	int i;
 
 	if (sensor->conns_num == 0) {
-		__ASSERT(!sensor->conns, "conns should be NULL if sensor has no connection");
+		__ASSERT(!sensor->conns,
+			"get connections index, conns be NULL if sensor has no connection");
 		return;
 	}
 
@@ -288,9 +290,9 @@ static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sens
 	int conn_idx[CONFIG_SENSS_MAX_REPORTER_COUNT] = {0};
 	int ret;
 
-	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
+	__ASSERT(sensor && sensor->dev, "init sensor, sensor or sensor device is NULL");
 	sensor_api = sensor->dev->api;
-	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
+	__ASSERT(sensor_api, "init sensor, sensor device sensor_api is NULL");
 
 	ret = init_sensor_connections(ctx, sensor);
 	if (ret) {
@@ -312,7 +314,7 @@ static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sens
 
 static int set_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state state)
 {
-	__ASSERT(sensor, "senss_sensor is NULL");
+	__ASSERT(sensor, "set sensor state, senss_sensor is NULL");
 
 	sensor->state = state;
 
@@ -432,6 +434,8 @@ int senss_init(void)
 	enum senss_sensor_state state;
 	int ret = 0;
 	int i;
+
+	LOG_INF("%s begin...", __func__);
 
 	if (ctx->senss_initialized) {
 		LOG_INF("senss is already initialized");
@@ -623,7 +627,7 @@ int close_sensor(struct connection *conn)
 	struct connection *tmp_conn;
 
 	__ASSERT(conn && conn->source && conn->sink,
-		"connection or reporter or client should not be NULL");
+		"close sensor, connection or reporter or client not be NULL");
 
 	reporter = conn->source;
 	client = conn->sink;
@@ -645,7 +649,7 @@ int close_sensor(struct connection *conn)
 		return -ENODEV;
 	}
 
-	LOG_INF("%s ready, connection:%d", __func__, conn->index);
+	LOG_INF("%s: %s connection:%d complete", __func__, reporter->dev->name, conn->index);
 
 	ctx->conns[conn->index] = NULL;
 	free(client);
@@ -661,7 +665,7 @@ int set_interval(struct connection *conn, uint32_t interval)
 	struct senss_sensor *reporter_sensor;
 	struct connection *tmp_conn;
 
-	__ASSERT(conn && conn->source, "connection or reporter should not be NULL");
+	__ASSERT(conn && conn->source, "set interval, connection or reporter not be NULL");
 	reporter_sensor = conn->source;
 
 	LOG_INF("%s, sensor:%s, conn:%d, dynamic_connection:%d, interval:%u",
@@ -683,7 +687,7 @@ int set_interval(struct connection *conn, uint32_t interval)
  */
 int get_interval(struct connection *conn, uint32_t *value)
 {
-	__ASSERT(conn, "connection should not be NULL");
+	__ASSERT(conn, "get interval, connection not be NULL");
 	*value = conn->interval;
 
 	return 0;
@@ -701,7 +705,7 @@ int set_sensitivity(struct connection *conn, int index, uint32_t value)
 	struct senss_sensor *reporter_sensor;
 	struct connection *tmp_conn;
 
-	__ASSERT(conn && conn->source, "connection or reporter should not be NULL");
+	__ASSERT(conn && conn->source, "set sensitivity, connection or reporter not be NULL");
 
 	reporter_sensor = conn->source;
 
@@ -727,7 +731,7 @@ int get_sensitivity(struct connection *conn, int index, uint32_t *value)
 	struct senss_sensor *sensor;
 	int i = 0;
 
-	__ASSERT(conn && conn->source, "connection or reporter should not be NULL");
+	__ASSERT(conn && conn->source, "get sensitivity, connection or reporter not be NULL");
 
 	sensor = conn->source;
 
@@ -757,7 +761,7 @@ int get_sensitivity(struct connection *conn, int index, uint32_t *value)
 
 int read_sample(struct senss_sensor *sensor, void *buf, int size)
 {
-	__ASSERT(sensor, "senss_sensor is NULL");
+	__ASSERT(sensor, "read sample, senss_sensor is NULL");
 
 	if (!sensor) {
 		LOG_ERR("cannot find sensor");
@@ -778,7 +782,7 @@ int register_data_event_callback(struct connection *conn,
 				 senss_data_event_t callback,
 				 void *param)
 {
-	__ASSERT(conn, "connection should not be NULL");
+	__ASSERT(conn, "register data event callback, connection not be NULL");
 
 	conn->data_evt_cb = callback;
 	conn->cb_param = param;
@@ -788,14 +792,14 @@ int register_data_event_callback(struct connection *conn,
 
 const struct senss_sensor_info *get_sensor_info(struct senss_sensor *sensor)
 {
-	__ASSERT(sensor, "senss_sensor is NULL");
+	__ASSERT(sensor, "get sensor info, senss_sensor is NULL");
 
 	return &sensor->dt_info->info;
 }
 
 int get_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state *state)
 {
-	__ASSERT(sensor, "senss_sensor is NULL");
+	__ASSERT(sensor, "get sensor state, senss_sensor is NULL");
 	*state = sensor->state;
 
 	return 0;
@@ -805,7 +809,7 @@ int senss_sensor_post_data(const struct device *dev, void *buf, int size)
 {
 	struct senss_sensor *sensor = get_sensor_by_dev(dev);
 
-	__ASSERT(sensor, "senss_sensor is NULL");
+	__ASSERT(sensor, "senss sensor post data, senss_sensor is NULL");
 
 	if (size != sensor->data_size) {
 		LOG_ERR("post size:%d should be same as sensor data size:%d",
@@ -824,9 +828,9 @@ int senss_sensor_notify_data_ready(const struct device *dev)
 	struct senss_sensor *sensor = get_sensor_by_dev(dev);
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 
-	__ASSERT(sensor, "senss_sensor is NULL");
+	__ASSERT(sensor, "senss sensor notify data ready, senss_sensor is NULL");
 
-	LOG_INF("%s: %s data ready", __func__, sensor->dev->name);
+	LOG_INF("%s: %s data ready, sensor_mode:%d", __func__, sensor->dev->name, sensor->mode);
 
 	if (sensor->mode != SENSOR_TRIGGER_MODE_DATA_READY) {
 		LOG_ERR("sensor:%s is not in data ready mode", sensor->dev->name);
@@ -843,7 +847,7 @@ int senss_sensor_set_data_ready(const struct device *dev, bool data_ready)
 {
 	struct senss_sensor *sensor = get_sensor_by_dev(dev);
 
-	__ASSERT(sensor, "senss_sensor is NULL");
+	__ASSERT(sensor, "senss sensor set data ready, senss_sensor is NULL");
 
 	sensor->mode = !data_ready ? SENSOR_TRIGGER_MODE_POLLING : SENSOR_TRIGGER_MODE_DATA_READY;
 	LOG_INF("%s, sensor:%s, data_ready:%d, trigger_mode:%d",
@@ -904,9 +908,9 @@ static int set_arbitrate_interval(struct senss_sensor *sensor, uint32_t interval
 {
 	const struct senss_sensor_api *sensor_api;
 
-	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
+	__ASSERT(sensor && sensor->dev, "set arbitrate interval, sensor or sensor device is NULL");
 	sensor_api = sensor->dev->api;
-	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
+	__ASSERT(sensor_api, "set arbitrate interval, sensor device sensor_api is NULL");
 
 	sensor->interval = interval;
 	/* reset sensor next_exec_time as soon as sensor interval is changed */
@@ -946,7 +950,7 @@ static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
 			min_sensitivity = conn->sensitivity[index];
 		}
 	}
-	LOG_INF("%s, min_sensitivity:%d", __func__, min_sensitivity);
+	LOG_INF("%s, sensor:%s, min_sensitivity:%d", __func__, sensor->dev->name, min_sensitivity);
 
 	/* min_sensitivity == UINT32_MAX means no client is requesting to open sensor,
 	 * by any client, in this case, return sensitivity 0
@@ -959,9 +963,10 @@ static int set_arbitrate_sensitivity(struct senss_sensor *sensor, int index, uin
 {
 	const struct senss_sensor_api *sensor_api;
 
-	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
+	__ASSERT(sensor && sensor->dev,
+			"set arbitrate sensitivity, sensor or sensor device is NULL");
 	sensor_api = sensor->dev->api;
-	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
+	__ASSERT(sensor_api, "set arbitrate sensitivity, sensor device sensor_api is NULL");
 
 	/* update sensor sensitivity */
 	sensor->sensitivity[index] = sensitivity;
@@ -1048,11 +1053,11 @@ void sensor_event_process(struct senss_mgmt_context *ctx, k_timeout_t timeout)
 	ret = k_sem_take(&ctx->event_sem, timeout);
 	if (!ret) {
 		if (atomic_test_and_clear_bit(&ctx->event_flag, EVENT_CONFIG_READY)) {
-			LOG_INF("%s, config_ready", __func__);
+			LOG_INF("%s, event_config ready", __func__);
 			sensor_later_config(ctx);
 		}
 		if (atomic_test_and_clear_bit(&ctx->event_flag, EVENT_DATA_READY)) {
-			LOG_INF("%s, data_ready", __func__);
+			LOG_INF("%s, event_data ready", __func__);
 		}
 	}
 }

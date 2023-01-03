@@ -79,7 +79,8 @@ static void add_data_to_sensor_ring_buf(struct senss_mgmt_context *ctx,
 			"put data size:%d is not expected :%d",
 			data_size, sizeof(*header) + sensor->data_size);
 
-	LOG_DBG("%s, conn_index:%d, data_size:%d", __func__, conn->index, sensor->data_size);
+	LOG_DBG("%s, sensor:%s, conn_index:%d, data_size:%d",
+		__func__, sensor->dev->name, conn->index, sensor->data_size);
 }
 
 static int sensor_sensitivity_test(struct senss_sensor *sensor,
@@ -91,9 +92,9 @@ static int sensor_sensitivity_test(struct senss_sensor *sensor,
 	int i;
 	int ret = 0;
 
-	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
+	__ASSERT(sensor && sensor->dev, "sensor sensitivity test, sensor or sensor device is NULL");
 	sensor_api = sensor->dev->api;
-	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
+	__ASSERT(sensor_api, "sensor sensitivity test, sensor device sensor_api is NULL");
 
 	if (!sensor_api->sensitivity_test) {
 		LOG_ERR("sensor:%s not register sensitivity callback", sensor->dev->name);
@@ -146,8 +147,9 @@ static bool sensor_test_consume_time(struct senss_sensor *sensor,
 	if (conn->next_consume_time <= sample_time)
 		return true;
 
-	LOG_DBG("data not ready, next_consume_time:%lld sample_time:%lld, cur_time:%lld",
-		conn->next_consume_time, sample_time, cur_time);
+
+	LOG_DBG("sensor:%s data not ready, next_consume_time:%lld sample_time:%lld, cur_time:%lld",
+			sensor->dev->name, conn->next_consume_time, sample_time, cur_time);
 
 	return false;
 }
@@ -158,8 +160,9 @@ static void update_client_consume_time(struct senss_sensor *sensor, struct conne
 	uint64_t sample_time = ((struct senss_sensor_value_header *)
 						sensor->data_buf)->base_timestamp;
 
-	LOG_DBG("%s, sensor:%s, next_consume:%lld, interval:%d, sample_time:%lld",
-		__func__, sensor->dev->name, conn->next_consume_time, interval, sample_time);
+	LOG_DBG("%s, sensor:%s, conn:%d, next_consume:%lld, interval:%d, sample_time:%lld",
+			__func__, sensor->dev->name, conn->index,
+			conn->next_consume_time, interval, sample_time);
 
 	if (conn->next_consume_time == 0 || conn->next_consume_time + interval < sample_time) {
 		/* three cases start counting from last sample:
@@ -207,9 +210,9 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 			continue;
 		}
 
-		/* pass the polling mode to its client */
+		/* pass the sensor mode to its client */
 		client->mode = sensor->mode;
-		/* if client sensor switch to polling mode, next execute time should not be OFF */
+		/* if client sensor switch to polling mode, reset next_execute_time */
 		if (client->mode == SENSOR_TRIGGER_MODE_POLLING &&
 						client->next_exec_time == EXEC_TIME_OFF) {
 			client->next_exec_time = EXEC_TIME_INIT;
@@ -240,7 +243,7 @@ static int process_streaming_data(struct senss_sensor *sensor, uint64_t cur_time
 	uint64_t *sample_time;
 	int ret = 0;
 
-	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
+	__ASSERT(sensor && sensor->dev, "process streaming data, sensor or sensor device is NULL");
 
 	sample_time = &((struct senss_sensor_value_header *)sensor->data_buf)->base_timestamp;
 	/* sample time equals to 0 is for first sample,
@@ -249,11 +252,11 @@ static int process_streaming_data(struct senss_sensor *sensor, uint64_t cur_time
 	next_time = (*sample_time == 0 ? cur_time :
 				MIN(cur_time, *sample_time + sensor->interval));
 
-	LOG_DBG("%s, cur:%lld, sampe:%lld, ri:%d, next:%lld",
-			__func__, cur_time, *sample_time, sensor->interval, next_time);
+	LOG_DBG("%s, sensor:%s, cur:%lld, sampe:%lld, ri:%d(us), next:%lld", __func__,
+		sensor->dev->name, cur_time, *sample_time, sensor->interval, next_time);
 
 	sensor_api = sensor->dev->api;
-	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
+	__ASSERT(sensor_api, "process streaming data, sensor device sensor_api is NULL");
 	ret = sensor_api->read_sample(sensor->dev, sensor->data_buf, sensor->data_size);
 	if (ret) {
 		return ret;
@@ -283,9 +286,10 @@ static int virtual_sensor_process_data(struct senss_sensor *sensor)
 	int ret = 0;
 	int i;
 
-	__ASSERT(sensor && sensor->dev, "sensor or sensor device is NULL");
+	__ASSERT(sensor && sensor->dev,
+			"virtual_sensorprocess_data, sensor or sensor device is NULL");
 	sensor_api = sensor->dev->api;
-	__ASSERT(sensor_api, "sensor device sensor_api is NULL");
+	__ASSERT(sensor_api, "virtual sensor process data, sensor device sensor_api is NULL");
 
 	/* enumerate each connection, and call process data for each connection,
 	 * after data processing, clear new_data_arrvie flag
@@ -306,7 +310,7 @@ static int virtual_sensor_process_data(struct senss_sensor *sensor)
 
 static int sensor_process_data(struct senss_sensor *sensor, uint64_t cur_time)
 {
-	__ASSERT(sensor, "senss_sensor is NULL");
+	__ASSERT(sensor, "sensor process data, senss_sensor is NULL");
 
 	if (is_virtual_sensor(sensor)) {
 		return virtual_sensor_process_data(sensor);
@@ -349,7 +353,7 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 
 	/* sensor is in polling mode, first time execute, will poll data at next interval */
 	if (sensor->next_exec_time == EXEC_TIME_INIT) {
-		LOG_INF("sensor:%s first time exe, cur time:%lld, interval:%d",
+		LOG_INF("sensor:%s first time exe, cur time:%lld, interval:%d(us)",
 				sensor->dev->name, cur_time, sensor->interval);
 		sensor->next_exec_time = cur_time + sensor->interval;
 		return false;
@@ -370,7 +374,7 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 /* check whether sensor needs to be executed/processed */
 static bool sensor_need_exec(struct senss_sensor *sensor, uint64_t cur_time)
 {
-	LOG_DBG("sensor:%s need to execute, next_exec_time:%lld, mode:%d, interval:%d",
+	LOG_DBG("sensor:%s need to execute, next_exec_time:%lld, sensor_mode:%d, interval:%d",
 		sensor->dev->name, sensor->next_exec_time, sensor->mode, sensor->interval);
 
 	if (!is_sensor_opened(sensor)) {

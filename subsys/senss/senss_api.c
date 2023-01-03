@@ -35,7 +35,7 @@ int senss_close_sensor(int handle)
 	}
 	__ASSERT(conn->dynamic, "only dynamic connection could be closed");
 
-	LOG_INF("%s, handle:%d", __func__, handle);
+	LOG_INF("%s, handle:%d, sensor:%s", __func__, handle, conn->source->dev->name);
 
 	ret = senss_set_interval(handle, 0);
 	if (ret) {
@@ -56,7 +56,7 @@ int senss_set_interval(int handle, uint32_t value)
 		return -EINVAL;
 	}
 
-	LOG_INF("%s, sensor:%s, dynamic connection:%d, interval:%d",
+	LOG_INF("%s, sensor:%s, dynamic connection:%d, interval:%d(us)",
 		__func__, conn->source->dev->name, conn->dynamic, value);
 
 	return set_interval(conn, value);
@@ -76,6 +76,9 @@ int senss_get_interval(int handle, uint32_t *value)
 		LOG_ERR("handle:%d get connection error", handle);
 		return -EINVAL;
 	}
+
+	LOG_INF("%s, sensor:%s, dynamic connection:%d",
+		__func__, conn->source->dev->name, conn->dynamic);
 
 	return get_interval(conn, value);
 }
