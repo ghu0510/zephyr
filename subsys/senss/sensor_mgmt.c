@@ -973,7 +973,8 @@ static int set_arbitrate_sensitivity(struct senss_sensor *sensor, int index, uin
 
 	if (!sensor_api->set_sensitivity) {
 		LOG_WRN("sensor:%s set_sensitivity callback is not set", sensor->dev->name);
-		return -ENODEV;
+		/* sensor driver may not set sensivity callback, so no need to return error here */
+		return 0;
 	}
 
 	return sensor_api->set_sensitivity(sensor->dev, index, sensitivity);
