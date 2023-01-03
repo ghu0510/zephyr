@@ -768,12 +768,12 @@ int read_sample(struct senss_sensor *sensor, void *buf, int size)
 		return -ENODEV;
 	}
 
-	if (size != sensor->data_size) {
+	if (size < sensor->data_size) {
 		LOG_ERR("sensor size:%d is not match with required:%d",
 						sensor->data_size, size);
 		return -ERANGE;
 	}
-	memcpy(buf, sensor->data_buf, size);
+	memcpy(buf, sensor->data_buf, sensor->data_size);
 
 	return 0;
 }
@@ -811,14 +811,14 @@ int senss_sensor_post_data(const struct device *dev, void *buf, int size)
 
 	__ASSERT(sensor, "senss sensor post data, senss_sensor is NULL");
 
-	if (size != sensor->data_size) {
+	if (size < sensor->data_size) {
 		LOG_ERR("post size:%d should be same as sensor data size:%d",
 			size, sensor->data_size);
 		return -EINVAL;
 	}
 	LOG_DBG("%s, sensor:%s, data_size:%d", __func__, sensor->dev->name, sensor->data_size);
 
-	memcpy(sensor->data_buf, buf, size);
+	memcpy(sensor->data_buf, buf, sensor->data_size);
 
 	return 0;
 }
