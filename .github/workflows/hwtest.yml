@@ -71,7 +71,7 @@ jobs:
             hwtype: simulator
             platform: 'nsim_em'
             variant: 'zephyr'
-            runner: uzdo128
+            runner: fmos-guest-ubuntu-24c
 
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
