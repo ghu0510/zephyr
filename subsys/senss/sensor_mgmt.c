@@ -367,32 +367,6 @@ static void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_
 	k_sem_give(&ctx->event_sem);
 }
 
-static int set_reporter_interval(struct senss_mgmt_context *ctx,
-				  struct senss_sensor *sensor,
-				  struct connection *conn,
-				  uint32_t interval)
-{
-	if (interval > 0 && interval < sensor->dt_info->info.minimal_interval) {
-		LOG_ERR("interval:%d should not less than min interval:%d",
-					interval, sensor->dt_info->info.minimal_interval);
-		return -EINVAL;
-	}
-
-	conn->interval = interval;
-	/* sensor configured with new interval, need to get new sample and restart counting again */
-	conn->next_consume_time = EXEC_TIME_INIT;
-
-	LOG_INF("%s, sensor:%s, mode:%d, dynamic connection:%d, interval:%d",
-		__func__, sensor->dev->name, sensor->mode, conn->dynamic, interval);
-
-	/* save current sensor config first, will uniformly config interval after enumerating
-	 * all sensors to avoid multiple configuration to certain sensor
-	 */
-	save_config_and_notify(ctx, sensor);
-
-	return 0;
-}
-
 static int set_reporter_sensitivity(struct senss_mgmt_context *ctx,
 				    struct senss_sensor *sensor,
 				    struct connection *conn,
@@ -662,24 +636,28 @@ int close_sensor(struct connection *conn)
 int set_interval(struct connection *conn, uint32_t interval)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct senss_sensor *reporter_sensor;
-	struct connection *tmp_conn;
 
-	__ASSERT(conn && conn->source, "set interval, connection or reporter not be NULL");
-	reporter_sensor = conn->source;
+	__ASSERT(conn && conn->source, "%s, connection or reporter should not be NULL", __func__);
 
-	LOG_INF("%s, sensor:%s, conn:%d, dynamic_connection:%d, interval:%u",
-		__func__, reporter_sensor->dev->name, conn->index, conn->dynamic, interval);
+	LOG_INF("%s, sensor:%s, conn:%d, dynamic:%d, interval:%u",
+		__func__, conn->source->dev->name, conn->index, conn->dynamic, interval);
 
-	for_each_sensor_client(reporter_sensor, tmp_conn) {
-		if (tmp_conn == conn) {
-			return set_reporter_interval(ctx, reporter_sensor, conn, interval);
-		}
+	if (interval > 0 && interval < conn->source->dt_info->info.minimal_interval) {
+		LOG_ERR("interval:%d(us) should no less than min interval:%d(us)",
+					interval, conn->source->dt_info->info.minimal_interval);
+		return -EINVAL;
 	}
 
-	LOG_ERR("cannot set sensor:%s interval", reporter_sensor->dev->name);
+	conn->interval = interval;
+	/* sensor configured with new interval, need to get new sample and restart counting again */
+	conn->next_consume_time = EXEC_TIME_INIT;
 
-	return -EINVAL;
+	/* save current sensor config first, will uniformly config interval after enumerating
+	 * all sensors to avoid multiple configuration to certain sensor
+	 */
+	save_config_and_notify(ctx, conn->source);
+
+	return 0;
 }
 
 /* sensor interval is arbitrated by all clients, get_interval() would return interval set by
