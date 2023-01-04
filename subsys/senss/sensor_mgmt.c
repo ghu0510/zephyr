@@ -569,36 +569,36 @@ int senss_get_sensors(const struct senss_sensor_info **info)
 int open_sensor(int type, int sensor_index)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct senss_sensor *reporter_sensor, *client_sensor;
+	struct senss_sensor *reporter, *client;
 	struct connection *conn;
 	uint16_t conns_num = 1;
 	int ret;
 
 	/* get the reporter sensor to be opened */
-	reporter_sensor = get_sensor_by_type_and_index(ctx, type, sensor_index);
-	if (!reporter_sensor) {
+	reporter = get_sensor_by_type_and_index(ctx, type, sensor_index);
+	if (!reporter) {
 		LOG_ERR("no sensor match to type:0x%x, index:%d", type, sensor_index);
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
 	/* allocate sensor for application client */
-	client_sensor = allocate_sensor(conns_num, 0);
-	if (!client_sensor) {
+	client = allocate_sensor(conns_num, 0);
+	if (!client) {
 		LOG_ERR("allocate client senss_sensor error");
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
-	client_sensor->interval = 0;
-	client_sensor->sensitivity_count = get_sensitivity_count(type);
-	__ASSERT(client_sensor->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
+	client->interval = 0;
+	client->sensitivity_count = get_sensitivity_count(type);
+	__ASSERT(client->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
 			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
-			client_sensor->sensitivity_count);
-	memset(client_sensor->sensitivity, 0x00, sizeof(client_sensor->sensitivity));
-	client_sensor->conns_num = conns_num;
-	conn = &client_sensor->conns[0];
+			client->sensitivity_count);
+	memset(client->sensitivity, 0x00, sizeof(client->sensitivity));
+	client->conns_num = conns_num;
+	conn = &client->conns[0];
 
 	/* create connection between client and reporter */
-	ret = init_each_connection(ctx, conn, reporter_sensor, client_sensor, true);
+	ret = init_each_connection(ctx, conn, reporter, client, true);
 	if (ret) {
 		LOG_ERR("%s, init_each_connection error:%d", __func__, ret);
 		return SENSS_SENSOR_INVALID_HANDLE;
@@ -610,11 +610,11 @@ int open_sensor(int type, int sensor_index)
 	/* multi applications could open sensor simultaneously, mutex protect to global variable */
 	k_mutex_lock(&ctx->rpt_mutex, K_FOREVER);
 	ctx->conns[conn->index] = conn;
-	sys_slist_append(&reporter_sensor->client_list, &conn->snode);
+	sys_slist_append(&reporter->client_list, &conn->snode);
 	k_mutex_unlock(&ctx->rpt_mutex);
 
-	LOG_INF("open_sensor_successfully, sensor:%s, state:0x%x, conn_index:%d",
-			reporter_sensor->dev->name, reporter_sensor->state, conn->index);
+	LOG_INF("%s: %s, state:0x%x, conn:%d",
+			__func__, reporter->dev->name, reporter->state, conn->index);
 
 	return conn->index;
 }
