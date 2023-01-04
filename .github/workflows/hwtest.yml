@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   run_twister:
-    name: '[HW] Run tests on hardware'
+    name: '[HW] test ${{ matrix.platform }}'
     defaults:
       run:
         shell: bash
