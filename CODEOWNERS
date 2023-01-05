@@ -202,7 +202,7 @@
 /doc/develop/tools/coccinelle.rst                @himanshujha199640 @JuliaLawall
 /doc/services/device_mgmt/smp_protocol.rst  @de-nordic @nordicjm
 /doc/services/device_mgmt/smp_groups/       @de-nordic @nordicjm
-/doc/services/senss/                      @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd @hunterhu3000
+/doc/services/senss/                      @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd
 /doc/CMakeLists.txt                       @carlescufi
 /doc/_scripts/                            @carlescufi
 /doc/connectivity/bluetooth/                    @alwa-nordic @jhedberg @Vudentz
@@ -549,9 +549,9 @@
 /dts/posix/                               @aescolar @daor-oti
 /dts/bindings/sensor/*bme680*             @BoschSensortec
 /dts/bindings/sensor/*ina23*              @bbilas
-/dts/bindings/sensor/senss*               @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd @hunterhu3000
+/dts/bindings/sensor/senss*               @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd
 /dts/bindings/sensor/st*                  @avisconti
-/dts/bindings/sensor/zephyr*              @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd @hunterhu3000
+/dts/bindings/sensor/zephyr*              @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd
 /dts/common/                              @galak
 /include/                                 @nashif @carlescufi @galak @MaureenHelm
 /include/zephyr/drivers/*/*litex*                @mateusz-holenko @kgugala @pgielda
@@ -647,7 +647,7 @@
 /include/zephyr/shell/shell_mqtt.h               @ycsin
 /include/zephyr/sw_isr_table.h                   @dcpleung @nashif @andyross
 /include/zephyr/sd/                              @danieldegrasse
-/include/zephyr/senss/                           @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd @hunterhu3000
+/include/zephyr/senss/                           @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd
 /include/zephyr/sys_clock.h                      @dcpleung @nashif @andyross
 /include/zephyr/sys/sys_io.h                     @dcpleung @nashif @andyross
 /include/zephyr/sys/kobject.h                    @dcpleung @nashif
@@ -687,7 +687,7 @@
 /samples/drivers/ht16k33/                 @henrikbrixandersen
 /samples/drivers/lora/                    @Mani-Sadhasivam
 /samples/subsys/lorawan/                  @Mani-Sadhasivam
-/samples/subsys/senss/                    @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd @hunterhu3000
+/samples/subsys/senss/                    @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd
 /samples/modules/canopennode/             @henrikbrixandersen
 /samples/net/                             @rlubos @tbursztyka
 /samples/net/cloud/tagoio_http_post/      @nandojve
@@ -809,7 +809,7 @@ scripts/build/gen_image_info.py           @tejlmand
 /subsys/shell/                            @jakub-uC @nordic-krch
 /subsys/shell/backends/shell_mqtt.c       @ycsin
 /subsys/sd/                               @danieldegrasse
-/subsys/senss/                            @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd @hunterhu3000
+/subsys/senss/                            @huhebo @lixuzha @Zhifeng2002 @ghu0510 @MaureenHelm @teburd
 /subsys/task_wdt/                         @martinjaeger
 /subsys/testsuite/                        @nashif
 /subsys/testsuite/ztest/*/ztress*         @nordic-krch
