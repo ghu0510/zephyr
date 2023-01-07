@@ -131,6 +131,7 @@ jobs:
               --subset  ${{matrix.subset}}/4 \
               -T tests \
               -T samples/subsys/senss \
+              -T samples/modules/chre \
               -e cmsis_dsp
 
           elif [ ${{ matrix.toolchain }} == 'xcc' ]; then
@@ -148,6 +149,7 @@ jobs:
               --build-only \
               -T tests \
               -T samples/subsys/senss \
+              -T samples/modules/chre \
               -e cmsis_dsp
           fi
 
