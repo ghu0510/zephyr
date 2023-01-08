@@ -170,7 +170,10 @@ static int md_sensitivity_test(const struct device *dev, int index,
 	uint32_t sensitivity, void *last_sample_buf, int last_sample_size,
 	void *current_sample_buf, int current_sample_size)
 {
-	return 1;
+	struct senss_sensor_value_int32 *last = last_sample_buf;
+	struct senss_sensor_value_int32 *curr = current_sample_buf;
+
+	return (abs(curr->readings[0].v - last->readings[0].v) >= sensitivity) ? 1 : 0;
 }
 
 static struct senss_sensor_api md_api = {
