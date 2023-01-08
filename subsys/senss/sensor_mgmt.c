@@ -788,6 +788,7 @@ int senss_sensor_notify_data_ready(const struct device *dev)
 		return -EINVAL;
 	}
 
+	atomic_set_bit(&sensor->data_ready_flag, SENSOR_DATA_READY_BIT);
 	atomic_set_bit(&ctx->event_flag, EVENT_DATA_READY);
 	k_sem_give(&ctx->event_sem);
 

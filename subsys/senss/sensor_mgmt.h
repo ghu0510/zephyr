@@ -67,6 +67,11 @@ enum {
 	EVENT_DATA_READY,
 	EVENT_CONFIG_READY,
 };
+
+enum {
+	SENSOR_DATA_READY_BIT
+};
+
 /**
  * @struct senss_sensor_dt_info
  * @brief Sensor device tree data structure
@@ -128,6 +133,7 @@ struct senss_sensor {
 	uint8_t sensitivity_count;
 	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
 	sys_snode_t cfg_node;
+	atomic_t data_ready_flag;
 	enum senss_sensor_state state;
 	enum sensor_trigger_mode mode;
 	/* runtime info */
@@ -301,7 +307,9 @@ static inline bool is_sensor_opened(struct senss_sensor *sensor)
 /* sensor not in polling mode, meanwhile data ready arrived from phyisal driver */
 static inline bool is_sensor_data_ready(struct senss_sensor *sensor)
 {
-	return sensor->mode == SENSOR_TRIGGER_MODE_DATA_READY;
+	return is_phy_sensor(sensor) &&
+		sensor->mode == SENSOR_TRIGGER_MODE_DATA_READY &&
+		atomic_test_and_clear_bit(&sensor->data_ready_flag, SENSOR_DATA_READY_BIT);
 }
 
 static inline int get_sensitivity_count(int32_t type)
