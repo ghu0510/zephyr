@@ -150,7 +150,6 @@ struct senss_mgmt_context {
 	int sensor_num;
 	struct senss_sensor_info *info;
 	int fixed_connection_count;
-	uint16_t count;
 	struct senss_sensor *sensor_db[CONFIG_SENSS_MAX_SENSOR_COUNT];
 	struct connection *conns[CONFIG_SENSS_MAX_HANDLE_COUNT];
 	struct k_sem dispatch_sem;
