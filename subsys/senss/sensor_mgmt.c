@@ -329,9 +329,6 @@ static void sensor_event_init(struct senss_mgmt_context *ctx)
 
 	/* initial events */
 	k_mutex_init(&ctx->rpt_mutex);
-	k_mutex_init(&ctx->cfg_mutex);
-
-	sys_slist_init(&ctx->cfg_list);
 }
 
 static struct senss_sensor *get_sensor_by_type_and_index(struct senss_mgmt_context *ctx,
@@ -354,14 +351,11 @@ static struct senss_sensor *get_sensor_by_type_and_index(struct senss_mgmt_conte
 
 static void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_sensor *sensor)
 {
-	/* add sensor to config list first */
-	if (!cfg_list_has_sensor(ctx, sensor)) {
-		LOG_INF("%s, sensor:%s, append sensor to cfg_list", __func__, sensor->dev->name);
-		/* sensor config may come from multiple applcations, so protect it */
-		k_mutex_lock(&ctx->cfg_mutex, K_FOREVER);
-		sys_slist_append(&ctx->cfg_list, &sensor->cfg_node);
-		k_mutex_unlock(&ctx->cfg_mutex);
-	}
+	LOG_INF("%s, sensor:%s", __func__, sensor->dev->name);
+
+	__ASSERT(sensor, "save config and notify, senss_sensor is NULL");
+
+	atomic_set_bit(&sensor->later_cfg_flag, SENSOR_LATER_CFG_BIT);
 
 	atomic_set_bit(&ctx->event_flag, EVENT_CONFIG_READY);
 	k_sem_give(&ctx->event_sem);
@@ -982,37 +976,14 @@ static int config_sensor(struct senss_sensor *sensor)
 
 static void sensor_later_config(struct senss_mgmt_context *ctx)
 {
-	struct senss_sensor *sensor, *tmp;
-	int virtual_cfg_cnt = 0;
+	struct senss_sensor *sensor;
+	int i = 0;
 
-	if (sys_slist_is_empty(&ctx->cfg_list)) {
-		return;
-	}
-
-	LOG_INF("%s, config virtual sensor first", __func__);
-
-	/* enumerate all virtual sensors first */
-	do {
-		virtual_cfg_cnt = 0;
-		for_each_sensor_config(ctx, sensor, tmp) {
-			if (is_phy_sensor(sensor)) {
-				continue;
-			}
+	for_each_sensor_reverse(ctx, i, sensor) {
+		if (atomic_test_and_clear_bit(&sensor->later_cfg_flag, SENSOR_LATER_CFG_BIT)) {
+			LOG_INF("%s, reverse_index:%d, sensor:%s", __func__, i, sensor->dev->name);
 			config_sensor(sensor);
-			sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
-			virtual_cfg_cnt++;
 		}
-	} while (virtual_cfg_cnt);
-
-	LOG_INF("%s, then config physical sensor", __func__);
-
-	/* enumerate all physical sensors and config sensor */
-	for_each_sensor_config(ctx, sensor, tmp) {
-		if (is_virtual_sensor(sensor)) {
-			continue;
-		}
-		config_sensor(sensor);
-		sys_slist_find_and_remove(&ctx->cfg_list, &sensor->cfg_node);
 	}
 }
 

@@ -40,15 +40,16 @@ extern "C" {
 	for (i = 0; i < ctx->sensor_num &&						\
 		(sensor = ctx->sensor_db[ctx->sensor_db[i]->index]) != NULL; i++)	\
 
+#define for_each_sensor_reverse(ctx, i, sensor)					\
+	for (i = ctx->sensor_num - 1; i >= 0 &&					\
+		(sensor = ctx->sensor_db[ctx->sensor_db[i]->index]) != NULL; i--) \
+
 #define for_each_sensor_connection(i, sensor, conn)			\
 	for (i = 0; i < sensor->conns_num &&				\
 		(conn = &sensor->conns[i]) != NULL; i++)		\
 
 #define for_each_sensor_client(sensor, client)				\
 	SYS_SLIST_FOR_EACH_CONTAINER(&sensor->client_list, client, snode)
-
-#define for_each_sensor_config(ctx, sensor, tmp)			\
-	SYS_SLIST_FOR_EACH_CONTAINER_SAFE(&ctx->cfg_list, sensor, tmp, cfg_node)
 
 #if CONFIG_SENSS_RUNTIME_THREAD_PRIORITY < -16 || CONFIG_SENSS_RUNTIME_THREAD_PRIORITY >= 15
 #error "Invalid runtime thread priority"
@@ -69,6 +70,7 @@ enum {
 };
 
 enum {
+	SENSOR_LATER_CFG_BIT,
 	SENSOR_DATA_READY_BIT
 };
 
@@ -132,7 +134,7 @@ struct senss_sensor {
 	uint32_t interval;
 	uint8_t sensitivity_count;
 	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
-	sys_snode_t cfg_node;
+	atomic_t later_cfg_flag;
 	atomic_t data_ready_flag;
 	enum senss_sensor_state state;
 	enum sensor_trigger_mode mode;
@@ -155,12 +157,10 @@ struct senss_mgmt_context {
 	struct k_sem event_sem;
 	atomic_t event_flag;
 	struct k_mutex rpt_mutex;
-	struct k_mutex cfg_mutex;
 	struct k_thread runtime_thread;
 	struct k_thread dispatch_thread;
 	k_tid_t runtime_id;
 	k_tid_t dispatch_id;
-	sys_slist_t cfg_list;
 	struct ring_buf sensor_ring_buf;
 	uint8_t buf[CONFIG_SENSS_RING_BUF_SIZE];
 	bool data_to_ring_buf;
@@ -227,20 +227,6 @@ static inline struct connection *get_connection_by_handle(struct senss_mgmt_cont
 	}
 
 	return ctx->conns[handle];
-}
-
-static inline bool cfg_list_has_sensor(struct senss_mgmt_context *ctx,
-				       struct senss_sensor *sensor)
-{
-	struct senss_sensor *tmp_sensor, *tmp;
-
-	for_each_sensor_config(ctx, tmp_sensor, tmp) {
-		if (!memcmp(tmp_sensor, sensor, sizeof(struct senss_sensor))) {
-			return true;
-		}
-	}
-
-	return false;
 }
 
 /* this function is used to decide whether filtering sensitivity checking
