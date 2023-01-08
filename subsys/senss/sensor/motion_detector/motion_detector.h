@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define MOTION_DETECTOR_ACC_INTERVAL_US      100000
+
 struct motion_detector_context {
 	uint32_t interval;
 	int32_t acc_handle;

@@ -98,15 +98,18 @@ static int md_set_interval(const struct device *dev, uint32_t value)
 {
 	int ret;
 	struct motion_detector_context *ctx = senss_sensor_get_ctx_data(dev);
+	uint32_t acc_interval = value ? MOTION_DETECTOR_ACC_INTERVAL_US : 0;
 
-	LOG_INF("[%s] name: %s, value:%d", __func__, dev->name, value);
-
-	ret = senss_set_interval(ctx->acc_handle, value);
+	ret = senss_set_interval(ctx->acc_handle, acc_interval);
 	if (ret) {
-		return ret;
+		LOG_ERR("[%s] error, value %d acc_interval %d ret %d", __func__,
+			value, acc_interval, ret);
+		return -ENOSYS;
 	}
 
 	ctx->interval = value;
+	LOG_INF("[%s] name: %s, value %d acc_interval %d", __func__, dev->name,
+		value, acc_interval);
 
 	return 0;
 }
@@ -115,11 +118,12 @@ static int md_get_interval(const struct device *dev, uint32_t *value)
 {
 	struct motion_detector_context *ctx = senss_sensor_get_ctx_data(dev);
 
-	LOG_INF("[%s] name: %s", __func__, dev->name);
-
-	if (value) {
-		*value = ctx->interval;
+	if (!value) {
+		return -EINVAL;
 	}
+
+	*value = ctx->interval;
+	LOG_INF("[%s] name: %s interval %d", __func__, dev->name, ctx->interval);
 
 	return 0;
 }
