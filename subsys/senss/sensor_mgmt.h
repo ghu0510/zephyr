@@ -229,19 +229,6 @@ static inline struct connection *get_connection_by_handle(struct senss_mgmt_cont
 	return ctx->conns[handle];
 }
 
-static inline int find_first_free_connection(struct senss_mgmt_context *ctx)
-{
-	int i;
-
-	for (i = ctx->fixed_connection_count; i < CONFIG_SENSS_MAX_HANDLE_COUNT; i++) {
-		if (!ctx->conns[i]) {
-			break;
-		}
-	}
-
-	return i;
-}
-
 static inline bool cfg_list_has_sensor(struct senss_mgmt_context *ctx,
 				       struct senss_sensor *sensor)
 {

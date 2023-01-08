@@ -367,6 +367,30 @@ static void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_
 	k_sem_give(&ctx->event_sem);
 }
 
+static void set_conn_index_save_conn(struct senss_mgmt_context *ctx, struct connection *conn)
+{
+	int i = 0;
+
+	__ASSERT(conn && conn->source, "%s, connection or reporter should not be NULL", __func__);
+
+	k_mutex_lock(&ctx->rpt_mutex, K_FOREVER);
+	/* find the first free connection */
+	for (i = ctx->fixed_connection_count; i < CONFIG_SENSS_MAX_HANDLE_COUNT; i++) {
+		if (!ctx->conns[i]) {
+			break;
+		}
+	}
+	__ASSERT(i < CONFIG_SENSS_MAX_HANDLE_COUNT,
+			"connection index:%d should less than SENSS_MAX_HANDLE_COUNT:%d",
+			i, CONFIG_SENSS_MAX_HANDLE_COUNT);
+	conn->index = i;
+	/* multi applications could open sensor simultaneously, mutex protect to global variable */
+	ctx->conns[i] = conn;
+	/* conn->source is pointer to reporter, add conn to repoter sensor client list */
+	sys_slist_append(&conn->source->client_list, &conn->snode);
+	k_mutex_unlock(&ctx->rpt_mutex);
+}
+
 int senss_init(void)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
@@ -544,15 +568,8 @@ int open_sensor(int type, int sensor_index)
 		LOG_ERR("%s, init_each_connection error:%d", __func__, ret);
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
-	conn->index = find_first_free_connection(ctx);
-	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
-		"connection index:%d should less than MAX_SENSOR_COUNT", conn->index);
 
-	/* multi applications could open sensor simultaneously, mutex protect to global variable */
-	k_mutex_lock(&ctx->rpt_mutex, K_FOREVER);
-	ctx->conns[conn->index] = conn;
-	sys_slist_append(&reporter->client_list, &conn->snode);
-	k_mutex_unlock(&ctx->rpt_mutex);
+	set_conn_index_save_conn(ctx, conn);
 
 	LOG_INF("%s: %s, state:0x%x, conn:%d",
 			__func__, reporter->dev->name, reporter->state, conn->index);
