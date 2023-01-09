@@ -116,7 +116,7 @@
 			status = "okay";
 		};
 
-		dmic0: dai-dmic@10100 {
+		dmic0: dai-dmic0@10100 {
 			compatible = "intel,dai-dmic";
 			reg = <0x10100 0x8000>;
 			shim = <0x10000>;
@@ -125,7 +125,7 @@
 			interrupt-parent = <&ace_intc>;
 		};
 
-		dmic1: dai-dmic@10100 {
+		dmic1: dai-dmic1@10100 {
 			compatible = "intel,dai-dmic";
 			reg = <0x10100 0x8000>;
 			shim = <0x10000>;
