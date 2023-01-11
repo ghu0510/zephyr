@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define HINGE_ANGLE_ACC_INTERVAL_US          100000
+
 struct hinge_angle_context {
 	uint32_t interval;
 	int32_t base_acc_handle;

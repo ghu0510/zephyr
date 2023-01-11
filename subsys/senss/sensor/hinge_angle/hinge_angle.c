@@ -24,7 +24,7 @@ static int hinge_init(const struct device *dev,
 	const struct senss_sensor_info *info, const int32_t *reporter_handles,
 	int32_t reporters_count)
 {
-	int i;
+	int32_t i;
 	struct hinge_angle_context *ctx = senss_sensor_get_ctx_data(dev);
 	const struct senss_sensor_info *rpt_info = NULL;
 
@@ -99,20 +99,25 @@ static int hinge_set_interval(const struct device *dev, uint32_t value)
 {
 	int ret;
 	struct hinge_angle_context *ctx = senss_sensor_get_ctx_data(dev);
+	uint32_t acc_interval = value ? HINGE_ANGLE_ACC_INTERVAL_US : 0;
 
-	LOG_INF("[%s] name: %s, value:%d", __func__, dev->name, value);
-
-	ret = senss_set_interval(ctx->base_acc_handle, value);
+	ret = senss_set_interval(ctx->base_acc_handle, acc_interval);
 	if (ret) {
-		return ret;
+		LOG_ERR("[%s] error, value %d base acc_interval %d ret %d", __func__,
+			value, acc_interval, ret);
+		return -ENOSYS;
 	}
 
-	ret = senss_set_interval(ctx->lid_acc_handle, value);
+	ret = senss_set_interval(ctx->lid_acc_handle, acc_interval);
 	if (ret) {
-		return ret;
+		LOG_ERR("[%s] error, value %d lid acc_interval %d ret %d", __func__,
+			value, acc_interval, ret);
+		return -ENOSYS;
 	}
 
 	ctx->interval = value;
+	LOG_INF("[%s] name: %s, value %d acc_interval %d", __func__, dev->name,
+		value, acc_interval);
 
 	return 0;
 }
@@ -121,11 +126,12 @@ static int hinge_get_interval(const struct device *dev, uint32_t *value)
 {
 	struct hinge_angle_context *ctx = senss_sensor_get_ctx_data(dev);
 
-	LOG_INF("[%s] name: %s", __func__, dev->name);
-
-	if (value) {
-		*value = ctx->interval;
+	if (!value) {
+		return -EINVAL;
 	}
+
+	*value = ctx->interval;
+	LOG_INF("[%s] name: %s interval %d", __func__, dev->name, ctx->interval);
 
 	return 0;
 }
