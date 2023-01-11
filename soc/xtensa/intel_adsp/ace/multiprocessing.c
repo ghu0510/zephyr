@@ -62,7 +62,7 @@ void soc_mp_init(void)
 #if defined(CONFIG_INTEL_ADSP_SIM)
 	/* BADDR stores the Xtensa LX7 AltResetVec input */
 	for (int i = 0; i < soc_num_cpus; i++) {
-		DFDSPBRCP.bootctl[i].baddr = (uint32_t) z_soc_mp_asm_entry;
+		DSPCS.bootctl[i].baddr = (uint32_t) z_soc_mp_asm_entry;
 	}
 #endif
 

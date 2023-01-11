@@ -144,7 +144,7 @@ __imr void boot_core0(void)
 
 	prid = arch_proc_id();
 	if (prid != 0) {
-		((void (*)(void))DFDSPBRCP.bootctl[prid].baddr)();
+		((void (*)(void))DSPCS.bootctl[prid].baddr)();
 	}
 #endif
 
