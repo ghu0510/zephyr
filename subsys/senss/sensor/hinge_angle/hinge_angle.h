@@ -15,7 +15,6 @@ extern "C" {
 
 struct hinge_angle_context {
 	uint32_t interval;
-	uint32_t sensitivity;
 	int32_t base_acc_handle;
 	int32_t lid_acc_handle;
 	void *algo_handle;

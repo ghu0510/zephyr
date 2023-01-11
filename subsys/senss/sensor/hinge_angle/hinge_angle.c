@@ -130,43 +130,6 @@ static int hinge_get_interval(const struct device *dev, uint32_t *value)
 	return 0;
 }
 
-static int hinge_set_sensitivity(const struct device *dev, int index,
-	uint32_t value)
-{
-	int ret;
-	struct hinge_angle_context *ctx = senss_sensor_get_ctx_data(dev);
-
-	LOG_INF("[%s] name: %s, value %d", __func__, dev->name, value);
-
-	ret = senss_set_sensitivity(ctx->base_acc_handle, -1, value);
-	if (ret) {
-		return ret;
-	}
-
-	ret = senss_set_sensitivity(ctx->lid_acc_handle, -1, value);
-	if (ret) {
-		return ret;
-	}
-
-	ctx->sensitivity = value;
-
-	return 0;
-}
-
-static int hinge_get_sensitivity(const struct device *dev, int index,
-	uint32_t *value)
-{
-	struct hinge_angle_context *ctx = senss_sensor_get_ctx_data(dev);
-
-	LOG_INF("[%s] name: %s", __func__, dev->name);
-
-	if (value) {
-		*value = ctx->sensitivity;
-	}
-
-	return 0;
-}
-
 static int hinge_process(const struct device *dev, int32_t reporter, void *buf,
 	int32_t size)
 {
@@ -224,8 +187,6 @@ static struct senss_sensor_api hinge_api = {
 	.deinit = hinge_deinit,
 	.get_interval = hinge_get_interval,
 	.set_interval = hinge_set_interval,
-	.get_sensitivity = hinge_get_sensitivity,
-	.set_sensitivity = hinge_set_sensitivity,
 	.process = hinge_process,
 	.sensitivity_test = hinge_sensitivity_test,
 };
