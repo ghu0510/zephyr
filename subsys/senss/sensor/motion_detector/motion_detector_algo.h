@@ -48,7 +48,7 @@ enum motion_detector_value_info {
 void *motion_detector_algo_create(void);
 void motion_detector_algo_destroy(void *algo_handle);
 void motion_detector_algo_reset(void *algo_handle);
-int motion_detector_algo_collect_data_lid_acc(void *algo_handle,
+int motion_detector_algo_collect_data_acc(void *algo_handle,
 	struct senss_sensor_value_3d_int32 *acc);
 int motion_detector_algo_process(void *algo_handle,
 	enum motion_detector_value_info *value_info,

@@ -24,13 +24,13 @@ static int md_init(const struct device *dev,
 	const struct senss_sensor_info *info, const int32_t *reporter_handles,
 	int32_t reporters_count)
 {
-	int i = 0;
+	int32_t i;
 	struct motion_detector_context *ctx = senss_sensor_get_ctx_data(dev);
 	const struct senss_sensor_info *rpt_info = NULL;
 
 	LOG_INF("[%s] name: %s", __func__, dev->name);
 
-	ctx->lid_acc_handle = SENSS_SENSOR_INVALID_HANDLE;
+	ctx->acc_handle = SENSS_SENSOR_INVALID_HANDLE;
 
 	for (i = 0; i < reporters_count; i++) {
 		rpt_info = senss_get_sensor_info(reporter_handles[i]);
@@ -42,7 +42,13 @@ static int md_init(const struct device *dev,
 		if (rpt_info->type ==
 			SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D) {
 			if (strcmp(rpt_info->name, "lid-accel") == 0) {
-				ctx->lid_acc_handle = reporter_handles[i];
+				ctx->acc_handle = reporter_handles[i];
+				continue;
+			} else if (strcmp(rpt_info->name, "base-accel") == 0) {
+				/* only one acc is supported, and lid acc takes precedence */
+				if (ctx->acc_handle == SENSS_SENSOR_INVALID_HANDLE) {
+					ctx->acc_handle = reporter_handles[i];
+				}
 				continue;
 			}
 		}
@@ -52,9 +58,8 @@ static int md_init(const struct device *dev,
 			rpt_info->sensor_index);
 	}
 
-	/* lid acc is necessary */
-	if (ctx->lid_acc_handle == SENSS_SENSOR_INVALID_HANDLE) {
-		LOG_ERR("[%s] error, lid_acc_handle is invalid", __func__);
+	if (ctx->acc_handle == SENSS_SENSOR_INVALID_HANDLE) {
+		LOG_ERR("[%s] error, acc_handle is invalid", __func__);
 		return -EINVAL;
 	}
 
@@ -77,7 +82,7 @@ static int md_set_interval(const struct device *dev, uint32_t value)
 
 	LOG_INF("[%s] name: %s, value:%d", __func__, dev->name, value);
 
-	ret = senss_set_interval(ctx->lid_acc_handle, value);
+	ret = senss_set_interval(ctx->acc_handle, value);
 	if (ret) {
 		return ret;
 	}
@@ -108,7 +113,7 @@ static int md_set_sensitivity(const struct device *dev, int index,
 
 	LOG_INF("[%s] name: %s, value %d", __func__, dev->name, value);
 
-	ret = senss_set_sensitivity(ctx->lid_acc_handle, -1, value);
+	ret = senss_set_sensitivity(ctx->acc_handle, -1, value);
 	if (ret) {
 		return ret;
 	}
@@ -140,9 +145,8 @@ static int md_process(const struct device *dev, int32_t reporter, void *buf,
 	enum motion_detector_value_info info = MOTION_DETECTOR_VALUE_NOT_GEN;
 	struct senss_sensor_value_int32 *value = NULL;
 
-	if (reporter == ctx->lid_acc_handle) {
-		ret = motion_detector_algo_collect_data_lid_acc(
-			ctx->algo_handle,
+	if (reporter == ctx->acc_handle) {
+		ret = motion_detector_algo_collect_data_acc(ctx->algo_handle,
 			(struct senss_sensor_value_3d_int32 *)buf);
 	} else {
 		LOG_WRN("[%s] unexpected reporter %d, size %d",

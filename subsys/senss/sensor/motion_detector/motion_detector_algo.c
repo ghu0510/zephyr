@@ -35,7 +35,7 @@ struct md_algo_acc_info {
 
 struct md_algo_ctx {
 	struct senss_sensor_value_int32 value;
-	struct md_algo_acc_info lid;
+	struct md_algo_acc_info acc;
 };
 
 static int32_t md_int_sqrt(int64_t x)
@@ -213,11 +213,11 @@ void motion_detector_algo_reset(void *algo_handle)
 	}
 
 	memset(ctx, 0, sizeof(struct md_algo_ctx));
-	ctx->lid.result = SENSS_MOTION_DETECTOR_RESULT_UNKNOWN;
+	ctx->acc.result = SENSS_MOTION_DETECTOR_RESULT_UNKNOWN;
 	ctx->value.header.reading_count = 1;
 }
 
-int motion_detector_algo_collect_data_lid_acc(void *algo_handle,
+int motion_detector_algo_collect_data_acc(void *algo_handle,
 	struct senss_sensor_value_3d_int32 *acc)
 {
 	struct md_algo_ctx *ctx = (struct md_algo_ctx *)algo_handle;
@@ -227,11 +227,11 @@ int motion_detector_algo_collect_data_lid_acc(void *algo_handle,
 		return -EINVAL;
 	}
 
-	ctx->lid.timestamp = acc->header.base_timestamp;
+	ctx->acc.timestamp = acc->header.base_timestamp;
 
 	for (i = 0; i < acc->header.reading_count; i++) {
-		md_algo_acc_calc(&ctx->lid, acc->readings[i].v);
-		ctx->lid.timestamp += acc->readings[i].timestamp_delta;
+		md_algo_acc_calc(&ctx->acc, acc->readings[i].v);
+		ctx->acc.timestamp += acc->readings[i].timestamp_delta;
 	}
 
 	return 0;
@@ -247,30 +247,30 @@ int motion_detector_algo_process(void *algo_handle,
 		return -EINVAL;
 	}
 
-	if (!ctx->lid.value_gen) {
+	if (!ctx->acc.value_gen) {
 		*value_info = MOTION_DETECTOR_VALUE_NOT_GEN;
 	} else {
-		if (!ctx->lid.value_first_process) {
-			ctx->lid.value_first_process = true;
+		if (!ctx->acc.value_first_process) {
+			ctx->acc.value_first_process = true;
 			*value_info = MOTION_DETECTOR_VALUE_FIRST;
 
-			LOG_INF("[%s] value first %d, lid %d %d %d",
-				__func__, ctx->lid.result, ctx->lid.v[0],
-				ctx->lid.v[1], ctx->lid.v[2]);
-		} else if (ctx->lid.result == ctx->value.readings[0].v) {
+			LOG_INF("[%s] value first %d, acc %d %d %d",
+				__func__, ctx->acc.result, ctx->acc.v[0],
+				ctx->acc.v[1], ctx->acc.v[2]);
+		} else if (ctx->acc.result == ctx->value.readings[0].v) {
 			*value_info = MOTION_DETECTOR_VALUE_NO_CHANGE;
 		} else {
 			*value_info = MOTION_DETECTOR_VALUE_CHANGED;
 
-			LOG_INF("[%s] value changed from %d to %d, lid %d %d %d",
+			LOG_INF("[%s] value changed from %d to %d, acc %d %d %d",
 				__func__, ctx->value.readings[0].v,
-				ctx->lid.result, ctx->lid.v[0],
-				ctx->lid.v[1], ctx->lid.v[2]);
+				ctx->acc.result, ctx->acc.v[0],
+				ctx->acc.v[1], ctx->acc.v[2]);
 		}
 	}
 
-	ctx->value.readings[0].v = ctx->lid.result;
-	ctx->value.header.base_timestamp = ctx->lid.timestamp;
+	ctx->value.readings[0].v = ctx->acc.result;
+	ctx->value.header.base_timestamp = ctx->acc.timestamp;
 	*value = (struct senss_sensor_value_int32 *)&ctx->value;
 
 	return 0;

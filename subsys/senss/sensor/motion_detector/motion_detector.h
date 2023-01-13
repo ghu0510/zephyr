@@ -16,7 +16,7 @@ extern "C" {
 struct motion_detector_context {
 	uint32_t interval;
 	uint32_t sensitivity;
-	int32_t lid_acc_handle;
+	int32_t acc_handle;
 	void *algo_handle;
 };
 
