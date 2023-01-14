@@ -12,13 +12,11 @@ LOG_MODULE_REGISTER(motion_detector_algo, CONFIG_SENSS_LOG_LEVEL);
 
 /* MD/md means MOTION_DETECTOR */
 
-/* so long if the max diff meets the condition, judged as motionless */
-#define MD_MOTIONLESS_TIME_SECONDS      4
 #define MD_US_PER_SEC                   1000000
 /* at least samples per second */
 #define MD_MOTIONLESS_SAMPLES_PER_SEC   2
-#define MD_MOTIONLESS_TIME_US      (MD_MOTIONLESS_TIME_SECONDS * MD_US_PER_SEC)
-#define MD_MOTIONLESS_SAMPLES_NEED (MD_MOTIONLESS_TIME_SECONDS * \
+#define MD_MOTIONLESS_TIME_US      (MOTION_DETECTOR_MOTIONLESS_SECONDS * MD_US_PER_SEC)
+#define MD_MOTIONLESS_SAMPLES_NEED (MOTION_DETECTOR_MOTIONLESS_SECONDS * \
 	MD_MOTIONLESS_SAMPLES_PER_SEC)
 
 struct md_algo_acc_info {

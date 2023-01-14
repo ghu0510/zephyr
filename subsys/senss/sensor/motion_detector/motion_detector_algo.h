@@ -26,7 +26,9 @@ extern "C" {
 #define MOTION_DETECTOR_ACC_AXIS_CNT    3
 
 /* max acc deviation when motionless state, unit: mG */
-#define MOTION_DETECTOR_MOTIONLESS_ACC_DEVIATION  100
+#define MOTION_DETECTOR_MOTIONLESS_ACC_DEVIATION  40
+/* so long if the max diff meets the condition, judged as motionless */
+#define MOTION_DETECTOR_MOTIONLESS_SECONDS        3
 
 /* acc deviation when hypergravity state, unit: mG */
 #define MOTION_DETECTOR_HYPERGRAVITY_ACC_DEVIATION          100
