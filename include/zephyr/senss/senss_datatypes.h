@@ -326,8 +326,8 @@ struct senss_sensor_value_human_detection {
 
 enum senss_motion_detector_result {
 	SENSS_MOTION_DETECTOR_RESULT_UNKNOWN = -1,
-	SENSS_MOTION_DETECTOR_RESULT_MOTIONLESS = 0,
-	SENSS_MOTION_DETECTOR_RESULT_MOVING,
+	SENSS_MOTION_DETECTOR_RESULT_MOVING = 0,
+	SENSS_MOTION_DETECTOR_RESULT_MOTIONLESS,
 };
 
 enum senss_hinge_angle_result {
