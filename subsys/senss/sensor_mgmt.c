@@ -575,8 +575,6 @@ int close_sensor(struct connection *conn)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 	struct senss_sensor *reporter, *client;
-	sys_snode_t *prev = NULL;
-	struct connection *tmp_conn;
 
 	__ASSERT(conn && conn->source && conn->sink,
 		"close sensor, connection or reporter or client not be NULL");
@@ -584,15 +582,6 @@ int close_sensor(struct connection *conn)
 	reporter = conn->source;
 	client = conn->sink;
 
-	/* remove client node from client_list here */
-	for_each_sensor_client(reporter, tmp_conn) {
-		if (tmp_conn->sink != client) {
-			prev = &tmp_conn->snode;
-		} else {
-			sys_slist_remove(&reporter->client_list, prev, &tmp_conn->snode);
-			break;
-		}
-	}
 	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
 		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
 
@@ -601,12 +590,12 @@ int close_sensor(struct connection *conn)
 		return -ENODEV;
 	}
 
+	sys_slist_find_and_remove(&reporter->client_list, &conn->snode);
 	LOG_INF("%s: %s connection:%d complete", __func__, reporter->dev->name, conn->index);
 
 	ctx->conns[conn->index]->data_evt_cb = NULL;
 	ctx->conns[conn->index] = NULL;
 	free(client);
-	memset(tmp_conn, 0x00, sizeof(*tmp_conn));
 
 	return 0;
 }
