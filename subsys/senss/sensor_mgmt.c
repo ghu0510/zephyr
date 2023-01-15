@@ -349,18 +349,6 @@ static struct senss_sensor *get_sensor_by_type_and_index(struct senss_mgmt_conte
 	return NULL;
 }
 
-static void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_sensor *sensor)
-{
-	LOG_INF("%s, sensor:%s", __func__, sensor->dev->name);
-
-	__ASSERT(sensor, "save config and notify, senss_sensor is NULL");
-
-	atomic_set_bit(&sensor->later_cfg_flag, SENSOR_LATER_CFG_BIT);
-
-	atomic_set_bit(&ctx->event_flag, EVENT_CONFIG_READY);
-	k_sem_give(&ctx->event_sem);
-}
-
 static void set_conn_index_save_conn(struct senss_mgmt_context *ctx, struct connection *conn)
 {
 	int i = 0;
@@ -383,6 +371,18 @@ static void set_conn_index_save_conn(struct senss_mgmt_context *ctx, struct conn
 	/* conn->source is pointer to reporter, add conn to repoter sensor client list */
 	sys_slist_append(&conn->source->client_list, &conn->snode);
 	k_mutex_unlock(&ctx->rpt_mutex);
+}
+
+void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_sensor *sensor)
+{
+	LOG_INF("%s, sensor:%s", __func__, sensor->dev->name);
+
+	__ASSERT(sensor, "save config and notify, senss_sensor is NULL");
+
+	atomic_set_bit(&sensor->later_cfg_flag, SENSOR_LATER_CFG_BIT);
+
+	atomic_set_bit(&ctx->event_flag, EVENT_CONFIG_READY);
+	k_sem_give(&ctx->event_sem);
 }
 
 int senss_init(void)

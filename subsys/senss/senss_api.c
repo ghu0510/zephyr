@@ -37,13 +37,16 @@ int senss_close_sensor(int handle)
 
 	LOG_INF("%s, handle:%d, sensor:%s", __func__, handle, conn->source->dev->name);
 
-	ret = senss_set_interval(handle, 0);
+	ret = close_sensor(conn);
 	if (ret) {
-		LOG_ERR("senss set handle:%d interval err", handle);
+		LOG_ERR("close_sensor:%d error", handle);
 		return ret;
 	}
 
-	return close_sensor(conn);
+	/* connection is closed, notify sensor mgmt to do updates */
+	save_config_and_notify(ctx, conn->source);
+
+	return 0;
 }
 
 int senss_set_interval(int handle, uint32_t value)
