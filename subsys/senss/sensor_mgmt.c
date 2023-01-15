@@ -603,6 +603,7 @@ int close_sensor(struct connection *conn)
 
 	LOG_INF("%s: %s connection:%d complete", __func__, reporter->dev->name, conn->index);
 
+	ctx->conns[conn->index]->data_evt_cb = NULL;
 	ctx->conns[conn->index] = NULL;
 	free(client);
 	memset(tmp_conn, 0x00, sizeof(*tmp_conn));
