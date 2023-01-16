@@ -575,6 +575,8 @@ int close_sensor(struct connection *conn)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 	struct senss_sensor *reporter, *client;
+	struct connection *tmp_conn;
+	int i;
 
 	__ASSERT(conn && conn->source && conn->sink,
 		"close sensor, connection or reporter or client not be NULL");
@@ -585,7 +587,13 @@ int close_sensor(struct connection *conn)
 	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
 		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
 
-	if (client->conns != conn) {
+	for_each_sensor_connection(i, client, tmp_conn) {
+		if (conn == tmp_conn) {
+			break;
+		}
+	}
+
+	if (i == client->conns_num) {
 		LOG_ERR("cannot find sensor:%d to be closed", conn->index);
 		return -ENODEV;
 	}
