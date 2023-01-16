@@ -603,7 +603,12 @@ int close_sensor(struct connection *conn)
 
 	ctx->conns[conn->index]->data_evt_cb = NULL;
 	ctx->conns[conn->index] = NULL;
-	free(client);
+
+	/* dynamic sensor will be freed directly, non-dynamic sensor will be only called in
+	 * senss_deinit(), and will be freed later
+	 */
+	if (conn->dynamic)
+		free(client);
 
 	return 0;
 }
