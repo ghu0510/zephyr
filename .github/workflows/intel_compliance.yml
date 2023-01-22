@@ -18,19 +18,19 @@ concurrency:
 
 jobs:
   check_compliance:
-    runs-on: fmos-ubuntu-latest
-    env:
-      TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
+    runs-on: fmos-guest-ubuntu-12c
+    container:
+      image: amr-registry.caas.intel.com/zephyrproject/ci-lite:v0.24.9
+      env:
+        TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     name: Run compliance checks on patch series (PR)
     steps:
       # Cleans out any files from previous builds (as well as any .west files)
       - name: Clean
         shell: bash
-        continue-on-error: true
         run: |
           shopt -s dotglob
           rm -rf *
-
       - name: Update PATH for west
         run: |
           echo "$HOME/.local/bin" >> $GITHUB_PATH
@@ -41,15 +41,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-
-      # Install required dependencies to run the compliance checks
-      - name: Install python dependencies
-        run: |
-          pip3 install setuptools
-          pip3 install wheel
-          pip3 install python-magic junitparser==2.7.0 gitlint pylint pykwalify yamllint
-          pip3 install west
-          pip3 install lxml
 
       - name: Set Creds for internal repos
         run: |
@@ -82,11 +73,11 @@ jobs:
       # same checkers as the project except for codeowners as this will not
       # apply internally
       - name: Run Compliance Tests
-        continue-on-error: true
         id: compliance
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
+          pip3 install yamllint
           export ZEPHYR_BASE=$PWD
           git log  --pretty=oneline | head -n 10
           ./scripts/ci/check_compliance.py -m Devicetree -m Gitlint -m Identity -m Nits -m pylint -m checkpatch -m Kconfig -c origin/${BASE_REF}..
@@ -95,7 +86,6 @@ jobs:
       # the compliance check
       - name: upload-results
         uses: actions/upload-artifact@master
-        continue-on-error: True
         with:
           name: compliance.xml
           path: compliance.xml

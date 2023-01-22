@@ -34,19 +34,19 @@ jobs:
             platform: "intel_adsp_cavs25"
             scope: acceptance
             hwtype: device
-            runner: fmos-ubuntu-cavs25
+            runner: guest-thor3-5
           - platform_group: 2
             toolchain: 'zephyr'
             platform: "intel_adsp_cavs15"
             scope: smoke
             hwtype: device
-            runner: fmos-ubuntu-cavs15
+            runner: guest-thor3-4
           - platform_group: 3
             toolchain: 'zephyr'
             platform: "intel_adsp_cavs18"
             scope: smoke
             hwtype: device
-            runner: fmos-ubuntu-cavs18
+            runner: guest-thor3-2
           - platform_group: 4
             scope: acceptance
             hwtype: simulator
@@ -55,7 +55,7 @@ jobs:
             toolchain_ver: 'RI-2021.7-linux'
             xtensa_core: 'ace10_LX7HiFi4'
             variant: 'zephyr'
-            runner: fmos-ubuntu-latest
+            runner: fmos-guest-ubuntu-12c
           - platform_group: 5
             scope: acceptance
             hwtype: simulator
@@ -64,7 +64,7 @@ jobs:
             toolchain_ver: 'RI-2021.8-linux'
             xtensa_core: 'ace30_LX7HiFi4'
             variant: 'xcc-clang'
-            runner: fmos-ubuntu-latest
+            runner: fmos-guest-ubuntu-12c
           - platform_group: 6
             scope: acceptance
             hwtype: simulator
@@ -181,7 +181,7 @@ jobs:
       ELASTICSEARCH_KEY: ${{ secrets.ELASTICSEARCH_KEY }}
     name: '[HW] Publish Test Results'
     needs: [run_twister]
-    runs-on: fmos-ubuntu-latest
+    runs-on: fmos-guest-ubuntu-12c
     continue-on-error: true
     if: success() || failure()
     steps:

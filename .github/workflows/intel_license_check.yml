@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   scancode_job:
-    runs-on: fmos-ubuntu-latest
+    runs-on: fmos-guest-ubuntu-12c
     name: Scan code for licenses
     steps:
       - name: Clean
