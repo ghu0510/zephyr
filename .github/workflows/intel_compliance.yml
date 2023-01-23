@@ -74,6 +74,7 @@ jobs:
       # apply internally
       - name: Run Compliance Tests
         id: compliance
+        continue-on-error: true
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
@@ -85,6 +86,7 @@ jobs:
       # Upload compliance.xml file to workflow run capturing any errors from
       # the compliance check
       - name: upload-results
+        continue-on-error: true
         uses: actions/upload-artifact@master
         with:
           name: compliance.xml
@@ -93,6 +95,7 @@ jobs:
       # If there are no compliance errors then this step will pass, if failing
       # then will also publish which errors were caught during the check
       - name: check-warns
+        shell: bash
         run: |
           if [[ ! -s "compliance.xml" ]]; then
             exit 1;
