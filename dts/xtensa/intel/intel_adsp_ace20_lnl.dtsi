@@ -462,7 +462,7 @@
 			syscon = <&tts>;
 		};
 	};
-	
+
 	hdas {
 		#address-cells = <1>;
 		#size-cells = <0>;
