@@ -18,3 +18,9 @@ tests:
     because we use --integration for twister checks. Similar to this issue
     upstream on qemu_arc_hs6: https://github.com/zephyrproject-rtos/zephyr-testing/commit/adf5d791508f5b64bea1431eea54c2ef2add68cb.
     Now (06/07/22) fails on qemu_arc_em as well.
+- scenarios:
+    - logging.log_link_order 
+  platforms:
+    - nsim_em
+  comment: >
+    but reported upstream https://github.com/zephyrproject-rtos/zephyr/issues/51422
