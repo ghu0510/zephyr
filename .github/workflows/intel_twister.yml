@@ -133,7 +133,7 @@ jobs:
             ./scripts/twister \
               ${TWISTER_OPTS} ${EXTRA_TWISTER_OPTS} \
               --retry-build-errors \
-              --quarantine-list .github/data/xcc-twister-quarantine.yml \
+              --quarantine-list .github/data/xcc-twister-quarantine-list.yml \
               --disable-warnings-as-errors \
               -p ${{ matrix.platform }} \
               --build-only \
