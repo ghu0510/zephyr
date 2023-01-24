@@ -20,7 +20,7 @@ jobs:
   check_compliance:
     runs-on: fmos-guest-ubuntu-12c
     container:
-      image: amr-registry.caas.intel.com/zephyrproject/ci-lite:v0.24.9
+      image: amr-registry.caas.intel.com/zephyrproject/ci-lite:v0.24.11
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     name: Run compliance checks on patch series (PR)

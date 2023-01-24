@@ -17,13 +17,13 @@ jobs:
         shell: bash
     runs-on: ${{ matrix.runner }}
     container:
-      image: amr-registry.caas.intel.com/zephyrproject/ci-sdk:v0.24.8
+      image: amr-registry.caas.intel.com/zephyrproject/ci-sdk:v0.24.11
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
-        subset: [1, 2, 3, 4]
+        subset: [1, 2, 3, 4, 5]
         toolchain: [gcc, xcc]
         include:
           - toolchain: 'gcc'
@@ -56,9 +56,17 @@ jobs:
             variant: 'xcc'
             subset: 4
             runner: fmos-guest-ubuntu-12c
+          - toolchain: 'xcc'
+            platform: 'intel_adsp_ace30_ptl'
+            toolchain_ver: 'RI-2022.10-linux'
+            xtensa_core: 'ace30_LX7HiFi4_PIF'
+            variant: 'xcc-clang'
+            subset: 5
+            runner: fmos-guest-ubuntu-12c
 
     env:
       TWISTER_OPTS: "-v -M -x=USE_CCACHE=0 --inline-logs --retry-failed 3 --retry-interval 60 --force-color --no-skipped-report --integration"
+      ZEPHYR_SDK_INSTALL_DIR: /opt/toolchains/zephyr-sdk-0.15.2
     steps:
       - name: Clean
         run: |
@@ -107,9 +115,8 @@ jobs:
       - name: Build
         run: |
 
-          # for nsim simulator
-          export PATH=$PATH:/opt/nSIM_64/bin/
-          export XTENSA_BUILDS_DIR=/opt/toolchains/xcc/install/builds
+          export PATH=$PATH:/opt/tools/bin/
+          export XTENSA_BUILDS_DIR=/opt/toolchains/xtensa/XtDevTools/install/builds
           if [ '${{ matrix.twister_options }}x' != 'x' ]; then
             export EXTRA_TWISTER_OPTS="${{ matrix.twister_options }}"
           fi
@@ -120,14 +127,14 @@ jobs:
             ./scripts/twister \
               ${TWISTER_OPTS} \
               --quarantine-list .github/data/twister-quarantine-list.yml \
-              --subset  ${{matrix.subset}}/4 \
+              --subset  ${{matrix.subset}}/5 \
               -T tests \
               -e cmsis_dsp
 
           elif [ ${{ matrix.toolchain }} == 'xcc' ]; then
 
             export ZEPHYR_TOOLCHAIN_VARIANT=${{ matrix.variant }}
-            export XTENSA_TOOLCHAIN_PATH=/opt/toolchains/xcc/install/tools
+            export XTENSA_TOOLCHAIN_PATH=/opt/toolchains/xtensa/XtDevTools/install/tools
             export XTENSA_CORE=${{ matrix.xtensa_core }}
             export TOOLCHAIN_VER=${{ matrix.toolchain_ver }}
             ./scripts/twister \

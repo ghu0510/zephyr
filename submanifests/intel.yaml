@@ -8,7 +8,7 @@ manifest:
     - name: std_sim
       path: intel/std_sim
       repo-path: os.rtos.zephyr.tools.ace-std-sim
-      revision: 5f34df76f4aff2da4822bef560959b55cd6ab8ed
+      revision: dcb16ebd3c9dd5daebd8e760c740440d15ab9ce3
       remote: intel
     - name: sof
       repo-path: drivers.audio.firmware.converged
