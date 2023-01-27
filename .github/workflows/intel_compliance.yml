@@ -81,7 +81,7 @@ jobs:
           pip3 install yamllint
           export ZEPHYR_BASE=$PWD
           git log  --pretty=oneline | head -n 10
-          ./scripts/ci/check_compliance.py -m Devicetree -m Gitlint -m Identity -m Nits -m pylint -m checkpatch -m Kconfig -c origin/${BASE_REF}..
+          ./scripts/ci/check_compliance.py --annotate -e KconfigBasic -c origin/${BASE_REF}..
 
       # Upload compliance.xml file to workflow run capturing any errors from
       # the compliance check
@@ -101,13 +101,15 @@ jobs:
             exit 1;
           fi
 
-          for file in Nits.txt checkpatch.txt Identity.txt Gitlint.txt pylint.txt Devicetree.txt Kconfig.txt Codeowners.txt; do
-            if [[ -s $file ]]; then
-              errors=$(cat $file)
+          files=($(./scripts/ci/check_compliance.py -l))
+          for file in "${files[@]}"; do
+            f="${file}.txt"
+            if [[ -s $f ]]; then
+              errors=$(cat $f)
               errors="${errors//'%'/'%25'}"
               errors="${errors//$'\n'/'%0A'}"
               errors="${errors//$'\r'/'%0D'}"
-              echo "::error file=${file}::$errors"
+              echo "::error file=${f}::$errors"
               exit=1
             fi
           done
