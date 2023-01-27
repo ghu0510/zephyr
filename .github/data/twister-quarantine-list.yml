@@ -24,3 +24,13 @@
     - nsim_em
   comment: >
     but reported upstream https://github.com/zephyrproject-rtos/zephyr/issues/51422
+- scenarios:
+    - sample.tfm.*
+  comment: >
+    covered upstream
+- platforms:
+    - nrf.*
+    - stm.*
+    - nucleo.*
+  comment: >
+    covered upstream
