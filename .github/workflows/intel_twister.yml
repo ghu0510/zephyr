@@ -18,6 +18,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: amr-registry.caas.intel.com/zephyrproject/ci-sdk:v0.24.11
+      options: "-v /srv/runner/workspace:/runner/workspace"
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     strategy:
@@ -79,6 +80,7 @@ jobs:
           # just to be sure...
           sudo rm -rf *
           ls -la ./
+          ls -la /runner/workspace
       - name: Checkout
         uses: actions/checkout@v3.1.0
         with:
@@ -92,16 +94,17 @@ jobs:
           git config --global credential.helper 'store --file=$HOME/.git-credentials'
           west init -l . || true
           west config --global update.narrow true
+          west config --global update.path-cache "/runner/workspace"
           # we need this here because our local manifest does import this repo
           echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
-          west update  2>&1 1> west.update.log || ( rm -rf ../intel ../modules ../bootloader ../tools && west update )
+          west -vv update --path-cache /runner/workspace  2>&1 1> west.update.log || ( rm -rf ../intel ../modules ../bootloader ../tools && west update --path-cache /runner/workspace)
           for r in `west  list -f {url} | grep intel-innersource | sed 's#https://##'`; do
           echo -e "https://$TOKEN:$TOKEN@$r" >> $HOME/.git-credentials
           done
           # debug
           cat $HOME/.git-credentials
           git config --global --add safe.directory ${PWD}
-          west update
+          west -vv update --path-cache /runner/workspace
           west forall -c 'git reset --hard HEAD'
 
       - name: Build RIMAGE
