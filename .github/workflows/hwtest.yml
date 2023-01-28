@@ -4,7 +4,7 @@ on:
     branches:
       - main-intel
   schedule:
-    - cron:  '15 5 * * *' # once daily @ 05:15 UTC, for now, to avoid conflicts.
+    - cron: '15 5 * * *' # once daily @ 05:15 UTC, for now, to avoid conflicts.
   pull_request:
     branches:
       - main-intel
@@ -22,6 +22,7 @@ jobs:
         shell: bash
     container:
       image: amr-registry.caas.intel.com/zephyrproject/ci-sdk:v0.24.11
+      options: "-v /srv/runner/workspace:/runner/workspace"
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     env:
@@ -99,6 +100,7 @@ jobs:
           git config --global credential.helper 'store --file=$HOME/.git-credentials'
           west init -l . || true
           west config --global update.narrow true
+          west config --global update.path-cache "/runner/workspace"
           # we need this here because our local manifest does import this repo
           echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
           west update  2>&1 1> west.update.log || ( rm -rf ../intel ../modules ../bootloader ../tools && west update )
@@ -134,37 +136,22 @@ jobs:
             export XTENSA_BUILDS_DIR=/opt/toolchains/xtensa/XtDevTools/install/builds
           fi
 
-          rm -f tests_to_run.txt
-          TESTS_SMOKE="tests/boards,samples/synchronization,tests/kernel/threads"
-          TESTS_ACCEPTANCE="${TESTS_SMOKE},tests/kernel,tests/arch,tests/boards,tests/lib,tests/drivers,tests/subsys/logging"
-          TEST_COV=${{ matrix.scope }}
+          export PATH=$PATH:/opt/tools/bin
           if [ "${{github.event_name}}" = "pull_request" ]; then
             TEST_COV=smoke
           else
             TEST_COV=${{ matrix.scope }}
           fi
-          SELECTED=TESTS_${TEST_COV^^}
-          TESTS=${!SELECTED}
-          IFS=',' read -r -a tests <<< "$TESTS"
-          for t in "${tests[@]}"; do
-            echo "-T" >> tests_to_run.txt
-            echo $t >> tests_to_run.txt
-          done
-          cat tests_to_run.txt
-
-
-          export PATH=$PATH:/opt/tools/bin
 
           ./scripts/twister -M -x=USE_CCACHE=0 --inline-logs \
             --force-color -v \
             --quarantine-list .github/data/twister-quarantine-list.yml \
             --disable-suite-name-check \
             --retry-failed 2 \
+            --test-config .github/data/test_config.yaml \
+            --plan $TEST_COV \
             $DEV_TYPE \
-            -p ${{ matrix.platform }} \
-            -e cmsis_dsp -e posix -e cmsis_rtos -e smf -e filessystem -e benchmark -e onoff -e tinycrypt \
-            -e can -e hwinfo -e test_framework -e shell -e sensor -e disk -e uart -e led \
-            +tests_to_run.txt
+            -p ${{ matrix.platform }}
 
       - name: Upload Unit Test Results
         if: success() || failure()

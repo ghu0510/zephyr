@@ -130,6 +130,7 @@ jobs:
             ./scripts/twister \
               ${TWISTER_OPTS} \
               --quarantine-list .github/data/twister-quarantine-list.yml \
+              --test-config .github/data/test_config.yaml \
               --subset  ${{matrix.subset}}/5 \
               -T tests \
               -e cmsis_dsp
