@@ -7,10 +7,10 @@
   - nios2
 
 - scenarios:
-    - kernel.timer.monotonic
+  - kernel.timer.monotonic
   platforms:
-    - qemu_arc_hs6x
-    - qemu_arc_em
+  - qemu_arc_hs6x
+  - qemu_arc_em
   comment: >
     qemu_arc_hs6 tests/kernel/timer/timer_monotonic/kernel.timer.monotonic
     fails consistently on 0.14.1. This may be failing internally and not upstream
@@ -19,18 +19,18 @@
     Now (06/07/22) fails on qemu_arc_em as well.
 
 - scenarios:
-    - logging.log_link_order
+  - logging.log_link_order
   platforms:
-    - nsim_em
+  - nsim_em
   comment: >
     but reported upstream https://github.com/zephyrproject-rtos/zephyr/issues/51422
 - scenarios:
-    - sample.tfm.*
+  - sample.tfm.*
   comment: >
     covered upstream
 - platforms:
-    - nrf.*
-    - stm.*
-    - nucleo.*
+  - nrf.*
+   - stm.*
+   - nucleo.*
   comment: >
     covered upstream

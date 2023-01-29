@@ -1,25 +1,25 @@
 - scenarios:
-    - portability.posix.eventfd
-    - portability.posix.eventfd.newlib
-    - portability.posix.eventfd.picolibc
+  - portability.posix.eventfd
+  - portability.posix.eventfd.newlib
+  - portability.posix.eventfd.picolibc
   platforms:
-    - intel_adsp_ace15_mtpm_sim
-    - intel_adsp_ace15_mtpm
+  - intel_adsp_ace15_mtpm_sim
+  - intel_adsp_ace15_mtpm
   comment: >
     bug filed: RTOS-7357
 
 - scenarios:
-    - subsys.ipc.icmsg_buf
+  - subsys.ipc.icmsg_buf
   platforms:
-    - intel_adsp_.*
+  - intel_adsp_.*
   comment: >
     Test is not compatible with adsp platforms with xcc.
     Will revisit once upstream updates test if this entry no longer required
 
 - scenarios:
-    - drivers.can.shell
+  - drivers.can.shell
   platforms:
-    - intel_adsp_.*
+  - intel_adsp_.*
   comment: >
     Test is not compatible with adsp platforms with xcc.
     Will revisit once upstream updates test if this entry no longer required
