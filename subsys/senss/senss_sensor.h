@@ -109,7 +109,7 @@ static inline int senss_sensor_dev_init(
 			.register_info = reg_ptr,					\
 			.sensor_ctx_ptr = ctx_ptr,					\
 		};									\
-	DEVICE_DT_DEFINE(node_id, senss_sensor_dev_init, NULL,				\
+	SENSOR_DEVICE_DT_DEFINE(node_id, senss_sensor_dev_init, NULL,			\
 			&_CONCAT(__senss_sensor_ctx_, Z_DEVICE_DT_DEV_ID(node_id)),	\
 			NULL, APPLICATION, 10, api_ptr)
 

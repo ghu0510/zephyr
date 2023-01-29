@@ -4,6 +4,8 @@
 
 description: Sensor subsystem (senss) sensor common properties bindings.
 
+include: sensor-device.yaml
+
 properties:
   sensor-type:
     type: int
@@ -26,9 +28,7 @@ properties:
     description: sensor model name
 
   friendly-name:
-    type: string
     required: true
-    description: sensor friendly name
 
   minimal-interval:
     type: int
