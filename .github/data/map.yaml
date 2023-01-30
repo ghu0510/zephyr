@@ -16,7 +16,7 @@
   runner_params:
     - --remote-host=zephyrtest-blue.jf.intel.com:50143
     - --rimage-tool=/usr/local/bin/rimage
-- connected: true
+- connected: false
   id: whl2
   platform: intel_adsp_cavs18
   product: None
