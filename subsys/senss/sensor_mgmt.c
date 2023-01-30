@@ -379,7 +379,7 @@ void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_sensor 
 
 	__ASSERT(sensor, "save config and notify, senss_sensor is NULL");
 
-	atomic_set_bit(&sensor->later_cfg_flag, SENSOR_LATER_CFG_BIT);
+	atomic_set_bit(&sensor->flag, SENSOR_LATER_CFG_BIT);
 
 	atomic_set_bit(&ctx->event_flag, EVENT_CONFIG_READY);
 	k_sem_give(&ctx->event_sem);
@@ -802,7 +802,7 @@ int senss_sensor_notify_data_ready(const struct device *dev)
 		return -EINVAL;
 	}
 
-	atomic_set_bit(&sensor->data_ready_flag, SENSOR_DATA_READY_BIT);
+	atomic_set_bit(&sensor->flag, SENSOR_DATA_READY_BIT);
 	atomic_set_bit(&ctx->event_flag, EVENT_DATA_READY);
 	k_sem_give(&ctx->event_sem);
 
@@ -983,7 +983,7 @@ static void sensor_later_config(struct senss_mgmt_context *ctx)
 	int i = 0;
 
 	for_each_sensor_reverse(ctx, i, sensor) {
-		if (atomic_test_and_clear_bit(&sensor->later_cfg_flag, SENSOR_LATER_CFG_BIT)) {
+		if (atomic_test_and_clear_bit(&sensor->flag, SENSOR_LATER_CFG_BIT)) {
 			LOG_INF("%s, reverse_index:%d, sensor:%s", __func__, i, sensor->dev->name);
 			config_sensor(sensor);
 		}

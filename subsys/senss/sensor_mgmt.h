@@ -134,8 +134,7 @@ struct senss_sensor {
 	uint32_t interval;
 	uint8_t sensitivity_count;
 	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
-	atomic_t later_cfg_flag;
-	atomic_t data_ready_flag;
+	atomic_t flag;
 	enum senss_sensor_state state;
 	enum sensor_trigger_mode mode;
 	/* runtime info */
@@ -282,7 +281,7 @@ static inline bool is_sensor_data_ready(struct senss_sensor *sensor)
 {
 	return is_phy_sensor(sensor) &&
 		sensor->mode == SENSOR_TRIGGER_MODE_DATA_READY &&
-		atomic_test_and_clear_bit(&sensor->data_ready_flag, SENSOR_DATA_READY_BIT);
+		atomic_test_and_clear_bit(&sensor->flag, SENSOR_DATA_READY_BIT);
 }
 
 static inline int get_sensitivity_count(int32_t type)
