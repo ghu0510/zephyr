@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   run_twister:
+    name: 'Twister on ${{ matrix.platform }} (${{ matrix.subset }})'
     defaults:
       run:
         shell: bash
@@ -24,11 +25,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        subset: [1, 2, 3, 4, 5]
+        subset: [1, 2, 3, 4]
         toolchain: [gcc, xcc]
         include:
           - toolchain: 'gcc'
             runner: fmos-guest-ubuntu-24c
+            platform: 'default platforms'
           - toolchain: 'xcc'
             platform: 'intel_adsp_ace15_mtpm'
             toolchain_ver: 'RI-2021.7-linux'
@@ -37,32 +39,25 @@ jobs:
             subset: 1
             runner: fmos-guest-ubuntu-12c
           - toolchain: 'xcc'
-            platform: 'intel_adsp_cavs15'
-            toolchain_ver: 'RG-2017.8-linux'
-            xtensa_core: 'X4H3I16w2D48w3a_2017_8'
-            variant: 'xcc'
-            subset: 2
-            runner: fmos-guest-ubuntu-12c
-          - toolchain: 'xcc'
-            platform: 'intel_adsp_cavs18'
-            toolchain_ver: 'RG-2017.8-linux'
-            xtensa_core: 'X6H3CNL_2017_8'
-            variant: 'xcc'
-            subset: 3
-            runner: fmos-guest-ubuntu-12c
-          - toolchain: 'xcc'
             platform: 'intel_adsp_cavs25'
             toolchain_ver: 'RG-2017.8-linux'
             xtensa_core: 'cavs2x_LX6HiFi3_2017_8'
             variant: 'xcc'
-            subset: 4
+            subset: 2
             runner: fmos-guest-ubuntu-12c
           - toolchain: 'xcc'
             platform: 'intel_adsp_ace30_ptl'
             toolchain_ver: 'RI-2022.10-linux'
             xtensa_core: 'ace30_LX7HiFi4_PIF'
             variant: 'xcc-clang'
-            subset: 5
+            subset: 3
+            runner: fmos-guest-ubuntu-12c
+          - toolchain: 'xcc'
+            platform: 'intel_adsp_ace20_lnl'
+            toolchain_ver: 'RI-2021.7-linux'
+            xtensa_core: 'ace10_LX7HiFi4'
+            variant: 'xcc-clang'
+            subset: 4
             runner: fmos-guest-ubuntu-12c
 
     env:
@@ -131,7 +126,7 @@ jobs:
               ${TWISTER_OPTS} \
               --quarantine-list .github/data/twister-quarantine-list.yml \
               --test-config .github/data/test_config.yaml \
-              --subset  ${{matrix.subset}}/5 \
+              --subset  ${{matrix.subset}}/4 \
               -T tests \
               -e cmsis_dsp
 
