@@ -12,7 +12,7 @@ manifest:
       remote: intel
     - name: sof
       repo-path: drivers.audio.firmware.converged
-      revision: 2ebdfc6a38f90c6a1268cf856897b79e7c7fc592
+      revision: 3601d8cc455c942eac7f0aba2156d2afea4f3884
       path: modules/audio/sof
       remote: intel
     - name: rimage
