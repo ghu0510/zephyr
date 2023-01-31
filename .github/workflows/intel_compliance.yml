@@ -21,6 +21,7 @@ jobs:
     runs-on: fmos-guest-ubuntu-12c
     container:
       image: amr-registry.caas.intel.com/zephyrproject/ci-lite:v0.24.11
+      options: "-v /srv/runner/workspace:/runner/workspace"
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     name: Run compliance checks on patch series (PR)
@@ -42,7 +43,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Set Creds for internal repos
+      - name: Environment Setup
         run: |
           touch $HOME/.git-credentials
           touch $HOME/.gitconfig
@@ -50,6 +51,10 @@ jobs:
           git config --global user.name "Github Builder CI"
           git config --global credential.helper 'store --file=$HOME/.git-credentials'
           west init -l . || true
+          west config --global update.narrow true
+          west config --global update.path-cache "/runner/workspace"
+          echo -e "https://$TOKEN:$TOKEN@github.com/intel-innersource/drivers.audio.firmware.converged" > $HOME/.git-credentials
+          west update --path-cache /runner/workspace  2>&1 1> west.update.log || ( rm -rf ../intel ../modules ../bootloader ../tools && west update --path-cache /runner/workspace)
           # Using west, add all internal repos to credentials file.
           for r in `west  list -f {url} | grep intel-innersource | sed 's#https://##'`; do
             echo -e "https://$TOKEN:$TOKEN@$r" >> $HOME/.git-credentials
@@ -57,17 +62,16 @@ jobs:
           # debug
           cat $HOME/.git-credentials
           git config --global --add safe.directory ${PWD}
+          west -vv update --path-cache /runner/workspace
+          west forall -c 'git reset --hard HEAD'
 
-      - name: Environment Setup
+      - name: Rebase Tree
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git rebase origin/${BASE_REF}
           # debug
           git log  --pretty=oneline | head -n 10
-          west config --global update.narrow true
-          west update 2>&1 1> west.update.log || west update 2>&1 1> west.update2.log
-          west forall -c 'git reset --hard HEAD'
 
       # Run ./scripts/ci/check_compliance.py (maintained upstream) with the
       # same checkers as the project except for codeowners as this will not
