@@ -18,20 +18,26 @@ concurrency:
 
 jobs:
   check_compliance:
+    name: Run compliance checks on patch series (PR)
     runs-on: fmos-guest-ubuntu-12c
     container:
-      image: amr-registry.caas.intel.com/zephyrproject/ci-lite:v0.24.11
+      image: amr-registry.caas.intel.com/zephyrproject/ci-sdk:v0.24.11
       options: "-v /srv/runner/workspace:/runner/workspace"
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
-    name: Run compliance checks on patch series (PR)
     steps:
       # Cleans out any files from previous builds (as well as any .west files)
       - name: Clean
         shell: bash
         run: |
+          # set dotglob so rm will remove dot files and dirs - (.west, etc.)
           shopt -s dotglob
-          rm -rf *
+          pwd
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+          # just to be sure...
+          sudo rm -rf *
       - name: Update PATH for west
         run: |
           echo "$HOME/.local/bin" >> $GITHUB_PATH
@@ -44,6 +50,7 @@ jobs:
           fetch-depth: 0
 
       - name: Environment Setup
+        shell: bash
         run: |
           touch $HOME/.git-credentials
           touch $HOME/.gitconfig
@@ -72,10 +79,6 @@ jobs:
           git rebase origin/${BASE_REF}
           # debug
           git log  --pretty=oneline | head -n 10
-
-      # Run ./scripts/ci/check_compliance.py (maintained upstream) with the
-      # same checkers as the project except for codeowners as this will not
-      # apply internally
       - name: Run Compliance Tests
         id: compliance
         continue-on-error: true
