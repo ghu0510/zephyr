@@ -166,6 +166,10 @@ jobs:
           retention-days: 14
 
   publish-test-results:
+    container:
+      image: amr-registry.caas.intel.com/zephyrproject/ci-lite:v0.24.11
+      env:
+        TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     env:
       ELASTICSEARCH_KEY: ${{ secrets.ELASTICSEARCH_KEY }}
     name: '[HW] Publish Test Results'
@@ -189,7 +193,7 @@ jobs:
       - name: Upload to ElasticSearch Instance
         if: github.event_name == 'schedule' || github.event_name == 'push'
         run: |
-          pip3 install elasticsearch
+          sudo pip3 install elasticsearch
           python3 ./scripts/ci/upload_test_results_es.py -i tests-zephyr-main-intel artifacts/**/twister.json
 
       - name: Publish Unit Test Results
