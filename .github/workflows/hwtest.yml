@@ -147,6 +147,7 @@ jobs:
             --force-color -v \
             --quarantine-list .github/data/twister-quarantine-list.yml \
             --disable-suite-name-check \
+            --retry-build-errors \
             --retry-failed 2 \
             --test-config .github/data/test_config.yaml \
             --plan $TEST_COV \
