@@ -194,7 +194,7 @@ jobs:
       - name: Upload to ElasticSearch Instance
         if: github.event_name == 'schedule' || github.event_name == 'push'
         run: |
-          sudo pip3 install elasticsearch
+          pip3 install elasticsearch
           python3 ./scripts/ci/upload_test_results_es.py -i tests-zephyr-main-intel artifacts/**/twister.json
 
       - name: Publish Unit Test Results
