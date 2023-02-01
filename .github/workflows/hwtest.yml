@@ -92,6 +92,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Environment Setup
+        shell: bash
         run: |
           touch $HOME/.git-credentials
           touch $HOME/.gitconfig
@@ -167,7 +168,7 @@ jobs:
 
   publish-test-results:
     container:
-      image: amr-registry.caas.intel.com/zephyrproject/ci-lite:v0.24.11
+      image: amr-registry.caas.intel.com/zephyrproject/ci-sdk:v0.24.11
       env:
         TOKEN: ${{ secrets.ZEPHYR_TOKEN }}
     env:

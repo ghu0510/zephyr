@@ -65,6 +65,7 @@ jobs:
       ZEPHYR_SDK_INSTALL_DIR: /opt/toolchains/zephyr-sdk-0.15.2
     steps:
       - name: Clean
+        shell: bash
         run: |
           # set dotglob so rm will remove dot files and dirs - (.west, etc.)
           shopt -s dotglob
@@ -81,6 +82,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Environment Setup
+        shell: bash
         run: |
           touch $HOME/.git-credentials
           touch $HOME/.gitconfig
