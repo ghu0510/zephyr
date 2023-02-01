@@ -23,3 +23,11 @@
   comment: >
     Test is not compatible with adsp platforms with xcc.
     Will revisit once upstream updates test if this entry no longer required
+
+- scenarios:
+  - .*picolibc.*
+  platforms:
+  - intel_adsp_.*
+  comment: >
+    picolibc is not compatible with adsp platforms with xcc.
+    Bug filed upstream: #54336
