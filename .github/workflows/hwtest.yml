@@ -135,6 +135,9 @@ jobs:
             export XTENSA_CORE=${{ matrix.xtensa_core }}
             export TOOLCHAIN_VER=${{ matrix.toolchain_ver }}
             export XTENSA_BUILDS_DIR=/opt/toolchains/xtensa/XtDevTools/install/builds
+            export TWISTER_QUARANTINE_LIST=.github/data/xcc-twister-quarantine-list.yml
+          else
+            export TWISTER_QUARANTINE_LIST=.github/data/twister-quarantine-list.yml
           fi
 
           export PATH=$PATH:/opt/tools/bin
@@ -146,7 +149,7 @@ jobs:
 
           ./scripts/twister -M -x=USE_CCACHE=0 --inline-logs \
             --force-color -v \
-            --quarantine-list .github/data/twister-quarantine-list.yml \
+            --quarantine-list $TWISTER_QUARANTINE_LIST \
             --disable-suite-name-check \
             --retry-build-errors \
             --retry-failed 2 \
