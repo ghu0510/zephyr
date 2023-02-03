@@ -7,6 +7,13 @@
   - nios2
 
 - scenarios:
+  - kernel.memory_protection.syscalls
+  platforms:
+  - qemu_arc_em
+  comment: >
+    bug filed: RTOS-7530
+
+- scenarios:
   - kernel.timer.monotonic
   platforms:
   - qemu_arc_hs6x
