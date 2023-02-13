@@ -33,8 +33,8 @@ extern "C" {
 	.info.name = DT_NODE_FULL_NAME(node),				\
 	.info.friendly_name = DT_PROP(node, friendly_name),		\
 	.info.minimal_interval = DT_PROP(node, minimal_interval),	\
-	.reporter_num = PHANDLES_IDX_LIST_LEN(node, reporters),		\
-	.reporters = PHANDLES_IDX_LIST(node, reporters),		\
+	.reporter_num = DT_PROP_LEN_OR(node, reporters, 0),		\
+	.reporters = PHANDLE_DEVICE_LIST(node, reporters),		\
 },
 
 #define for_each_sensor(ctx, i, sensor)					\
@@ -84,7 +84,7 @@ struct senss_sensor_dt_info {
 	const int ord;
 	struct senss_sensor_info info;
 	uint16_t reporter_num;
-	uint16_t reporters[CONFIG_SENSS_MAX_REPORTER_COUNT];
+	const struct device *reporters[CONFIG_SENSS_MAX_REPORTER_COUNT];
 };
 
 /**
@@ -192,18 +192,6 @@ static inline uint64_t get_us(void)
 	return k_cycle_get_64() * USEC_PER_SEC / CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC;
 }
 
-static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context *ctx,
-						       struct senss_sensor *sensor,
-						       int index)
-{
-	if (!sensor || index >= sensor->conns_num ||
-		sensor->dt_info->reporters[index] >= CONFIG_SENSS_MAX_SENSOR_COUNT) {
-		return NULL;
-	}
-
-	return ctx->sensor_db[sensor->dt_info->reporters[index]];
-}
-
 static inline bool is_phy_sensor(struct senss_sensor *sensor)
 {
 	return sensor->dt_info->reporter_num == 0;
@@ -217,6 +205,17 @@ static inline bool is_virtual_sensor(struct senss_sensor *sensor)
 static inline struct senss_sensor *get_sensor_by_dev(const struct device *dev)
 {
 	return dev ? (struct senss_sensor *)((struct senss_sensor_ctx *)dev->data)->priv_ptr : NULL;
+}
+
+static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context *ctx,
+						       struct senss_sensor *sensor,
+						       int index)
+{
+	if (!sensor || index >= sensor->conns_num) {
+		return NULL;
+	}
+
+	return get_sensor_by_dev(sensor->dt_info->reporters[index]);
 }
 
 static inline struct connection *get_connection_by_handle(struct senss_mgmt_context *ctx,

@@ -9,27 +9,16 @@
 
 #include <zephyr/devicetree.h>
 
-#define PHANDLE_ELEM_BY_IDX(idx, node, prop)				\
-	DT_NODE_CHILD_IDX(DT_PHANDLE_BY_IDX(node, prop, idx)),
+#define PHANDLE_DEVICE_BY_IDX(idx, node, prop)				\
+	DEVICE_DT_GET(DT_PHANDLE_BY_IDX(node, prop, idx))
 
-#define PHANDLES_IDX_NO_EMPTY_LIST(node, prop)				\
+#define PHANDLE_DEVICE_LIST(node, prop)					\
 {									\
-	LISTIFY(DT_PROP_LEN(node, prop),				\
-			PHANDLE_ELEM_BY_IDX,				\
-			(),						\
+	LISTIFY(DT_PROP_LEN_OR(node, prop, 0),				\
+			PHANDLE_DEVICE_BY_IDX,				\
+			(,),						\
 			node,						\
-			prop						\
-		     )							\
+			prop)						\
 }
-
-#define PHANDLES_IDX_LIST_LEN(node, prop)				\
-	COND_CODE_1(DT_NODE_HAS_PROP(node, prop),			\
-		    (DT_PROP_LEN(node, prop)),				\
-		    (0))						\
-
-#define PHANDLES_IDX_LIST(node, prop)					\
-	COND_CODE_1(DT_NODE_HAS_PROP(node, prop),			\
-		    (PHANDLES_IDX_NO_EMPTY_LIST(node, prop)),		\
-		    ({}))						\
 
 #endif /* end of include guard: SENSS_DTS_HELPER_H */
