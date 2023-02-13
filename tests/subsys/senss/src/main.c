@@ -11,6 +11,7 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/sys_clock.h>
 #include "senss_sensor.h"
+#include "sensor_mgmt.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(test_senss, LOG_LEVEL_INF);
@@ -361,8 +362,22 @@ ZTEST(senss_tests, test_senss_get_sensitivity)
  */
 ZTEST(senss_tests, test_senss_read_sample)
 {
-	int handle = 0;
 	struct senss_sensor_value_3d_int32 sample = {0};
+	uint64_t cur_time = get_us();
+	uint32_t interval[] = {
+		/* set frequency to 10HZ */
+		INTERVAL_10HZ,
+		/* set frequency to 0 before frequency updated */
+		0,
+		/* set frequency to 20HZ */
+		INTERVAL_20HZ,
+		/* increase frequency to 40HZ */
+		INTERVAL_40HZ,
+		/* reduce frequency to 10HZ */
+		INTERVAL_10HZ
+	};
+	int handle = 0;
+	uint64_t i;
 	int ret;
 
 	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 0,
@@ -370,8 +385,24 @@ ZTEST(senss_tests, test_senss_read_sample)
 	zassert_equal(ret, 0, "Open ACC 0 failed");
 
 	/* positive test */
-	ret = senss_read_sample(handle, &sample, sizeof(sample));
-	zassert_equal(ret, 0, "Read Sample ACC 0 failed");
+	for (i = 0; i < ARRAY_SIZE(interval); i++) {
+		ret = senss_set_interval(handle, interval[i]);
+		k_sleep(K_SECONDS(2));
+
+		/* when interval equals to 0, skips the sample timestamp check */
+		if (interval[i] == 0) {
+			continue;
+		}
+
+		ret = senss_read_sample(handle, &sample, sizeof(sample));
+		zassert_equal(ret, 0, "Read Sample ACC 0 failed");
+
+		cur_time  = get_us();
+		LOG_INF("Loop count: %lld Sample timestamp: %lld Cur_time: %lld",
+				i, sample.header.base_timestamp, cur_time);
+		zassert_between_inclusive(sample.header.base_timestamp,
+				cur_time - interval[i], cur_time);
+	}
 
 	/* negative test */
 	ret = senss_read_sample(SENSS_SENSOR_INVALID_HANDLE, &sample,
