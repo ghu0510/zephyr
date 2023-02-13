@@ -858,8 +858,9 @@ static int set_arbitrate_interval(struct senss_sensor *sensor, uint32_t interval
 	__ASSERT(sensor_api, "set arbitrate interval, sensor device sensor_api is NULL");
 
 	sensor->interval = interval;
-	/* reset sensor next_exec_time as soon as sensor interval is changed */
+	/* reset sensor next_exec_time and sample timestamp as soon as sensor interval is changed */
 	sensor->next_exec_time = interval > 0 ? EXEC_TIME_INIT : EXEC_TIME_OFF;
+	((struct senss_sensor_value_header *)sensor->data_buf)->base_timestamp = 0;
 
 	LOG_INF("%s, interval:%d, next_exec_time:%lld", __func__, interval, sensor->next_exec_time);
 
