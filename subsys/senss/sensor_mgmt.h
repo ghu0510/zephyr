@@ -25,6 +25,7 @@ extern "C" {
 #define SENSS_SENSOR_INFO(node)						\
 {									\
 	.dev = DEVICE_DT_GET(node),					\
+	.ord = DT_DEP_ORD(node),					\
 	.info.type = DT_PROP(node, sensor_type),			\
 	.info.sensor_index = DT_PROP_OR(node, sensor_index, 0),		\
 	.info.vendor = DT_NODE_VENDOR_OR(node, NULL),			\
@@ -36,13 +37,13 @@ extern "C" {
 	.reporters = PHANDLES_IDX_LIST(node, reporters),		\
 },
 
-#define for_each_sensor(ctx, i, sensor)							\
-	for (i = 0; i < ctx->sensor_num &&						\
-		(sensor = ctx->sensor_db[ctx->sensor_db[i]->index]) != NULL; i++)	\
+#define for_each_sensor(ctx, i, sensor)					\
+	for (i = 0; i < ctx->sensor_num &&				\
+		(sensor = ctx->sensor_db[i]) != NULL; i++)
 
-#define for_each_sensor_reverse(ctx, i, sensor)					\
-	for (i = ctx->sensor_num - 1; i >= 0 &&					\
-		(sensor = ctx->sensor_db[ctx->sensor_db[i]->index]) != NULL; i--) \
+#define for_each_sensor_reverse(ctx, i, sensor)				\
+	for (i = ctx->sensor_num - 1; i >= 0 &&				\
+		(sensor = ctx->sensor_db[i]) != NULL; i--)
 
 #define for_each_sensor_connection(i, sensor, conn)			\
 	for (i = 0; i < sensor->conns_num &&				\
@@ -80,6 +81,7 @@ enum {
  */
 struct senss_sensor_dt_info {
 	const struct device *dev;
+	const int ord;
 	struct senss_sensor_info info;
 	uint16_t reporter_num;
 	uint16_t reporters[CONFIG_SENSS_MAX_REPORTER_COUNT];
@@ -123,7 +125,6 @@ struct connection {
  * build report relationship model base on them, etc.
  */
 struct senss_sensor {
-	uint16_t index;
 	/* device binding to sensor device tree */
 	const struct device *dev;
 	/* Common Register info */

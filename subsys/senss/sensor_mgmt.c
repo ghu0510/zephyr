@@ -169,38 +169,18 @@ static struct senss_sensor *create_sensor_obj(struct senss_sensor_dt_info *dt)
 	return sensor;
 }
 
-static void switch_sequence(struct senss_mgmt_context *ctx, uint16_t src, uint16_t dest)
+static int cmp_sensor(const void *a, const void *b)
 {
-	uint8_t tmp_index = ctx->sensor_db[src]->index;
+	struct senss_sensor *sensor_a = *(struct senss_sensor **)a;
+	struct senss_sensor *sensor_b = *(struct senss_sensor **)b;
 
-	LOG_INF("%s(%d), src:%d,index:%d, dest:%d,index:%d",
-		__func__, __LINE__, src, ctx->sensor_db[src]->index,
-		dest, ctx->sensor_db[dest]->index);
-
-	ctx->sensor_db[src]->index = ctx->sensor_db[dest]->index;
-	ctx->sensor_db[dest]->index = tmp_index;
+	return sensor_a->dt_info->ord - sensor_b->dt_info->ord;
 }
 
-/* sorting rule: (TBD will be replaced by topologic sorting) */
 static void sort_sensors(struct senss_mgmt_context *ctx)
 {
-	struct senss_sensor *sensor;
-	uint16_t client_index;
-	uint16_t reporter_index;
-	int i = 0, j = 0;
-
-	for (i = 0; i < ctx->sensor_num; i++) {
-		sensor = ctx->sensor_db[i];
-		/* enumerate each sensor connection, if client is sorted before connection,
-		 * switch the order to ensure client is sequenced after connection
-		 */
-		for (j = 0; j < sensor->dt_info->reporter_num; j++) {
-			client_index = ctx->sensor_db[i]->index;
-			reporter_index = ctx->sensor_db[sensor->dt_info->reporters[j]]->index;
-			if (client_index < reporter_index)
-				switch_sequence(ctx, client_index, reporter_index);
-		}
-	}
+	qsort(ctx->sensor_db, ctx->sensor_num, sizeof(struct senss_sensor *),
+			cmp_sensor);
 }
 
 static int init_each_connection(struct senss_mgmt_context *ctx,
@@ -416,7 +396,6 @@ int senss_init(void)
 		/* update sensor_db according to sensor device tree sequence firstly,
 		 * will topologically sort sensor sequence later
 		 */
-		sensor->index = i;
 		ctx->sensor_db[i] = sensor;
 		dt_info++;
 	}
