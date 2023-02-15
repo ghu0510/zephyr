@@ -17,6 +17,7 @@ LOG_MODULE_REGISTER(hinge_angle, CONFIG_SENSS_LOG_LEVEL);
 static struct senss_sensor_register_info hinge_reg = {
 	.flags = SENSS_SENSOR_FLAG_REPORT_ON_CHANGE,
 	.sample_size = sizeof(struct senss_sensor_value_int32),
+	.sensitivity_count = 1,
 	.version.value = SENSS_SENSOR_VERSION(1, 0, 0, 0),
 };
 

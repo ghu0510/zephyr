@@ -284,24 +284,6 @@ static inline bool is_sensor_data_ready(struct senss_sensor *sensor)
 		atomic_test_and_clear_bit(&sensor->flag, SENSOR_DATA_READY_BIT);
 }
 
-static inline int get_sensitivity_count(int32_t type)
-{
-	#define SENSITIVITY_COUNT_3D_SENSOR 3
-	#define SENSITIVITY_COUNT_DEFAULT 1
-
-	int sensitivity_count = SENSITIVITY_COUNT_DEFAULT;
-
-	switch (type) {
-	case SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D:
-	case SENSS_SENSOR_TYPE_MOTION_GYROMETER_3D:
-		sensitivity_count = SENSITIVITY_COUNT_3D_SENSOR;
-		break;
-	default:
-		break;
-	}
-
-	return sensitivity_count;
-}
 /**
  * @}
  */

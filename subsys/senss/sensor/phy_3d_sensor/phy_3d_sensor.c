@@ -407,6 +407,7 @@ static const struct senss_sensor_api phy_3d_sensor_api = {
 static const struct senss_sensor_register_info phy_3d_sensor_reg = {
 	.flags = SENSS_SENSOR_FLAG_REPORT_ON_CHANGE,
 	.sample_size = sizeof(struct senss_sensor_value_3d_int32),
+	.sensitivity_count = PHY_3D_SENSOR_CHANNEL_NUM,
 	.version.value = SENSS_SENSOR_VERSION(0, 8, 0, 0),
 };
 

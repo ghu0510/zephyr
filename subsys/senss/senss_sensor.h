@@ -49,6 +49,11 @@ struct senss_sensor_register_info {
 	uint16_t sample_size;
 
 	/**
+	 * The number of sensor sensitivities
+	 */
+	uint8_t sensitivity_count;
+
+	/**
 	 * Sensor version.
 	 * Version can be used for identify different versions of sensor implementation.
 	 */

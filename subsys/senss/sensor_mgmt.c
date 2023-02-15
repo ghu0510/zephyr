@@ -156,7 +156,7 @@ static struct senss_sensor *create_sensor_obj(struct senss_sensor_dt_info *dt)
 		__func__, sensor->dev->name, sensor->dt_info->info.minimal_interval);
 
 	sensor->interval = 0;
-	sensor->sensitivity_count = get_sensitivity_count(dt->info.type);
+	sensor->sensitivity_count = sensor_ctx->register_info->sensitivity_count;
 	__ASSERT(sensor->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
 			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
 			sensor->sensitivity_count);
@@ -527,7 +527,7 @@ int open_sensor(int type, int sensor_index)
 	}
 
 	client->interval = 0;
-	client->sensitivity_count = get_sensitivity_count(type);
+	client->sensitivity_count = reporter->sensitivity_count;
 	__ASSERT(client->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
 			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
 			client->sensitivity_count);
