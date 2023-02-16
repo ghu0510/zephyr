@@ -12,8 +12,6 @@
 #include <stdbool.h>
 #include <zephyr/drivers/sensor.h>
 
-#include "senss_dts_helper.h"
-
 /**
  * @defgroup senss_sensor Sensor API
  * @ingroup senss

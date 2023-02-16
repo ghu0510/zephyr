@@ -22,6 +22,18 @@ extern "C" {
 #define EXEC_TIME_INIT 0
 #define EXEC_TIME_OFF UINT64_MAX
 
+#define PHANDLE_DEVICE_BY_IDX(idx, node, prop)				\
+	DEVICE_DT_GET(DT_PHANDLE_BY_IDX(node, prop, idx))
+
+#define PHANDLE_DEVICE_LIST(node, prop)					\
+{									\
+	LISTIFY(DT_PROP_LEN_OR(node, prop, 0),				\
+			PHANDLE_DEVICE_BY_IDX,				\
+			(,),						\
+			node,						\
+			prop)						\
+}
+
 #define SENSS_SENSOR_INFO(node)						\
 {									\
 	.dev = DEVICE_DT_GET(node),					\
