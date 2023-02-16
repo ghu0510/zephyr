@@ -8,9 +8,9 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/ztest.h>
 #include <zephyr/senss/senss.h>
+#include <zephyr/senss/senss_sensor.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/sys_clock.h>
-#include "senss_sensor.h"
 #include "sensor_mgmt.h"
 
 #include <zephyr/logging/log.h>

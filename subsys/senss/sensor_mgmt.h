@@ -8,7 +8,7 @@
 #define SENSOR_MGMT_H_
 
 #include <senss/senss_datatypes.h>
-#include <senss_sensor.h>
+#include <zephyr/senss/senss_sensor.h>
 #include <sys/slist.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <string.h>

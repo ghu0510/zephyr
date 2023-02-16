@@ -7,7 +7,7 @@
 #ifndef HINGE_ANGLE_H_
 #define HINGE_ANGLE_H_
 
-#include <senss_sensor.h>
+#include <zephyr/senss/senss_sensor.h>
 
 #ifdef __cplusplus
 extern "C" {

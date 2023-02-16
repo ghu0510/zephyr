@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <stdlib.h>
-#include <senss_sensor.h>
+#include <zephyr/senss/senss_sensor.h>
 #include <zephyr/logging/log.h>
 #include "hinge_angle_algo.h"
 

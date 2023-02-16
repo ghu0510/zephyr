@@ -7,7 +7,7 @@
 #ifndef MOTION_DETECTOR_H_
 #define MOTION_DETECTOR_H_
 
-#include <senss_sensor.h>
+#include <zephyr/senss/senss_sensor.h>
 
 #ifdef __cplusplus
 extern "C" {

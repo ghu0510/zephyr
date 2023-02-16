@@ -8,8 +8,8 @@
 
 #include <zephyr/ztest.h>
 #include <zephyr/senss/senss.h>
+#include <zephyr/senss/senss_sensor.h>
 #include <zephyr/sys/util.h>
-#include "senss_sensor.h"
 #include "phy_3d_sensor.h"
 
 #include <zephyr/logging/log.h>

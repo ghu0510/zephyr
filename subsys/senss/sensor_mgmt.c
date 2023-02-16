@@ -8,10 +8,10 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/senss/senss.h>
+#include <zephyr/senss/senss_sensor.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 #include <stdlib.h>
-#include "senss_sensor.h"
 #include "sensor_mgmt.h"
 
 #define DT_DRV_COMPAT zephyr_senss

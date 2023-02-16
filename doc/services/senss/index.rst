@@ -107,7 +107,7 @@ API Organization
     * Sensor Types (:zephyr_file:`include/zephyr/senss/senss_sensor_types.h`)
     * Data Types (:zephyr_file:`include/zephyr/senss/senss_datatypes.h`)
     * Sensor Subsystem API (:zephyr_file:`include/zephyr/senss/senss.h`)
-    * Sensor API (:zephyr_file:`subsys/senss/include/senss_sensor.h`)
+    * Sensor API (:zephyr_file:`include/zephyr/senss/senss_sensor.h`)
 
 Below diagram shows the API position and scope:
 

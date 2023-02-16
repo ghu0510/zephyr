@@ -11,9 +11,9 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sys_clock.h>
 #include <zephyr/senss/senss.h>
+#include <zephyr/senss/senss_sensor.h>
 #include <zephyr/sys/util.h>
 
-#include <senss_sensor.h>
 #include "phy_3d_sensor.h"
 
 LOG_MODULE_REGISTER(phy_3d_sensor, CONFIG_SENSS_LOG_LEVEL);

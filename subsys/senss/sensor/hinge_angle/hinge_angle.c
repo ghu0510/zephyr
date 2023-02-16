@@ -8,7 +8,7 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
-#include <senss_sensor.h>
+#include <zephyr/senss/senss_sensor.h>
 #include "hinge_angle_algo.h"
 #include "hinge_angle.h"
 
