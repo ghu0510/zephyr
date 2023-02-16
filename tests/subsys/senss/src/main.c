@@ -488,7 +488,7 @@ ZTEST_F(senss_tests, test_acc_0)
 			1, "ACC 0 samples num out of range");
 
 	ret = senss_set_interval(handle, 0);
-	zassert_equal(ret, 0, "ACC 0 stop steaming failed");
+	zassert_equal(ret, 0, "ACC 0 stop streaming failed");
 
 	ret = senss_close_sensor(handle);
 	zassert_equal(ret, 0, "Close ACC 0 failed");
@@ -580,13 +580,13 @@ ZTEST_F(senss_tests, test_acc_0_and_acc_1)
 			1, "ACC 0 samples num out of range");
 
 	ret = senss_set_interval(acc_0, 0);
-	zassert_equal(ret, 0, "ACC 0 stop steaming failed");
+	zassert_equal(ret, 0, "ACC 0 stop streaming failed");
 
 	ret = senss_close_sensor(acc_0);
 	zassert_equal(ret, 0, "Close ACC 0 failed");
 
 	ret = senss_set_interval(acc_1, 0);
-	zassert_equal(ret, 0, "ACC 1 stop steaming failed");
+	zassert_equal(ret, 0, "ACC 1 stop streaming failed");
 
 	ret = senss_close_sensor(acc_1);
 	zassert_equal(ret, 0, "Close ACC 1 failed");
@@ -707,13 +707,13 @@ ZTEST_F(senss_tests, test_acc_0_with_2_users)
 			1, "Samples num out of range");
 
 	ret = senss_set_interval(user_0, 0);
-	zassert_equal(ret, 0, "User 0 stop steaming failed");
+	zassert_equal(ret, 0, "User 0 stop streaming failed");
 
 	ret = senss_close_sensor(user_0);
 	zassert_equal(ret, 0, "Close user 0 failed");
 
 	ret = senss_set_interval(user_1, 0);
-	zassert_equal(ret, 0, "User 1 stop steaming failed");
+	zassert_equal(ret, 0, "User 1 stop streaming failed");
 
 	ret = senss_close_sensor(user_1);
 	zassert_equal(ret, 0, "Close user 1 failed");
