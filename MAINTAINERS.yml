@@ -1828,6 +1828,24 @@ RISCV arch:
   labels:
     - "area: RISCV"
 
+Sensor Subsystem:
+  status: maintained
+  maintainers:
+    - lixuzha
+  collaborators:
+    - ghu0510
+    - qianruh
+  files:
+    - dts/bindings/sensor/zephyr,senss.yaml
+    - dts/bindings/sensor/zephyr,senss*.yaml
+    - include/zephyr/senss/
+    - doc/services/senss/
+    - subsys/senss/
+    - samples/subsys/senss/
+    - tests/subsys/senss/
+  labels:
+    - "area: Sensor Subsystem"
+
 Twister:
   status: maintained
   maintainers:
