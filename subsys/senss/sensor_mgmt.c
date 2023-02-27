@@ -329,7 +329,7 @@ static struct senss_sensor *get_sensor_by_type_and_index(struct senss_mgmt_conte
 	return NULL;
 }
 
-static void set_conn_index_save_conn(struct senss_mgmt_context *ctx, struct connection *conn)
+static int senss_mgmt_bind_conn(struct senss_mgmt_context *ctx, struct connection *conn)
 {
 	int i = 0;
 
@@ -356,6 +356,43 @@ static void set_conn_index_save_conn(struct senss_mgmt_context *ctx, struct conn
 	/* conn->source is pointer to reporter, add conn to repoter sensor client list */
 	sys_slist_append(&conn->source->client_list, &conn->snode);
 	k_mutex_unlock(&ctx->rpt_mutex);
+
+	return 0;
+}
+
+static int senss_mgmt_unbind_conn(struct senss_mgmt_context *ctx, struct connection *conn)
+{
+	struct senss_sensor *reporter, *client;
+	struct connection *tmp_conn;
+	int i;
+
+	__ASSERT(conn && conn->source && conn->sink,
+		"close sensor, connection or reporter or client not be NULL");
+
+	reporter = conn->source;
+	client = conn->sink;
+
+	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
+		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
+
+	for_each_sensor_connection(i, client, tmp_conn) {
+		if (conn == tmp_conn) {
+			break;
+		}
+	}
+
+	if (i == client->conns_num) {
+		LOG_ERR("cannot find sensor:%d to be closed", conn->index);
+		return -ENODEV;
+	}
+
+	sys_slist_find_and_remove(&reporter->client_list, &conn->snode);
+	LOG_INF("%s: %s connection:%d complete", __func__, reporter->dev->name, conn->index);
+
+	ctx->conns[conn->index]->data_evt_cb = NULL;
+	ctx->conns[conn->index] = NULL;
+
+	return 0;
 }
 
 void save_config_and_notify(struct senss_mgmt_context *ctx, struct senss_sensor *sensor)
@@ -547,7 +584,11 @@ int open_sensor(int type, int sensor_index)
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
-	set_conn_index_save_conn(ctx, conn);
+	ret = senss_mgmt_bind_conn(ctx, conn);
+	if (ret) {
+		LOG_ERR("%s, senss_mgmt_bind_conn error:%d", __func__, ret);
+		return SENSS_SENSOR_INVALID_HANDLE;
+	}
 
 	LOG_INF("%s: %s, state:0x%x, conn:%d",
 			__func__, reporter->dev->name, reporter->state, conn->index);
@@ -558,41 +599,19 @@ int open_sensor(int type, int sensor_index)
 int close_sensor(struct connection *conn)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct senss_sensor *reporter, *client;
-	struct connection *tmp_conn;
-	int i;
+	int ret;
 
-	__ASSERT(conn && conn->source && conn->sink,
-		"close sensor, connection or reporter or client not be NULL");
-
-	reporter = conn->source;
-	client = conn->sink;
-
-	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
-		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
-
-	for_each_sensor_connection(i, client, tmp_conn) {
-		if (conn == tmp_conn) {
-			break;
-		}
+	ret = senss_mgmt_unbind_conn(ctx, conn);
+	if (ret) {
+		LOG_ERR("%s, senss_mgmt_unbind_conn error:%d", __func__, ret);
+		return SENSS_SENSOR_INVALID_HANDLE;
 	}
-
-	if (i == client->conns_num) {
-		LOG_ERR("cannot find sensor:%d to be closed", conn->index);
-		return -ENODEV;
-	}
-
-	sys_slist_find_and_remove(&reporter->client_list, &conn->snode);
-	LOG_INF("%s: %s connection:%d complete", __func__, reporter->dev->name, conn->index);
-
-	ctx->conns[conn->index]->data_evt_cb = NULL;
-	ctx->conns[conn->index] = NULL;
 
 	/* dynamic sensor will be freed directly, non-dynamic sensor will be only called in
 	 * senss_deinit(), and will be freed later
 	 */
 	if (conn->dynamic)
-		free(client);
+		free(conn->sink);
 
 	return 0;
 }
