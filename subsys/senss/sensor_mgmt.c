@@ -342,9 +342,14 @@ static void set_conn_index_save_conn(struct senss_mgmt_context *ctx, struct conn
 			break;
 		}
 	}
-	__ASSERT(i < CONFIG_SENSS_MAX_HANDLE_COUNT,
-			"connection index:%d should less than SENSS_MAX_HANDLE_COUNT:%d",
+
+	if (i >= CONFIG_SENSS_MAX_HANDLE_COUNT) {
+		LOG_ERR("connection index:%d should less than SENSS_MAX_HANDLE_COUNT:%d",
 			i, CONFIG_SENSS_MAX_HANDLE_COUNT);
+		k_mutex_unlock(&ctx->rpt_mutex);
+		return;
+	}
+
 	conn->index = i;
 	/* multi applications could open sensor simultaneously, mutex protect to global variable */
 	ctx->conns[i] = conn;
