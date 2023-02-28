@@ -207,31 +207,39 @@ static void senss_dispatch_thread(void *p1, void *p2, void *p3)
 /* allocate memory for struct senss_sensor
  * connections number: senss creates a connection between client and its each reporter
  */
-static struct senss_sensor *allocate_sensor(uint16_t conns_num, uint16_t sample_size)
+static void *allocate_sensor(uint16_t conns_num, uint16_t sample_size)
 {
+	void *data;
 	struct senss_sensor *sensor;
 	int size, sensor_size, conn_size;
 
-	sensor_size = sizeof(*sensor);
+	sensor_size = sample_size > 0 ? sizeof(*sensor) : 0;
 	conn_size = (conns_num * sizeof(struct senss_connection));
 	/* total memory to be alloctead for a sensor */
 	size = sensor_size + conn_size + sample_size;
-	sensor = malloc(size);
-	if (!sensor) {
+
+	__ASSERT(size > 0, "sensor and connection both NULL not exist");
+
+	data = malloc(size);
+	if (!data) {
 		LOG_ERR("malloc memory for senss_sensor error");
 		return NULL;
 	}
+
+	if (sensor_size == 0) {
+		/* data is pointered to struct senss_connection for application */
+		LOG_INF("%s, it's from application, conns_num:%d", __func__, conns_num);
+		return data;
+	}
+
+	sensor = data;
 	sensor->data_size = sample_size;
 	sensor->conns = (struct senss_connection *)(sensor + 1);
 	sensor->data_buf = sensor->conns + conns_num;
-
-	LOG_INF("%s, conns_num:%d", __func__, conns_num);
-
 	/* physical sensor has no reporter, connections number is 0 */
 	if (conns_num == 0) {
 		sensor->conns = NULL;
 	}
-
 	sys_slist_init(&sensor->client_list);
 
 	return sensor;
@@ -258,6 +266,9 @@ static struct senss_sensor *create_sensor(struct senss_sensor_dt_info *dt)
 	sensor->dt_info = dt;
 	sensor->dt_info->info.flags = sensor_ctx->register_info->flags;
 	sensor->dt_info->info.version = sensor_ctx->register_info->version;
+
+	LOG_INF("%s, sensor:%s, data_buf:%p",
+		__func__, sensor->dev->name, sensor->data_buf);
 
 	LOG_INF("%s, sensor:%s, min_ri:%d(us)",
 		__func__, sensor->dev->name, sensor->dt_info->info.minimal_interval);
@@ -337,30 +348,30 @@ static int senss_mgmt_bind_conn(struct senss_mgmt_context *ctx, struct senss_con
 
 static int senss_mgmt_unbind_conn(struct senss_mgmt_context *ctx, struct senss_connection *conn)
 {
-	struct senss_sensor *reporter, *client;
-	struct senss_connection *tmp_conn;
-	int i;
+	struct senss_sensor *reporter; //, *client;
+	// struct senss_connection *tmp_conn;
+	// int i;
 
-	__ASSERT(conn && conn->source && conn->sink,
-		"close sensor, connection or reporter or client not be NULL");
+	__ASSERT(conn && conn->source, "close sensor, connection or reporter not be NULL");
 
 	reporter = conn->source;
-	client = conn->sink;
 
 	__ASSERT(conn->index < CONFIG_SENSS_MAX_CONNECTION_COUNT,
 		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
-
-	for_each_reporter_conn(i, client, tmp_conn) {
-		if (conn == tmp_conn) {
-			break;
+#if 0
+	client = conn->sink;
+	if (client) {
+		for_each_reporter_conn(i, client, tmp_conn) {
+			if (conn == tmp_conn) {
+				break;
+			}
+		}
+		if (i == client->conns_num) {
+			LOG_ERR("cannot find sensor:%d to be closed", conn->index);
+			return -ENODEV;
 		}
 	}
-
-	if (i == client->conns_num) {
-		LOG_ERR("cannot find sensor:%d to be closed", conn->index);
-		return -ENODEV;
-	}
-
+#endif
 	sys_slist_find_and_remove(&reporter->client_list, &conn->snode);
 	LOG_INF("%s: %s connection:%d complete", __func__, reporter->dev->name, conn->index);
 
@@ -524,9 +535,8 @@ int senss_get_sensors(const struct senss_sensor_info **info)
 int open_sensor(int type, int sensor_index)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct senss_sensor *reporter, *client;
+	struct senss_sensor *reporter;// *client;
 	struct senss_connection *conn;
-	uint16_t conns_num = 1;
 	int ret;
 
 	/* get the reporter sensor to be opened */
@@ -537,25 +547,26 @@ int open_sensor(int type, int sensor_index)
 	}
 
 	/* allocate sensor for application client */
-	client = allocate_sensor(conns_num, 0);
-	if (!client) {
-		LOG_ERR("allocate client senss_sensor error");
+	conn = allocate_sensor(1, 0);
+	if (!conn) {
+		LOG_ERR("allocate senss_connnection error");
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
-	client->interval = 0;
 #if 0
+	uint16_t conns_num = 1;
+	client->interval = 0;
 	client->sensitivity_count = reporter->sensitivity_count;
 	__ASSERT(client->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
 			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
 			client->sensitivity_count);
 	memset(client->sensitivity, 0x00, sizeof(client->sensitivity));
-#endif
 	client->conns_num = conns_num;
 	conn = &client->conns[0];
+#endif
 
 	/* create connection between client and reporter */
-	ret = init_each_connection(ctx, conn, reporter, client, true);
+	ret = init_each_connection(ctx, conn, reporter, NULL, true);
 	if (ret) {
 		LOG_ERR("%s, init_each_connection error:%d", __func__, ret);
 		return SENSS_SENSOR_INVALID_HANDLE;
@@ -808,6 +819,10 @@ static int set_arbitrate_interval(struct senss_sensor *sensor, uint32_t interval
 	sensor->interval = interval;
 	/* reset sensor next_exec_time and sample timestamp as soon as sensor interval is changed */
 	sensor->next_exec_time = interval > 0 ? EXEC_TIME_INIT : EXEC_TIME_OFF;
+
+	LOG_INF("%s, interval:%d, next_exec_time:%lld, sensor:%s, data_buf:%p",
+		__func__, interval, sensor->next_exec_time, sensor->dev->name, sensor->data_buf);
+
 	((struct senss_sensor_value_header *)sensor->data_buf)->base_timestamp = 0;
 
 	LOG_INF("%s, interval:%d, next_exec_time:%lld", __func__, interval, sensor->next_exec_time);
@@ -823,6 +838,8 @@ static int set_arbitrate_interval(struct senss_sensor *sensor, uint32_t interval
 static int config_interval(struct senss_sensor *sensor)
 {
 	uint32_t interval = arbitrate_interval(sensor);
+
+	LOG_INF("%s(%d), interval:%d", __func__, __LINE__, interval);
 
 	return set_arbitrate_interval(sensor, interval);
 }

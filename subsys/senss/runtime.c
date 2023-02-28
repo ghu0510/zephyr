@@ -188,6 +188,8 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 
 	for_each_client_conn(sensor, conn) {
 		client = conn->sink;
+		LOG_INF("%s(%d), sensor:%s, connection:%d",
+			__func__, __LINE__, conn->source->dev->name, conn->index);
 		if (!is_client_request_data(conn)) {
 			continue;
 		}
@@ -253,7 +255,7 @@ static int process_streaming_data(struct senss_sensor *sensor, uint64_t cur_time
 	next_time = (*sample_time == 0 ? cur_time :
 				MIN(cur_time, *sample_time + sensor->interval));
 
-	LOG_DBG("%s, sensor:%s, cur:%lld, sampe:%lld, ri:%d(us), next:%lld", __func__,
+	LOG_INF("%s, sensor:%s, cur:%lld, sampe:%lld, ri:%d(us), next:%lld", __func__,
 		sensor->dev->name, cur_time, *sample_time, sensor->interval, next_time);
 
 	sensor_api = sensor->dev->api;
@@ -366,7 +368,7 @@ static bool sensor_need_poll(struct senss_sensor *sensor, uint64_t cur_time)
 		sensor->next_exec_time += sensor->interval;
 	}
 
-	LOG_DBG("%s, sensor:%s, need_poll:%u, cur:%llu, next_exec_time:%llu, mode:%d",
+	LOG_INF("%s, sensor:%s, need_poll:%u, cur:%llu, next_exec_time:%llu, mode:%d",
 		__func__, sensor->dev->name, poll, cur_time, sensor->next_exec_time, sensor->mode);
 
 	return poll;
