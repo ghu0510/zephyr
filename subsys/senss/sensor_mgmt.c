@@ -78,83 +78,55 @@ static int init_each_connection(struct senss_mgmt_context *ctx,
 	return 0;
 }
 
-
-/* initial sensor connections: connection between client and its reporter */
-static int init_sensor_connections(struct senss_mgmt_context *ctx, struct senss_sensor *sensor)
-{
-	struct senss_sensor *reporter_sensor;
-	struct senss_connection *conn;
-	int i;
-	int ret = 0;
-
-	sensor->conns_num = sensor->dt_info->reporter_num;
-	if (sensor->conns_num == 0) {
-		__ASSERT(!sensor->conns,
-			"init sensor connections, conns be NULL if sensor has no connection");
-		return 0;
-	}
-
-	/* initial each connection for sensors who has reporters */
-	for_each_reporter_conn(i, sensor, conn) {
-		reporter_sensor = get_reporter_sensor(ctx, sensor, i);
-		__ASSERT(reporter_sensor, "sensor's reporter should not be NULL");
-		/* device tree required sensor connection not to be opened or closed any more,
-		 * so it is called fixed connection. dynamic: false
-		 */
-		ret |= init_each_connection(ctx, conn, reporter_sensor, sensor, false);
-		conn->index = ctx->fixed_connection_count++;
-		LOG_INF("%s, report:%s, client:%s, connection:%d",
-			__func__, reporter_sensor->dev->name, sensor->dev->name, conn->index);
-		__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
-			"sensor connection number:%d exceed SENSS_MAX_HANDLE_COUNT", conn->index);
-
-		ctx->conns[conn->index] = conn;
-		/* link connection to its repoter's client_list */
-		sys_slist_append(&reporter_sensor->client_list, &conn->snode);
-	}
-
-	return ret;
-}
-
-static void get_connections_index(struct senss_mgmt_context *ctx,
-				 struct senss_sensor *sensor,
-				 int *conn_idx)
-{
-	struct senss_connection *conn;
-	int i;
-
-	if (sensor->conns_num == 0) {
-		__ASSERT(!sensor->conns,
-			"get connections index, conns be NULL if sensor has no connection");
-		return;
-	}
-
-	__ASSERT(sensor->conns_num <= CONFIG_SENSS_MAX_REPORTER_COUNT,
-				"connection number:%d exceed max number:%d",
-				sensor->conns_num, CONFIG_SENSS_MAX_REPORTER_COUNT);
-
-	for_each_reporter_conn(i, sensor, conn) {
-		conn_idx[i] = conn->index;
-	}
-}
-
 static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sensor)
 {
 	const struct senss_sensor_api *sensor_api;
+	struct senss_sensor *reporter;
+	struct senss_connection *conn;
 	int conn_idx[CONFIG_SENSS_MAX_REPORTER_COUNT] = {0};
-	int ret;
+	int i, ret = 0;
 
 	__ASSERT(sensor && sensor->dev, "init sensor, sensor or sensor device is NULL");
 	sensor_api = sensor->dev->api;
 	__ASSERT(sensor_api, "init sensor, sensor device sensor_api is NULL");
 
-	ret = init_sensor_connections(ctx, sensor);
-	if (ret) {
-		LOG_ERR("%s, init_sensor_connections error:%d", __func__, ret);
-		return ret;
+	sensor->conns_num = sensor->dt_info->reporter_num;
+	/* physical sensor has no reporter, conns_num is 0 */
+	if (sensor->conns_num == 0) {
+		__ASSERT(!sensor->conns, "init sensor, conns be NULL if sensor has no connection");
 	}
 
-	get_connections_index(ctx, sensor, conn_idx);
+	__ASSERT(sensor->conns_num <= CONFIG_SENSS_MAX_REPORTER_COUNT,
+		 "connection number:%d exceed max number:%d",
+		 sensor->conns_num, CONFIG_SENSS_MAX_REPORTER_COUNT);
+
+	/* initial each connection for sensors who has reporters */
+	for_each_reporter_conn(i, sensor, conn) {
+		reporter = get_reporter_sensor(ctx, sensor, i);
+		__ASSERT(reporter, "sensor's reporter should not be NULL");
+		/* device tree required sensor connection not to be opened or closed any more,
+		 * so it is called fixed connection. dynamic: false
+		 */
+		ret |= init_each_connection(ctx, conn, reporter, sensor, false);
+		if (ret) {
+			LOG_ERR("%s, init_each_connection error:%d", __func__, ret);
+			return ret;
+		}
+		/* device tree required sensor connection between reporter and client cannot be
+		 * opened or closed any more, so it is called fixed connection.
+		 */
+		conn->index = ctx->fixed_connection_count++;
+		LOG_INF("%s, reporter:%s, client:%s, connection:%d",
+			__func__, reporter->dev->name, sensor->dev->name, conn->index);
+		__ASSERT(conn->index < CONFIG_SENSS_MAX_CONNECTION_COUNT,
+			"sensor connection number:%d exceed SENSS_MAX_HANDLE_COUNT", conn->index);
+
+		ctx->conns[conn->index] = conn;
+		/* link connection to its repoter's client_list */
+		sys_slist_append(&reporter->client_list, &conn->snode);
+
+		conn_idx[i] = conn->index;
+	}
 
 	/* physical sensor is working at polling mode by default,
 	 * virtual sensor working mode is inherited from its reporter
@@ -185,7 +157,7 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 			__ASSERT(data_size + sizeof(*header) <= CONFIG_SENSS_MAX_SENSOR_DATA_SIZE,
 						"invalid data size:%d", header->data_size);
 			conn_index = header->conn_index;
-			__ASSERT(conn_index < CONFIG_SENSS_MAX_HANDLE_COUNT,
+			__ASSERT(conn_index < CONFIG_SENSS_MAX_CONNECTION_COUNT,
 						"invalid connection index:%d", conn_index);
 			/* get data_size from header, and then read sensor data from ring buf */
 			wanted_size = data_size;
@@ -340,7 +312,7 @@ static int senss_mgmt_bind_conn(struct senss_mgmt_context *ctx, struct senss_con
 
 	k_mutex_lock(&ctx->rpt_mutex, K_FOREVER);
 	/* find the first free connection */
-	for (i = ctx->fixed_connection_count; i < CONFIG_SENSS_MAX_HANDLE_COUNT; i++) {
+	for (i = ctx->fixed_connection_count; i < CONFIG_SENSS_MAX_CONNECTION_COUNT; i++) {
 		if (!ctx->conns[i]) {
 			break;
 		}
@@ -375,7 +347,7 @@ static int senss_mgmt_unbind_conn(struct senss_mgmt_context *ctx, struct senss_c
 	reporter = conn->source;
 	client = conn->sink;
 
-	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
+	__ASSERT(conn->index < CONFIG_SENSS_MAX_CONNECTION_COUNT,
 		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
 
 	for_each_reporter_conn(i, client, tmp_conn) {
@@ -497,7 +469,7 @@ int senss_deinit(void)
 	int i, j;
 
 	/* close all sensors */
-	for (i = 0; i < CONFIG_SENSS_MAX_HANDLE_COUNT; i++) {
+	for (i = 0; i < CONFIG_SENSS_MAX_CONNECTION_COUNT; i++) {
 		conn = ctx->conns[i];
 		if (!conn) {
 			continue;
@@ -572,11 +544,13 @@ int open_sensor(int type, int sensor_index)
 	}
 
 	client->interval = 0;
+#if 0
 	client->sensitivity_count = reporter->sensitivity_count;
 	__ASSERT(client->sensitivity_count <= CONFIG_SENSS_MAX_SENSITIVITY_COUNT,
 			"sensitivity count:%d should not exceed MAX_SENSITIVITY_COUNT",
 			client->sensitivity_count);
 	memset(client->sensitivity, 0x00, sizeof(client->sensitivity));
+#endif
 	client->conns_num = conns_num;
 	conn = &client->conns[0];
 
@@ -786,7 +760,7 @@ static uint32_t arbitrate_interval(struct senss_sensor *sensor)
 	uint32_t interval;
 
 	/* search from all clients, arbitrate the interval */
-	for_each_sensor_client(sensor, conn) {
+	for_each_client_conn(sensor, conn) {
 		LOG_INF("%s, for each client, sensor:%s, conn:%d, interval:%d(us)",
 			__func__, sensor->dev->name, conn->index, conn->interval);
 		if (!is_client_request_data(conn)) {
@@ -859,7 +833,7 @@ static uint32_t arbitrate_sensivitity(struct senss_sensor *sensor, int index)
 	uint32_t min_sensitivity = UINT32_MAX;
 
 	/* search from all clients, arbitrate the sensitivity */
-	for_each_sensor_client(sensor, conn) {
+	for_each_client_conn(sensor, conn) {
 		LOG_INF("%s, each sensor:%s, conn:%d, interval:%d, index:%d, sens:%d, min_sen:%d",
 				__func__, sensor->dev->name, conn->index, conn->interval, index,
 				conn->sensitivity[index], min_sensitivity);

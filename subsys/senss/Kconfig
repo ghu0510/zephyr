@@ -39,15 +39,14 @@ config SENSS_MAX_SENSITIVITY_COUNT
 	  This is the maximum sensitivity count one sensor could support
 	  Typical values are 6
 
-config SENSS_MAX_HANDLE_COUNT
-	int "maximum handle count"
+config SENSS_MAX_CONNECTION_COUNT
+	int "maximum connection count"
 	depends on SENSS
 	default 256
 	help
-	  This is the maximum handle count senss could support
+	  This is the maximum connection count senss could support
 	  when sensor is opened by applcaiton, senss_open_sensor()
-	  is called, handle count will accumulate. Sensor connection will
-	  be created for each hanle
+	  is called, connection count will be accumulated.
 	  Typical values are 256
 
 config SENSS_RING_BUF_SIZE

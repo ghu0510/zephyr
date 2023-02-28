@@ -57,7 +57,7 @@ extern "C" {
 #define for_each_reporter_conn(i, sensor, conn)			\
 	for (i = 0; i < sensor->conns_num && (conn = &sensor->conns[i]) != NULL; i++)
 
-#define for_each_sensor_client(sensor, client)				\
+#define for_each_client_conn(sensor, client)				\
 	SYS_SLIST_FOR_EACH_CONTAINER(&sensor->client_list, client, snode)
 
 #if CONFIG_SENSS_RUNTIME_THREAD_PRIORITY < -16 || CONFIG_SENSS_RUNTIME_THREAD_PRIORITY >= 15
@@ -159,7 +159,7 @@ struct senss_mgmt_context {
 	struct senss_sensor_info *info;
 	int fixed_connection_count;
 	struct senss_sensor *sensor_db[CONFIG_SENSS_MAX_SENSOR_COUNT];
-	struct senss_connection *conns[CONFIG_SENSS_MAX_HANDLE_COUNT];
+	struct senss_connection *conns[CONFIG_SENSS_MAX_CONNECTION_COUNT];
 	struct k_sem dispatch_sem;
 	struct k_sem event_sem;
 	atomic_t event_flag;
@@ -229,7 +229,7 @@ static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context
 static inline struct senss_connection *get_connection_by_handle(struct senss_mgmt_context *ctx,
 							  int handle)
 {
-	if (handle >= CONFIG_SENSS_MAX_HANDLE_COUNT) {
+	if (handle >= CONFIG_SENSS_MAX_CONNECTION_COUNT) {
 		return NULL;
 	}
 

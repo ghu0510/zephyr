@@ -186,7 +186,7 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 	struct senss_connection *conn;
 	bool sensi_pass = false;
 
-	for_each_sensor_client(sensor, conn) {
+	for_each_client_conn(sensor, conn) {
 		client = conn->sink;
 		if (!is_client_request_data(conn)) {
 			continue;
@@ -209,13 +209,14 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		if (!sensi_pass) {
 			continue;
 		}
-
-		/* pass the sensor mode to its client */
-		client->mode = sensor->mode;
-		/* if client sensor switch to polling mode, reset next_execute_time */
-		if (client->mode == SENSOR_TRIGGER_MODE_POLLING &&
-						client->next_exec_time == EXEC_TIME_OFF) {
-			client->next_exec_time = EXEC_TIME_INIT;
+		if (!conn->dynamic) {
+			/* pass the sensor mode to its client */
+			client->mode = sensor->mode;
+			/* if client sensor switch to polling mode, reset next_execute_time */
+			if (client->mode == SENSOR_TRIGGER_MODE_POLLING &&
+							client->next_exec_time == EXEC_TIME_OFF) {
+				client->next_exec_time = EXEC_TIME_INIT;
+			}
 		}
 
 		conn->new_data_arrive = true;
