@@ -26,7 +26,7 @@ int senss_open_sensor(int type, int sensor_index, int *handle)
 int senss_close_sensor(int handle)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 	int ret;
 
 	if (!conn) {
@@ -52,7 +52,7 @@ int senss_close_sensor(int handle)
 int senss_set_interval(int handle, uint32_t value)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
 		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
@@ -68,7 +68,7 @@ int senss_set_interval(int handle, uint32_t value)
 int senss_get_interval(int handle, uint32_t *value)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!value) {
 		LOG_ERR("%s, invalid interval address", __func__);
@@ -89,7 +89,7 @@ int senss_get_interval(int handle, uint32_t *value)
 int senss_set_sensitivity(int handle, int index, uint32_t value)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
 		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
@@ -105,7 +105,7 @@ int senss_set_sensitivity(int handle, int index, uint32_t value)
 int senss_get_sensitivity(int handle, int index, uint32_t *value)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!value) {
 		LOG_ERR("%s, invalid sensitivity address", __func__);
@@ -125,7 +125,7 @@ int senss_get_sensitivity(int handle, int index, uint32_t *value)
 int senss_read_sample(int handle, void *buf, int size)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!buf) {
 		LOG_ERR("%s, invalid buf to read sample", __func__);
@@ -145,7 +145,7 @@ int senss_register_data_event_callback(int handle,
 				       void *param)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
 		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
@@ -160,7 +160,7 @@ int senss_register_data_event_callback(int handle,
 const struct senss_sensor_info *senss_get_sensor_info(int handle)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
 		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
@@ -173,7 +173,7 @@ const struct senss_sensor_info *senss_get_sensor_info(int handle)
 int senss_get_sensor_state(int handle, enum senss_sensor_state *state)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
-	struct connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
 
 	if (!conn) {
 		LOG_ERR("%s, handle:%d get connection error", __func__, handle);

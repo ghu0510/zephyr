@@ -99,10 +99,10 @@ struct senss_sensor_dt_info {
 };
 
 /**
- * @struct connection information
- * @brief connection indicates connection from reporter sensor(source) to client sensor(sink)
+ * @struct senss_connection information
+ * @brief senss_connection indicates connection from reporter sensor(source) to client sensor(sink)
  */
-struct connection {
+struct senss_connection {
 	int index;
 	struct senss_sensor *source;
 	struct senss_sensor *sink;
@@ -141,7 +141,7 @@ struct senss_sensor {
 	/* Common Register info */
 	struct senss_sensor_dt_info *dt_info;
 	int conns_num;
-	struct connection *conns;
+	struct senss_connection *conns;
 	sys_slist_t client_list;
 	uint32_t interval;
 	uint8_t sensitivity_count;
@@ -162,7 +162,7 @@ struct senss_mgmt_context {
 	struct senss_sensor_info *info;
 	int fixed_connection_count;
 	struct senss_sensor *sensor_db[CONFIG_SENSS_MAX_SENSOR_COUNT];
-	struct connection *conns[CONFIG_SENSS_MAX_HANDLE_COUNT];
+	struct senss_connection *conns[CONFIG_SENSS_MAX_HANDLE_COUNT];
 	struct k_sem dispatch_sem;
 	struct k_sem event_sem;
 	atomic_t event_flag;
@@ -184,14 +184,14 @@ struct sensor_data_header {
 struct senss_mgmt_context *get_senss_ctx(void);
 void senss_runtime_thread(void *p1, void *p2, void *p3);
 int open_sensor(int type, int instance);
-int close_sensor(struct connection *conn);
-int set_interval(struct connection *conn, uint32_t value);
-int get_interval(struct connection *con, uint32_t *value);
-int set_sensitivity(struct connection *conn, int index, uint32_t value);
-int get_sensitivity(struct connection *con, int index, uint32_t *value);
+int close_sensor(struct senss_connection *conn);
+int set_interval(struct senss_connection *conn, uint32_t value);
+int get_interval(struct senss_connection *con, uint32_t *value);
+int set_sensitivity(struct senss_connection *conn, int index, uint32_t value);
+int get_sensitivity(struct senss_connection *con, int index, uint32_t *value);
 int get_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state *state);
 const struct senss_sensor_info *get_sensor_info(struct senss_sensor *sensor);
-int register_data_event_callback(struct connection *conn,
+int register_data_event_callback(struct senss_connection *conn,
 				 senss_data_event_t callback,
 				 void *param);
 int read_sample(struct senss_sensor *sensor, void *buf, int size);
@@ -229,7 +229,7 @@ static inline struct senss_sensor *get_reporter_sensor(struct senss_mgmt_context
 	return get_sensor_by_dev(sensor->dt_info->reporters[index]);
 }
 
-static inline struct connection *get_connection_by_handle(struct senss_mgmt_context *ctx,
+static inline struct senss_connection *get_connection_by_handle(struct senss_mgmt_context *ctx,
 							  int handle)
 {
 	if (handle >= CONFIG_SENSS_MAX_HANDLE_COUNT) {
@@ -277,7 +277,7 @@ static inline bool sensor_has_new_data(const struct senss_sensor *sensor)
 }
 
 /* if client has requested data from reporter, interval should be set first */
-static inline bool is_client_request_data(struct connection *conn)
+static inline bool is_client_request_data(struct senss_connection *conn)
 {
 	return conn->interval != 0;
 }

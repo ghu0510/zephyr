@@ -54,7 +54,7 @@ static int calc_sleep_time(struct senss_mgmt_context *ctx, uint64_t cur_time)
 
 static void add_data_to_sensor_ring_buf(struct senss_mgmt_context *ctx,
 					struct senss_sensor *sensor,
-					struct connection *conn)
+					struct senss_connection *conn)
 {
 	struct sensor_data_header *header;
 	uint8_t data[CONFIG_SENSS_MAX_SENSOR_DATA_SIZE];
@@ -84,7 +84,7 @@ static void add_data_to_sensor_ring_buf(struct senss_mgmt_context *ctx,
 }
 
 static int sensor_sensitivity_test(struct senss_sensor *sensor,
-				   struct connection *conn)
+				   struct senss_connection *conn)
 {
 	const struct senss_sensor_api *sensor_api;
 	void *last_sample = conn->data;
@@ -109,7 +109,7 @@ static int sensor_sensitivity_test(struct senss_sensor *sensor,
 }
 
 /* check whether the new sample passes the sensitivity test, send to client if passed */
-static bool sensor_test_sensitivity(struct senss_sensor *sensor, struct connection *conn)
+static bool sensor_test_sensitivity(struct senss_sensor *sensor, struct senss_connection *conn)
 {
 	int ret = 0;
 
@@ -138,7 +138,7 @@ static bool sensor_test_sensitivity(struct senss_sensor *sensor, struct connecti
 
 /* check whether it is right time for client to consume this sample */
 static bool sensor_test_consume_time(struct senss_sensor *sensor,
-				     struct connection *conn,
+				     struct senss_connection *conn,
 				     uint64_t cur_time)
 {
 	uint64_t sample_time = ((struct senss_sensor_value_header *)
@@ -154,7 +154,7 @@ static bool sensor_test_consume_time(struct senss_sensor *sensor,
 	return false;
 }
 
-static void update_client_consume_time(struct senss_sensor *sensor, struct connection *conn)
+static void update_client_consume_time(struct senss_sensor *sensor, struct senss_connection *conn)
 {
 	uint32_t interval = conn->interval;
 	uint64_t sample_time = ((struct senss_sensor_value_header *)
@@ -183,7 +183,7 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 				uint64_t cur_time)
 {
 	struct senss_sensor *client;
-	struct connection *conn;
+	struct senss_connection *conn;
 	bool sensi_pass = false;
 
 	for_each_sensor_client(sensor, conn) {
@@ -282,7 +282,7 @@ static int physical_sensor_process_data(struct senss_sensor *sensor, uint64_t cu
 static int virtual_sensor_process_data(struct senss_sensor *sensor)
 {
 	const struct senss_sensor_api *sensor_api;
-	struct connection *conn;
+	struct senss_connection *conn;
 	int ret = 0;
 	int i;
 
