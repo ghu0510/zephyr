@@ -49,16 +49,13 @@ extern "C" {
 },
 
 #define for_each_sensor(ctx, i, sensor)					\
-	for (i = 0; i < ctx->sensor_num &&				\
-		(sensor = ctx->sensor_db[i]) != NULL; i++)
+	for (i = 0; i < ctx->sensor_num && (sensor = ctx->sensor_db[i]) != NULL; i++)
 
 #define for_each_sensor_reverse(ctx, i, sensor)				\
-	for (i = ctx->sensor_num - 1; i >= 0 &&				\
-		(sensor = ctx->sensor_db[i]) != NULL; i--)
+	for (i = ctx->sensor_num - 1; i >= 0 && (sensor = ctx->sensor_db[i]) != NULL; i--)
 
-#define for_each_sensor_connection(i, sensor, conn)			\
-	for (i = 0; i < sensor->conns_num &&				\
-		(conn = &sensor->conns[i]) != NULL; i++)		\
+#define for_each_reporter_conn(i, sensor, conn)			\
+	for (i = 0; i < sensor->conns_num && (conn = &sensor->conns[i]) != NULL; i++)
 
 #define for_each_sensor_client(sensor, client)				\
 	SYS_SLIST_FOR_EACH_CONTAINER(&sensor->client_list, client, snode)

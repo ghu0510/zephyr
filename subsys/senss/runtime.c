@@ -294,7 +294,7 @@ static int virtual_sensor_process_data(struct senss_sensor *sensor)
 	/* enumerate each connection, and call process data for each connection,
 	 * after data processing, clear new_data_arrvie flag
 	 */
-	for_each_sensor_connection(i, sensor, conn) {
+	for_each_reporter_conn(i, sensor, conn) {
 		if (!conn->new_data_arrive) {
 			continue;
 		}

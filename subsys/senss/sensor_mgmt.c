@@ -95,7 +95,7 @@ static int init_sensor_connections(struct senss_mgmt_context *ctx, struct senss_
 	}
 
 	/* initial each connection for sensors who has reporters */
-	for_each_sensor_connection(i, sensor, conn) {
+	for_each_reporter_conn(i, sensor, conn) {
 		reporter_sensor = get_reporter_sensor(ctx, sensor, i);
 		__ASSERT(reporter_sensor, "sensor's reporter should not be NULL");
 		/* device tree required sensor connection not to be opened or closed any more,
@@ -133,7 +133,7 @@ static void get_connections_index(struct senss_mgmt_context *ctx,
 				"connection number:%d exceed max number:%d",
 				sensor->conns_num, CONFIG_SENSS_MAX_REPORTER_COUNT);
 
-	for_each_sensor_connection(i, sensor, conn) {
+	for_each_reporter_conn(i, sensor, conn) {
 		conn_idx[i] = conn->index;
 	}
 }
@@ -378,7 +378,7 @@ static int senss_mgmt_unbind_conn(struct senss_mgmt_context *ctx, struct senss_c
 	__ASSERT(conn->index < CONFIG_SENSS_MAX_HANDLE_COUNT,
 		"sensor connection number:%d exceed MAX_SENSOR_COUNT", conn->index);
 
-	for_each_sensor_connection(i, client, tmp_conn) {
+	for_each_reporter_conn(i, client, tmp_conn) {
 		if (conn == tmp_conn) {
 			break;
 		}
@@ -508,7 +508,7 @@ int senss_deinit(void)
 	/* free connection data and sensor */
 	for_each_sensor(ctx, i, sensor) {
 		LOG_INF("%s, free sensor:%s data and senss_sensor", __func__, sensor->dev->name);
-		for_each_sensor_connection(j, sensor, conn) {
+		for_each_reporter_conn(j, sensor, conn) {
 			free(conn->data);
 		}
 		free(sensor);
