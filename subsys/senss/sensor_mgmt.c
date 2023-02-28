@@ -59,13 +59,11 @@ static int set_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state
 static int init_each_connection(struct senss_mgmt_context *ctx,
 				struct senss_connection *conn,
 				struct senss_sensor *source,
-				struct senss_sensor *sink,
-				bool dynamic)
+				struct senss_sensor *sink)
 {
 	__ASSERT(conn, "init each connection, invalid connection");
 	conn->source = source;
 	conn->sink = sink;
-	conn->dynamic = dynamic;
 	/* malloc connection sample buf to copy data from source data buf */
 	conn->data = malloc(source->data_size);
 	if (!conn->data) {
@@ -104,10 +102,7 @@ static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sens
 	for_each_reporter_conn(i, sensor, conn) {
 		reporter = get_reporter_sensor(ctx, sensor, i);
 		__ASSERT(reporter, "sensor's reporter should not be NULL");
-		/* device tree required sensor connection not to be opened or closed any more,
-		 * so it is called fixed connection. dynamic: false
-		 */
-		ret |= init_each_connection(ctx, conn, reporter, sensor, false);
+		ret |= init_each_connection(ctx, conn, reporter, sensor);
 		if (ret) {
 			LOG_ERR("%s, init_each_connection error:%d", __func__, ret);
 			return ret;
@@ -566,7 +561,7 @@ int open_sensor(int type, int sensor_index)
 #endif
 
 	/* create connection between client and reporter */
-	ret = init_each_connection(ctx, conn, reporter, NULL, true);
+	ret = init_each_connection(ctx, conn, reporter, NULL);
 	if (ret) {
 		LOG_ERR("%s, init_each_connection error:%d", __func__, ret);
 		return SENSS_SENSOR_INVALID_HANDLE;
@@ -595,12 +590,6 @@ int close_sensor(struct senss_connection *conn)
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
-	/* dynamic sensor will be freed directly, non-dynamic sensor will be only called in
-	 * senss_deinit(), and will be freed later
-	 */
-	if (conn->dynamic)
-		free(conn->sink);
-
 	return 0;
 }
 
@@ -611,8 +600,8 @@ int set_interval(struct senss_connection *conn, uint32_t interval)
 
 	__ASSERT(conn && conn->source, "%s, connection or reporter should not be NULL", __func__);
 
-	LOG_INF("%s, sensor:%s, conn:%d, dynamic:%d, interval:%u",
-		__func__, conn->source->dev->name, conn->index, conn->dynamic, interval);
+	LOG_INF("%s, sensor:%s, conn:%d, interval:%u",
+		__func__, conn->source->dev->name, conn->index, interval);
 
 	if (interval > 0 && interval < conn->source->dt_info->info.minimal_interval) {
 		LOG_ERR("interval:%d(us) should no less than min interval:%d(us)",
@@ -654,8 +643,8 @@ int set_sensitivity(struct senss_connection *conn, int index, uint32_t sensitivi
 
 	sensor = conn->source;
 
-	LOG_INF("%s, sensor:%s, conn:%d, dynamic:%d, index:%d, sensitivity:%d, count:%d",
-			__func__, sensor->dev->name, conn->index, conn->dynamic, index,
+	LOG_INF("%s, sensor:%s, conn:%d, index:%d, sensitivity:%d, count:%d",
+			__func__, sensor->dev->name, conn->index, index,
 			sensitivity, sensor->sensitivity_count);
 
 	if (index < SENSS_INDEX_ALL || index >= sensor->sensitivity_count) {

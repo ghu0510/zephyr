@@ -113,10 +113,6 @@ struct senss_connection {
 	/* when new data arrive, set flag to true, after data processing, clear the flag */
 	bool new_data_arrive;
 	sys_snode_t snode;
-	/* dynamic false: connection created during initial according to device tree
-	 * dynamic true: connection created/closed from applcation: HID, CHRE, etc
-	 */
-	bool dynamic;
 	/* post data to application */
 	senss_data_event_t data_evt_cb;
 	void *cb_param;

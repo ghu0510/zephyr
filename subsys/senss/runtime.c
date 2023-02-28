@@ -211,7 +211,7 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		if (!sensi_pass) {
 			continue;
 		}
-		if (!conn->dynamic) {
+		if (conn->sink) {
 			/* pass the sensor mode to its client */
 			client->mode = sensor->mode;
 			/* if client sensor switch to polling mode, reset next_execute_time */
@@ -224,7 +224,7 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		conn->new_data_arrive = true;
 
 		memcpy(conn->data, sensor->data_buf, sensor->data_size);
-		if (conn->dynamic) {
+		if (!conn->sink) {
 			add_data_to_sensor_ring_buf(ctx, sensor, conn);
 			ctx->data_to_ring_buf = true;
 		}

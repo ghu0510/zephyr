@@ -33,7 +33,7 @@ int senss_close_sensor(int handle)
 		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return -EINVAL;
 	}
-	__ASSERT(conn->dynamic, "only dynamic connection could be closed");
+	__ASSERT(!conn->sink, "only connection to application could be closed");
 
 	LOG_INF("%s, handle:%d, sensor:%s", __func__, handle, conn->source->dev->name);
 
@@ -59,8 +59,8 @@ int senss_set_interval(int handle, uint32_t value)
 		return -EINVAL;
 	}
 
-	LOG_INF("%s, sensor:%s, dynamic connection:%d, interval:%d(us)",
-		__func__, conn->source->dev->name, conn->dynamic, value);
+	LOG_INF("%s, sensor:%s, interval:%d(us)",
+		__func__, conn->source->dev->name, value);
 
 	return set_interval(conn, value);
 }
@@ -80,8 +80,7 @@ int senss_get_interval(int handle, uint32_t *value)
 		return -EINVAL;
 	}
 
-	LOG_INF("%s, sensor:%s, dynamic connection:%d",
-		__func__, conn->source->dev->name, conn->dynamic);
+	LOG_INF("%s, sensor:%s", __func__, conn->source->dev->name);
 
 	return get_interval(conn, value);
 }
@@ -96,8 +95,8 @@ int senss_set_sensitivity(int handle, int index, uint32_t value)
 		return -EINVAL;
 	}
 
-	LOG_INF("%s, sensor:%s, dynamic connection:%d, index:%d, sensitivity:%d",
-		__func__, conn->source->dev->name, conn->dynamic, index, value);
+	LOG_INF("%s, sensor:%s, index:%d, sensitivity:%d",
+		__func__, conn->source->dev->name, index, value);
 
 	return set_sensitivity(conn, index, value);
 }
@@ -117,7 +116,7 @@ int senss_get_sensitivity(int handle, int index, uint32_t *value)
 		return -EINVAL;
 	}
 
-	LOG_INF("%s, index:%d, dynamic connection:%d", __func__, index, conn->dynamic);
+	LOG_INF("%s, index:%d", __func__, index);
 
 	return get_sensitivity(conn, index, value);
 }
@@ -152,7 +151,7 @@ int senss_register_data_event_callback(int handle,
 		return -EINVAL;
 	}
 
-	__ASSERT(conn->dynamic, "only dynamic connection could register data event callback");
+	__ASSERT(!conn->sink, "only connection to application could register data event callback");
 
 	return register_data_event_callback(conn, callback, param);
 }
