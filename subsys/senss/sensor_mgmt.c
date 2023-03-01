@@ -110,7 +110,7 @@ static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sens
 			return ret;
 		}
 
-			LOG_INF("%s(%d), i:%d, reporter:%s, sensor:%s, conn:%p, conn-data:%p",
+		LOG_INF("%s(%d), i:%d, reporter:%s, sensor:%s, conn:%p, conn-data:%p",
 			__func__, __LINE__, i, reporter->dev->name, sensor->dev->name, conn, conn->data);
 
 		/* device tree required sensor connection between reporter and client cannot be
@@ -371,6 +371,12 @@ int close_sensor(struct senss_connection *conn)
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
+	if (!conn->sink) {
+		free(conn);
+	} else {
+		free(conn->data);
+	}
+
 	return 0;
 }
 
@@ -465,17 +471,6 @@ int senss_deinit(void)
 			continue;
 		}
 		ret |= close_sensor(conn);
-		/* only free connection from reporter to application,
-		 * connection between reporter and client derived from device tree will be freed
-		 * later together with sensor, free(sensor)
-		 */
-		if (!conn->sink) {
-			LOG_INF("%s(%d), conn:%p", __func__, __LINE__, conn);
-			free(conn);
-		} else {
-			LOG_INF("%s(%d), conn-data:%p", __func__, __LINE__, conn->data);
-			free(conn->data);
-		}
 	}
 
 	/* free sensors */

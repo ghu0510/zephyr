@@ -6,7 +6,6 @@
 #include <zephyr/sys/__assert.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/senss/senss_sensor.h>
-#include <stdlib.h>
 #include "sensor_mgmt.h"
 
 LOG_MODULE_DECLARE(senss, CONFIG_SENSS_LOG_LEVEL);
@@ -28,14 +27,16 @@ int senss_close_sensor(int handle)
 {
 	struct senss_mgmt_context *ctx = get_senss_ctx();
 	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
+	struct senss_sensor *reporter;
 	int ret;
 
 	if (!conn) {
 		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
 		return -EINVAL;
 	}
-	__ASSERT(!conn->sink, "only connection to application could be closed");
+	__ASSERT(!conn->sink, "only sensor that connection to application could be closed");
 
+	reporter = conn->source;
 	LOG_INF("%s, handle:%d, sensor:%s", __func__, handle, conn->source->dev->name);
 
 	ret = close_sensor(conn);
@@ -47,9 +48,7 @@ int senss_close_sensor(int handle)
 	LOG_INF("%s(%d) ready, ret:%d", __func__, __LINE__, ret);
 
 	/* connection is unbind, notify sensor mgmt to do updates */
-	save_config_and_notify(ctx, conn->source);
-
-	free(conn);
+	save_config_and_notify(ctx, reporter);
 
 	return 0;
 }
