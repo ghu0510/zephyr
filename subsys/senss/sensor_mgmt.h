@@ -159,7 +159,7 @@ struct senss_mgmt_context {
 	struct k_sem dispatch_sem;
 	struct k_sem event_sem;
 	atomic_t event_flag;
-	struct k_mutex rpt_mutex;
+	struct k_mutex conn_mutex;
 	struct k_thread runtime_thread;
 	struct k_thread dispatch_thread;
 	k_tid_t runtime_id;
@@ -230,6 +230,24 @@ static inline struct senss_connection *get_connection_by_handle(struct senss_mgm
 	}
 
 	return ctx->conns[handle];
+}
+
+static inline struct senss_sensor *get_sensor_by_type_and_index(struct senss_mgmt_context *ctx,
+								int type,
+								int sensor_index)
+{
+	struct senss_sensor *sensor;
+	int i = 0;
+
+	for_each_sensor(ctx, i, sensor) {
+		if (sensor->dt_info->info.type != type ||
+		    sensor->dt_info->info.sensor_index != sensor_index) {
+		    continue;
+		}
+		return sensor;
+	}
+
+	return NULL;
 }
 
 /* this function is used to decide whether filtering sensitivity checking

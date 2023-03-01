@@ -6,6 +6,7 @@
 #include <zephyr/sys/__assert.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/senss/senss_sensor.h>
+#include <stdlib.h>
 #include "sensor_mgmt.h"
 
 LOG_MODULE_DECLARE(senss, CONFIG_SENSS_LOG_LEVEL);
@@ -43,8 +44,12 @@ int senss_close_sensor(int handle)
 		return ret;
 	}
 
-	/* connection is closed, notify sensor mgmt to do updates */
+	LOG_INF("%s(%d) ready, ret:%d", __func__, __LINE__, ret);
+
+	/* connection is unbind, notify sensor mgmt to do updates */
 	save_config_and_notify(ctx, conn->source);
+
+	free(conn);
 
 	return 0;
 }

@@ -222,7 +222,10 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		}
 
 		conn->new_data_arrive = true;
-
+		/* copy sensor data to connection data buf
+		 * 1) connection data will be used as last sample in next cycle sensitivity test
+		 * 2) connection data will be passed to client in its process() callback
+		 */
 		memcpy(conn->data, sensor->data_buf, sensor->data_size);
 		if (!conn->sink) {
 			add_data_to_sensor_ring_buf(ctx, sensor, conn);
