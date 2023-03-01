@@ -79,7 +79,7 @@ static void add_data_to_sensor_ring_buf(struct senss_mgmt_context *ctx,
 			"put data size:%d is not expected :%d",
 			data_size, sizeof(*header) + sensor->data_size);
 
-	LOG_DBG("%s, sensor:%s, conn_index:%d, data_size:%d",
+	LOG_INF("%s, sensor:%s, conn_index:%d, data_size:%d",
 		__func__, sensor->dev->name, conn->index, sensor->data_size);
 }
 
@@ -144,11 +144,14 @@ static bool sensor_test_consume_time(struct senss_sensor *sensor,
 	uint64_t sample_time = ((struct senss_sensor_value_header *)
 					sensor->data_buf)->base_timestamp;
 
+	LOG_INF("sensor:%s next_consume_time:%lld sample_time:%lld, cur_time:%lld",
+			sensor->dev->name, conn->next_consume_time, sample_time, cur_time);
+
 	if (conn->next_consume_time <= sample_time)
 		return true;
 
 
-	LOG_DBG("sensor:%s data not ready, next_consume_time:%lld sample_time:%lld, cur_time:%lld",
+	LOG_INF("sensor:%s data not ready, next_consume_time:%lld sample_time:%lld, cur_time:%lld",
 			sensor->dev->name, conn->next_consume_time, sample_time, cur_time);
 
 	return false;
@@ -197,20 +200,34 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		 * true: currently, it's time for client consume the data
 		 * false: client time not arrived yet, not consume the data
 		 */
+			LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
+			__func__, __LINE__, conn->source->dev->name, conn->index, conn->sink);
+
 		if (!sensor_test_consume_time(sensor, conn, cur_time)) {
 			continue;
 		}
+
+				LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
+			__func__, __LINE__, conn->source->dev->name, conn->index, conn->sink);
+
 		/* check sensitivity threshold passing or not, sensi_pass:
 		 * true: sensitivity checking pass, could post the data
 		 * false: sensitivity checking not pass, return
 		 */
 		sensi_pass = sensor_test_sensitivity(sensor, conn);
 
+		LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
+			__func__, __LINE__, conn->source->dev->name, conn->index, conn->sink);
+
 		update_client_consume_time(sensor, conn);
 
 		if (!sensi_pass) {
 			continue;
 		}
+		LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
+			__func__, __LINE__, conn->source->dev->name, conn->index, conn->sink);
+
+
 		if (conn->sink) {
 			/* pass the sensor mode to its client */
 			client->mode = sensor->mode;
@@ -304,6 +321,9 @@ static int virtual_sensor_process_data(struct senss_sensor *sensor)
 		if (!conn->new_data_arrive) {
 			continue;
 		}
+		LOG_INF("%s, sensor:%s, index:%d, data_size:%d",
+			__func__, sensor->dev->name, conn->index, sensor->data_size);
+
 		ret |= sensor_api->process(sensor->dev,
 					conn->index,
 					conn->data,

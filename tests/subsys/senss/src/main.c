@@ -1133,6 +1133,8 @@ static int hinge_angle_data_callback(int handle, void *buf, int size, void *para
 	uint32_t *reading_count = (uint32_t *)param;
 	uint32_t i;
 
+	LOG_INF("%s(%d),rd_cnt:%d", __func__, __LINE__, sample->header.reading_count);
+
 	for (i = 0; i < sample->header.reading_count; i++) {
 		(*reading_count)++;
 	}

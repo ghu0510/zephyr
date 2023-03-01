@@ -174,6 +174,8 @@ static int hinge_process(const struct device *dev, int32_t reporter, void *buf,
 		return ret;
 	}
 
+	LOG_INF("%s(%d), info:%d, value:%d", __func__, __LINE__, info, value);
+	info = HINGE_ANGLE_VALUE_CHANGED;
 	if ((info == HINGE_ANGLE_VALUE_NOT_GEN) || (!value)) {
 		return 0;
 	}

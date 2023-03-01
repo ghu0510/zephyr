@@ -64,12 +64,8 @@ static int init_each_connection(struct senss_mgmt_context *ctx,
 	__ASSERT(conn, "init each connection, invalid connection");
 	conn->source = source;
 	conn->sink = sink;
-	/* malloc connection sample buf to copy data from source data buf */
-	conn->data = malloc(source->data_size);
-	if (!conn->data) {
-		LOG_ERR("malloc memory for connection data error");
-		return -ENOMEM;
-	}
+	LOG_INF("%s(%d), sensor:%s, conn:%p, conn-data:%p",
+		__func__, __LINE__, source->dev->name, conn, conn->data);
 	conn->interval = 0;
 	memset(conn->sensitivity, 0x00, sizeof(conn->sensitivity));
 
@@ -89,9 +85,10 @@ static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sens
 	__ASSERT(sensor_api, "init sensor, sensor device sensor_api is NULL");
 
 	sensor->conns_num = sensor->dt_info->reporter_num;
+
 	/* physical sensor has no reporter, conns_num is 0 */
 	if (sensor->conns_num == 0) {
-		__ASSERT(!sensor->conns, "init sensor, conns be NULL if sensor has no connection");
+		sensor->conns = NULL;
 	}
 
 	__ASSERT(sensor->conns_num <= CONFIG_SENSS_MAX_REPORTER_COUNT,
@@ -102,11 +99,20 @@ static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sens
 		/* initial each connection for sensors who has reporters */
 		reporter = get_reporter_sensor(ctx, sensor, i);
 		__ASSERT(reporter, "sensor's reporter should not be NULL");
+		conn->data = malloc(reporter->data_size);
+		if (!conn->data) {
+			LOG_ERR("malloc memory for connection data error");
+			return -ENOMEM;
+		}
 		ret |= init_each_connection(ctx, conn, reporter, sensor);
 		if (ret) {
 			LOG_ERR("%s, init_each_connection error:%d", __func__, ret);
 			return ret;
 		}
+
+			LOG_INF("%s(%d), i:%d, reporter:%s, sensor:%s, conn:%p, conn-data:%p",
+			__func__, __LINE__, i, reporter->dev->name, sensor->dev->name, conn, conn->data);
+
 		/* device tree required sensor connection between reporter and client cannot be
 		 * opened or closed any more, so it is called fixed connection.
 		 */
@@ -118,6 +124,7 @@ static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sens
 			 "sensor connection number:%d exceed %d",
 			 conn->index, CONFIG_SENSS_MAX_CONNECTION_COUNT);
 
+		sensor->conns = conn;
 		ctx->conns[conn->index] = conn;
 		/* link connection to its repoter's client_list */
 		sys_slist_append(&reporter->client_list, &conn->snode);
@@ -201,50 +208,30 @@ static void senss_dispatch_thread(void *p1, void *p2, void *p3)
 	} while (1);
 }
 
-/* allocate memory for struct senss_sensor */
-static struct senss_sensor *allocate_buffer(uint16_t conns_num, uint16_t sample_size)
-{
-	struct senss_sensor *sensor;
-
-	/* total memory to be alloctead for a sensor */
-	sensor = malloc(sizeof(*sensor) +
-			(conns_num * sizeof(struct senss_connection)) +
-			sample_size);
-	if (!sensor) {
-		LOG_ERR("malloc memory for struct senss_sensor error");
-		return NULL;
-	}
-
-	sensor->data_size = sample_size;
-	sensor->conns = (struct senss_connection *)(sensor + 1);
-	sensor->data_buf = sensor->conns + conns_num;
-
-	LOG_DBG("%s, conns_num:%d", __func__, conns_num);
-
-	/* physical sensor has no reporter, connections number is 0 */
-	if (conns_num == 0) {
-		sensor->conns = NULL;
-	}
-
-	return sensor;
-}
-
 /* create struct senss_sensor *sensor according to sensor device tree */
 static struct senss_sensor *create_sensor(struct senss_sensor_dt_info *dt)
 {
 	struct senss_sensor_ctx *sensor_ctx;
 	struct senss_sensor *sensor;
+	uint16_t sample_size;
 
 	__ASSERT(dt && dt->dev, "device tree info or senss dev is invalid");
 	sensor_ctx = dt->dev->data;
 	__ASSERT(sensor_ctx, "senss sensor context is invalid");
 
-	/* allocate struct senss_sensor *sensor according to sensor device tree */
-	sensor = allocate_buffer(dt->reporter_num, sensor_ctx->register_info->sample_size);
+	sample_size = sensor_ctx->register_info->sample_size;
+	/* total memory to be alloctead for a sensor according to sensor device tree
+	 * 1) struct senss_sensor*
+	 * 2) sample data point to struct senss_sensor->data_buf
+	 */
+	sensor = malloc(sizeof(*sensor) + sample_size + dt->reporter_num * sizeof(*sensor->conns));
 	if (!sensor) {
-		LOG_ERR("%s, allocate senss_sensor error", __func__);
+		LOG_ERR("malloc memory for struct senss_sensor error");
 		return NULL;
 	}
+	sensor->data_size = sample_size;
+	sensor->data_buf = (uint8_t *)sensor + sizeof(*sensor);
+	sensor->conns = (struct senss_connection *)((uint8_t *)sensor->data_buf + sample_size);
 
 	sensor->dev = dt->dev;
 	/* sensor->dt_info pointed to sensor device tree */
@@ -252,8 +239,8 @@ static struct senss_sensor *create_sensor(struct senss_sensor_dt_info *dt)
 	sensor->dt_info->info.flags = sensor_ctx->register_info->flags;
 	sensor->dt_info->info.version = sensor_ctx->register_info->version;
 
-	LOG_INF("%s, sensor:%s, min_ri:%d(us)",
-		__func__, sensor->dev->name, sensor->dt_info->info.minimal_interval);
+	LOG_INF("%s, sensor:%s(%p), min_ri:%d(us)",
+		__func__, sensor->dev->name, sensor, sensor->dt_info->info.minimal_interval);
 
 	sensor->interval = 0;
 	sensor->sensitivity_count = sensor_ctx->register_info->sensitivity_count;
@@ -344,12 +331,15 @@ int open_sensor(int type, int sensor_index)
 		LOG_ERR("no sensor match to type:0x%x, index:%d", type, sensor_index);
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
-	/* allocate struct senss_connection *conn for application client */
-	conn = malloc(sizeof(*conn));
+	/* allocate struct senss_connection *conn and conn data for application client */
+	conn = malloc(sizeof(*conn) + reporter->data_size);
 	if (!conn) {
 		LOG_ERR("malloc memory for struct senss_connection error");
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
+	conn->data = (uint8_t *)conn + sizeof(*conn);
+	LOG_INF("%s(%d), conn:%p, conn_size:%d", __func__, __LINE__, conn, sizeof(*conn));
+
 	/* create connection for reporter to application(client = NULL) */
 	ret = init_each_connection(ctx, conn, reporter, NULL);
 	if (ret) {
@@ -360,6 +350,7 @@ int open_sensor(int type, int sensor_index)
 	ret = senss_bind_conn(ctx, conn);
 	if (ret) {
 		LOG_ERR("%s, senss_bind_conn error:%d", __func__, ret);
+
 		return SENSS_SENSOR_INVALID_HANDLE;
 	}
 
@@ -465,7 +456,7 @@ int senss_deinit(void)
 	struct senss_connection *conn;
 	struct senss_sensor *sensor;
 	int ret = 0;
-	int i, j;
+	int i;
 
 	/* close all sensors */
 	for (i = 0; i < CONFIG_SENSS_MAX_CONNECTION_COUNT; i++) {
@@ -474,17 +465,22 @@ int senss_deinit(void)
 			continue;
 		}
 		ret |= close_sensor(conn);
-	}
-
-	/* free sensors and connections */
-	for_each_sensor(ctx, i, sensor) {
-		LOG_INF("%s, free sensor:%s data and senss_sensor", __func__, sensor->dev->name);
-		for_each_reporter_conn(j, sensor, conn) {
+		/* only free connection from reporter to application,
+		 * connection between reporter and client derived from device tree will be freed
+		 * later together with sensor, free(sensor)
+		 */
+		if (!conn->sink) {
+			LOG_INF("%s(%d), conn:%p", __func__, __LINE__, conn);
+			free(conn);
+		} else {
+			LOG_INF("%s(%d), conn-data:%p", __func__, __LINE__, conn->data);
 			free(conn->data);
 		}
-		/* since struct senss_connection and struct senss_sensor are allocated togerther
-		 * in create_sensor(), so free(sensor) will also free connection
-		 */
+	}
+
+	/* free sensors */
+	for_each_sensor(ctx, i, sensor) {
+		LOG_INF("%s(%d), sensor:%p", __func__, __LINE__, sensor);
 		free(sensor);
 	}
 	ctx->sensor_num = 0;

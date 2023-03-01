@@ -23,7 +23,7 @@ int senss_sensor_post_data(const struct device *dev, void *buf, int size)
 			size, sensor->data_size);
 		return -EINVAL;
 	}
-	LOG_DBG("%s, sensor:%s, data_size:%d", __func__, sensor->dev->name, sensor->data_size);
+	LOG_INF("%s, sensor:%s, data_size:%d", __func__, sensor->dev->name, sensor->data_size);
 
 	memcpy(sensor->data_buf, buf, sensor->data_size);
 
