@@ -106,6 +106,8 @@ struct senss_connection {
 	/* interval and sensitivity set from client(sink) to reporter(source) */
 	uint32_t interval;
 	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
+	uint64_t latency;
+	uint64_t batch_flush_time;
 	/* copy sensor data to connection data buf from reporter */
 	void *data;
 	/* client(sink) next consume time */
@@ -167,11 +169,21 @@ struct senss_mgmt_context {
 	struct ring_buf sensor_ring_buf;
 	uint8_t buf[CONFIG_SENSS_RING_BUF_SIZE];
 	bool data_to_ring_buf;
+	uint8_t *batch_buf[CONFIG_SENSS_MAX_BATCH_SENSOR_COUNT];
 };
 
 struct sensor_data_header {
 	uint16_t data_size;
-	uint16_t conn_index;
+	int16_t conn_index;
+} __packed;
+
+struct sensor_batch_data {
+	struct sensor_data_header data_header;
+	struct senss_sensor_value_header value_header;
+	struct {
+		uint32_t timestamp_delta;
+		int32_t data[0];
+	} readings[1];
 } __packed;
 
 struct senss_mgmt_context *get_senss_ctx(void);
@@ -179,10 +191,11 @@ void senss_runtime_thread(void *p1, void *p2, void *p3);
 int open_sensor(int type, int instance);
 int close_sensor(struct senss_connection *conn);
 int set_interval(struct senss_connection *conn, uint32_t value);
-int get_interval(struct senss_connection *con, uint32_t *value);
+int get_interval(struct senss_connection *conn, uint32_t *value);
 int set_sensitivity(struct senss_connection *conn, int index, uint32_t value);
-int get_sensitivity(struct senss_connection *con, int index, uint32_t *value);
+int get_sensitivity(struct senss_connection *conn, int index, uint32_t *value);
 int get_sensor_state(struct senss_sensor *sensor, enum senss_sensor_state *state);
+int set_report_latency(struct senss_connection *conn, uint64_t latency);
 const struct senss_sensor_info *get_sensor_info(struct senss_sensor *sensor);
 int register_data_event_callback(struct senss_connection *conn,
 				 senss_data_event_t callback,

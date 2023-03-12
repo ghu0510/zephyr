@@ -150,11 +150,27 @@ static bool sensor_test_consume_time(struct senss_sensor *sensor,
 	if (conn->next_consume_time <= sample_time)
 		return true;
 
-
 	LOG_INF("sensor:%s data not ready, next_consume_time:%lld sample_time:%lld, cur_time:%lld",
 			sensor->dev->name, conn->next_consume_time, sample_time, cur_time);
 
 	return false;
+}
+
+static void update_batch_flush_time(struct senss_sensor *sensor, struct senss_connection *conn)
+{
+	uint64_t sample_time;
+
+	if (conn->latency == EXEC_TIME_INIT)
+		return;
+
+	if (conn->batch_flush_time != EXEC_TIME_INIT)
+		return;
+
+	sample_time = ((struct senss_sensor_value_header *)sensor->data_buf)->base_timestamp;
+	conn->batch_flush_time = conn->latency + sample_time;
+
+	LOG_INF("%s(%d), sensor:%s, latency:%lld(us) sample_time:%lld, batch_flush_time:%lld",
+			__func__, __LINE__, sensor->dev->name, conn->latency, sample_time, conn->batch_flush_time);
 }
 
 static void update_client_consume_time(struct senss_sensor *sensor, struct senss_connection *conn)
@@ -200,14 +216,14 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		 * true: currently, it's time for client consume the data
 		 * false: client time not arrived yet, not consume the data
 		 */
-			LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
+		LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
 			__func__, __LINE__, conn->source->dev->name, conn->index, conn->sink);
 
 		if (!sensor_test_consume_time(sensor, conn, cur_time)) {
 			continue;
 		}
 
-				LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
+		LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
 			__func__, __LINE__, conn->source->dev->name, conn->index, conn->sink);
 
 		/* check sensitivity threshold passing or not, sensi_pass:
@@ -221,12 +237,13 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 
 		update_client_consume_time(sensor, conn);
 
+		update_batch_flush_time(sensor, conn);
+
 		if (!sensi_pass) {
 			continue;
 		}
 		LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
 			__func__, __LINE__, conn->source->dev->name, conn->index, conn->sink);
-
 
 		if (conn->sink) {
 			/* pass the sensor mode to its client */
@@ -244,6 +261,13 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		 * 2) connection data will be passed to client in its process() callback
 		 */
 		memcpy(conn->data, sensor->data_buf, sensor->data_size);
+
+		uint64_t sample_time = ((struct senss_sensor_value_header *)conn->data)->base_timestamp;
+		uint16_t reading_count = ((struct senss_sensor_value_header *)conn->data)->reading_count;
+
+		LOG_INF("%s(%d), sensor:%s, connection:%d, sample_time:%lld, rd_cnt:%d",
+			__func__, __LINE__, conn->source->dev->name, conn->index, sample_time, reading_count);
+
 		if (!conn->sink) {
 			add_data_to_sensor_ring_buf(ctx, sensor, conn);
 			ctx->data_to_ring_buf = true;

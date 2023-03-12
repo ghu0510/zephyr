@@ -28,7 +28,7 @@ static int acc_data_event_callback(int handle, void *buf, int size, void *param)
 
 	return 0;
 }
-
+#if 0
 static int motion_detector_data_event_callback(int handle, void *buf, int size,
 	void *param)
 {
@@ -60,14 +60,11 @@ static int hinge_angle_data_event_callback(int handle, void *buf, int size,
 
 	return 0;
 }
+#endif
 
 void main(void)
 {
-	const struct senss_sensor_info *info = NULL;
 	int base_acc;
-	int lid_acc;
-	int motion_detector;
-	int hinge_angle;
 	int ret;
 
 	ret = senss_init();
@@ -91,7 +88,17 @@ void main(void)
 		if (ret) {
 			LOG_ERR("base_acc senss_set_interval error\n");
 		}
+		/* set report latency as 2s*/
+		ret = senss_set_report_latency(base_acc, 2 * USEC_PER_MSEC * MSEC_PER_SEC);
+		if (ret) {
+			LOG_ERR("base_acc senss_set_report_latency error\n");
+		}
 	}
+#if 0
+	const struct senss_sensor_info *info = NULL;
+	int lid_acc;
+	int motion_detector;
+	int hinge_angle;
 
 	ret = senss_open_sensor(SENSS_SENSOR_TYPE_MOTION_ACCELEROMETER_3D, 1,
 			&lid_acc);
@@ -140,4 +147,5 @@ void main(void)
 			LOG_ERR("hinge_angle senss_set_interval error\n");
 		}
 	}
+#endif
 }

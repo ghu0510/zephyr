@@ -185,3 +185,16 @@ int senss_get_sensor_state(int handle, enum senss_sensor_state *state)
 
 	return get_sensor_state(conn->source, state);
 }
+
+int senss_set_report_latency(int handle, uint64_t latency)
+{
+	struct senss_mgmt_context *ctx = get_senss_ctx();
+	struct senss_connection *conn = get_connection_by_handle(ctx, handle);
+
+	if (!conn) {
+		LOG_ERR("%s, handle:%d get connection error", __func__, handle);
+		return -EINVAL;
+	}
+
+	return set_report_latency(conn, latency);
+}

@@ -109,6 +109,22 @@ config SENSS_DISPATCH_THREAD_PRIORITY
 	  thread priority should be higher than runtime thread
 	  Typical values are 8
 
+config SENSS_MAX_BATCH_SENSOR_COUNT
+	int "maximum sensor count to support batch data"
+	depends on SENSS
+	default 8
+	help
+	  This is the maximum sensor count to support batch sensor data
+	  Typical values are 8
+
+config SENSS_MAX_BATCH_DATA_SIZE
+	int "maximum batch data size for a certain sensor batching data"
+	depends on SENSS
+	default 4096
+	help
+	  This is maximum batch data size for a certain sensor batching data
+	  Typical values are 4096
+
 source "subsys/senss/sensor/phy_3d_sensor/Kconfig"
 source "subsys/senss/sensor/motion_detector/Kconfig"
 source "subsys/senss/sensor/hinge_angle/Kconfig"
