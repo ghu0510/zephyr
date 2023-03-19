@@ -59,7 +59,7 @@ static void sample_read(union bmi160_sample *buf)
 	static uint8_t raw_data[] = { 0x01, 0x0b, 0xac, 0x0e, 0x57, 0x12,
 				      0x01, 0x00, 0x89, 0x06, 0x11, 0x0d };
 
-	LOG_INF("Sample read");
+	LOG_DBG("Sample read");
 	memcpy(buf->raw, raw_data, ARRAY_SIZE(raw_data));
 }
 
@@ -68,25 +68,25 @@ static void reg_write(const struct emul *target, int regn, int val)
 	struct bmi160_emul_data *data = target->data;
 	const struct bmi160_emul_cfg *cfg = target->cfg;
 
-	LOG_INF("write %x = %x", regn, val);
+	LOG_DBG("write %x = %x", regn, val);
 	cfg->reg[regn] = val;
 	switch (regn) {
 	case BMI160_REG_ACC_CONF:
-		LOG_INF("   * acc conf");
+		LOG_DBG("   * acc conf");
 		break;
 	case BMI160_REG_ACC_RANGE:
-		LOG_INF("   * acc range");
+		LOG_DBG("   * acc range");
 		break;
 	case BMI160_REG_GYR_CONF:
-		LOG_INF("   * gyr conf");
+		LOG_DBG("   * gyr conf");
 		break;
 	case BMI160_REG_GYR_RANGE:
-		LOG_INF("   * gyr range");
+		LOG_DBG("   * gyr range");
 		break;
 	case BMI160_REG_CMD:
 		switch (val) {
 		case BMI160_CMD_SOFT_RESET:
-			LOG_INF("   * soft reset");
+			LOG_DBG("   * soft reset");
 			break;
 		default:
 			if ((val & BMI160_CMD_PMU_BIT) == BMI160_CMD_PMU_BIT) {
@@ -108,16 +108,16 @@ static void reg_write(const struct emul *target, int regn, int val)
 				}
 				data->pmu_status &= 3 << shift;
 				data->pmu_status |= pmu_val << shift;
-				LOG_INF("   * pmu %s = %x, new status %x", pmu_name[which], pmu_val,
+				LOG_DBG("   * pmu %s = %x, new status %x", pmu_name[which], pmu_val,
 					data->pmu_status);
 			} else {
-				LOG_INF("Unknown command %x", val);
+				LOG_DBG("Unknown command %x", val);
 			}
 			break;
 		}
 		break;
 	default:
-		LOG_INF("Unknown write %x", regn);
+		LOG_DBG("Unknown write %x", regn);
 	}
 }
 
@@ -127,39 +127,39 @@ static int reg_read(const struct emul *target, int regn)
 	const struct bmi160_emul_cfg *cfg = target->cfg;
 	int val;
 
-	LOG_INF("read %x =", regn);
+	LOG_DBG("read %x =", regn);
 	val = cfg->reg[regn];
 	switch (regn) {
 	case BMI160_REG_CHIPID:
-		LOG_INF("   * get chipid");
+		LOG_DBG("   * get chipid");
 		break;
 	case BMI160_REG_PMU_STATUS:
-		LOG_INF("   * get pmu");
+		LOG_DBG("   * get pmu");
 		val = data->pmu_status;
 		break;
 	case BMI160_REG_STATUS:
-		LOG_INF("   * status");
+		LOG_DBG("   * status");
 		val |= BMI160_DATA_READY_BIT_MASK;
 		break;
 	case BMI160_REG_ACC_CONF:
-		LOG_INF("   * acc conf");
+		LOG_DBG("   * acc conf");
 		break;
 	case BMI160_REG_GYR_CONF:
-		LOG_INF("   * gyr conf");
+		LOG_DBG("   * gyr conf");
 		break;
 	case BMI160_SPI_START:
-		LOG_INF("   * Bus start");
+		LOG_DBG("   * Bus start");
 		break;
 	case BMI160_REG_ACC_RANGE:
-		LOG_INF("   * acc range");
+		LOG_DBG("   * acc range");
 		break;
 	case BMI160_REG_GYR_RANGE:
-		LOG_INF("   * gyr range");
+		LOG_DBG("   * gyr range");
 		break;
 	default:
-		LOG_INF("Unknown read %x", regn);
+		LOG_DBG("Unknown read %x", regn);
 	}
-	LOG_INF("       = %x", val);
+	LOG_DBG("       = %x", val);
 
 	return val;
 }
@@ -208,21 +208,21 @@ static int bmi160_emul_io_spi(const struct emul *target, const struct spi_config
 				if (regn & BMI160_REG_READ) {
 					sample_read(rxd->buf);
 				} else {
-					LOG_INF("Unknown sample write");
+					LOG_DBG("Unknown sample write");
 				}
 				break;
 			default:
-				LOG_INF("Unknown A txd->len %d", txd->len);
+				LOG_DBG("Unknown A txd->len %d", txd->len);
 				break;
 			}
 			break;
 		default:
-			LOG_INF("Unknown tx->len %d", tx->len);
+			LOG_DBG("Unknown tx->len %d", tx->len);
 			break;
 		}
 		break;
 	default:
-		LOG_INF("Unknown tx_bufs->count %d", count);
+		LOG_DBG("Unknown tx_bufs->count %d", count);
 		break;
 	}
 

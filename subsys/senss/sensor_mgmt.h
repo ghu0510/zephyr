@@ -108,6 +108,7 @@ struct senss_connection {
 	int sensitivity[CONFIG_SENSS_MAX_SENSITIVITY_COUNT];
 	uint64_t latency;
 	uint64_t batch_flush_time;
+	bool in_batch;
 	/* copy sensor data to connection data buf from reporter */
 	void *data;
 	/* client(sink) next consume time */

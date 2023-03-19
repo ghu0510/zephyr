@@ -232,7 +232,7 @@ static int send_data_to_clients(struct senss_mgmt_context *ctx,
 		 */
 		sensi_pass = sensor_test_sensitivity(sensor, conn);
 
-		LOG_INF("%s(%d), sensor:%s, connection:%d, client:%p",
+		LOG_DBG("%s(%d), sensor:%s, connection:%d, client:%p",
 			__func__, __LINE__, conn->source->dev->name, conn->index, conn->sink);
 
 		update_client_consume_time(sensor, conn);

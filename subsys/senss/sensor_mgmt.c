@@ -64,8 +64,8 @@ static int init_each_connection(struct senss_mgmt_context *ctx,
 	__ASSERT(conn, "init each connection, invalid connection");
 	conn->source = source;
 	conn->sink = sink;
-	LOG_INF("%s(%d), sensor:%s, conn:%p, conn-data:%p",
-		__func__, __LINE__, source->dev->name, conn, conn->data);
+	LOG_INF("%s(%d), sensor:%s, conn:%p, conn-data:%p, conn_size:%d",
+		__func__, __LINE__, source->dev->name, conn, conn->data, sizeof(*conn));
 	conn->interval = EXEC_TIME_INIT;
 	conn->latency = EXEC_TIME_INIT;
 	memset(conn->sensitivity, 0x00, sizeof(conn->sensitivity));
@@ -143,23 +143,19 @@ static int init_sensor(struct senss_mgmt_context *ctx, struct senss_sensor *sens
 	return sensor_api->init(sensor->dev, &sensor->dt_info->info, conn_idx, sensor->conns_num);
 }
 
-static struct sensor_batch_data *put_data_header_to_batch_buf(
-							struct senss_mgmt_context *ctx,
-							uint8_t *buf,
-							uint32_t size)
+static struct sensor_batch_data *find_free_batch_buf(struct senss_mgmt_context *ctx, uint8_t *buf)
 {
-	struct sensor_batch_data *batch_data;
+	struct sensor_batch_data *batch_buf;
 	struct sensor_data_header *data_header = (struct sensor_data_header *)buf;
 	int i = 0;
 
-	LOG_INF("%s(%d), size:%d", __func__, __LINE__, size);
 	for (i = 0; i < CONFIG_SENSS_MAX_BATCH_SENSOR_COUNT; i++) {
-		batch_data = (struct sensor_batch_data *)ctx->batch_buf[i];
-		LOG_INF("%s(%d), i:%d, size:%d, conn_index:%d",
-				__func__, __LINE__, i, batch_data->data_header.data_size,
-					batch_data->data_header.conn_index);
-		if (batch_data->data_header.data_size == 0 ||
-			batch_data->data_header.conn_index == data_header->conn_index)
+		batch_buf = (struct sensor_batch_data *)ctx->batch_buf[i];
+		LOG_DBG("%s(%d), i:%d, size:%d, conn_index:%d",
+				__func__, __LINE__, i, batch_buf->data_header.data_size,
+					batch_buf->data_header.conn_index);
+		if (batch_buf->data_header.data_size == 0 ||
+		    batch_buf->data_header.conn_index == data_header->conn_index)
 			break;
 	}
 	if (i >= CONFIG_SENSS_MAX_BATCH_SENSOR_COUNT) {
@@ -167,44 +163,80 @@ static struct sensor_batch_data *put_data_header_to_batch_buf(
 		return NULL;
 	}
 
-	if (batch_data->data_header.data_size == 0) {
-		LOG_INF("%s(%d), size:%d, connection:%d",
-			__func__, __LINE__, size, data_header->conn_index);
-		memcpy(&batch_data->data_header, data_header, sizeof(*data_header));
-	}
-
-	return batch_data;
+	return batch_buf;
 }
+
+static struct sensor_batch_data *put_data_header_to_batch_buf(struct senss_mgmt_context *ctx,
+							     uint8_t *buf,
+							     uint32_t size)
+{
+	struct sensor_batch_data *batch_buf;
+
+	batch_buf = find_free_batch_buf(ctx, buf);
+	if (!batch_buf)
+		return NULL;
+
+	__ASSERT(batch_buf->data_header.data_size == 0,
+			"new free batch buf size should be 0");
+
+	__ASSERT(size == sizeof(struct sensor_data_header),
+			"not expected sensor data size:%d", size);
+
+	memcpy(&batch_buf->data_header, buf, size);
+
+	LOG_INF("%s(%d), size:%d, connection:%d",
+			__func__, __LINE__, size, batch_buf->data_header.conn_index);
+
+	return batch_buf;
+}
+
+
+struct test_sensor_3d_int32 {
+	uint32_t timestamp_delta;
+	int32_t v[3];
+};
+
 
 static int put_sensor_data_to_batch_buf(struct sensor_batch_data *batch,
 					uint8_t *buf,
-					uint32_t data_size)
+					uint32_t size)
 {
-	uintptr_t offset;
 	uint8_t *data;
+	/* sample size includes sizeof (uint32_t timestamp_delta) and sizeof (sensor data) */
+	uint32_t sample_size;
+	int32_t offset = sizeof(struct senss_sensor_value_header);
 
-	if (batch->value_header.base_timestamp == 0)
+	struct test_sensor_3d_int32 *test_3d;
+
+	__ASSERT(batch, "batch buf is NULL");
+
+	/* set base time */
+	if (batch->value_header.base_timestamp == 0) {
 		batch->value_header.base_timestamp =
 			((struct senss_sensor_value_header *)buf)->base_timestamp;
+	}
 
-	offset = POINTER_TO_UINT(batch->readings[0].data) - POINTER_TO_UINT(&batch->value_header);
-	data = (uint8_t *)batch->readings[0].data +
-			batch->value_header.reading_count * (data_size - offset);
+	sample_size = size - offset;
+	data = (uint8_t *)batch->readings[0].data + batch->value_header.reading_count * sample_size;
+
 	batch->value_header.reading_count++;
-
-	if (batch->value_header.reading_count * (data_size - offset) >=
-			CONFIG_SENSS_MAX_BATCH_DATA_SIZE - sizeof(*batch)) {
-		LOG_ERR("batch count %d exceed max batch buf:%d",
+	if (batch->value_header.reading_count * sample_size >=
+	    CONFIG_SENSS_MAX_BATCH_DATA_SIZE - sizeof(*batch)) {
+		LOG_ERR("batch count: %d exceed max batch buf:%d",
 			batch->value_header.reading_count, CONFIG_SENSS_MAX_BATCH_DATA_SIZE);
 		return -EINVAL;
 	}
 
-	memcpy(data, buf + offset, data_size - offset);
+	/* copy sensor data */
+	memcpy(data, buf + offset + sizeof(uint32_t), sample_size - sizeof(uint32_t));
+	/* calculate timestamp delta */
+	test_3d = (struct test_sensor_3d_int32 *)data;
 
-	LOG_INF("%s(%d), offset:%d, time:%lld, size:%d, count:%d, data:%d,%d,%d",
-		__func__, __LINE__, offset, batch->value_header.base_timestamp, data_size,
-			batch->value_header.reading_count, batch->readings[0].data[0],
-			batch->readings[0].data[1], batch->readings[0].data[2]);
+	LOG_INF("%s(%d), offset:%d, base_time:%lld, size:%d, count:%d, time_delta:%d, data:%d,%d,%d",
+		__func__, __LINE__, offset, batch->value_header.base_timestamp, size,
+			batch->value_header.reading_count, test_3d->timestamp_delta, test_3d->v[0],
+			test_3d->v[1], test_3d->v[2]);
+
 	return 0;
 }
 
@@ -214,15 +246,17 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 	struct senss_connection *conn;
 	uint8_t buf[CONFIG_SENSS_MAX_SENSOR_DATA_SIZE];
 	uint8_t *data;
-	struct sensor_batch_data *batch_data;
+	struct sensor_batch_data *batch_buf;
 	uint32_t wanted_size = sizeof(*header);
 	uint32_t ret_size, rd_size = 0;
 	uint16_t data_size = 0;
 	int16_t conn_index = -1;
 	int ret = 0;
 	bool flush = false;
+	int i;
 
 	while ((ret_size = ring_buf_get(&ctx->sensor_ring_buf, buf + rd_size, wanted_size)) > 0) {
+		LOG_INF("%s(%d), ret_size:%d", __func__, __LINE__, ret_size);
 		rd_size += ret_size;
 		if (rd_size == sizeof(*header)) {
 			header = (struct sensor_data_header *)buf;
@@ -238,18 +272,18 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 			LOG_INF("%s(%d), sensor:%s, size:%d, connection:%d, next_consume_time:%lld, batch_flush_time:%lld",
 				__func__, __LINE__, conn->source->dev->name, data_size, conn->index,
 				conn->next_consume_time, conn->batch_flush_time);
-			if (conn->next_consume_time < conn->batch_flush_time) {
-				batch_data = put_data_header_to_batch_buf(ctx, buf, rd_size);
-				if (!batch_data) {
+			if (conn->batch_flush_time != EXEC_TIME_INIT && !conn->in_batch) {
+				batch_buf = put_data_header_to_batch_buf(ctx, buf, rd_size);
+				if (!batch_buf) {
 					LOG_ERR("put_data_header_to_batch_buf err:%d", ret);
-					return ret;
+					return -EINVAL;
 				}
-			} else {
-				flush = true;
+				conn->in_batch = true;
 			}
 		} else if (rd_size == sizeof(*header) + wanted_size) {
 			data = buf + sizeof(*header);
 			conn = ctx->conns[conn_index];
+			LOG_INF("%s(%d), wanted_size:%d", __func__, __LINE__, wanted_size);
 			if (!conn) {
 				LOG_WRN("%s, connection is NULL", __func__);
 				continue;
@@ -258,17 +292,24 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 							__func__, conn->index);
 				continue;
 			}
-			if (conn->next_consume_time >= conn->batch_flush_time || flush) {
+			if (conn->latency == EXEC_TIME_INIT) {
+				/* no batch latency set, notify application directly */
+				ret = conn->data_evt_cb((int)conn_index, data, wanted_size, conn->cb_param);
+			} else if (conn->next_consume_time <= conn->batch_flush_time) {
+				/* save current sample to tmp batch buffer */
+				ret = put_sensor_data_to_batch_buf(batch_buf, data, wanted_size);
+			} else {
 				LOG_INF("%s(%d), post data to application", __func__, __LINE__);
 				/* flush batched samples to application */
-				conn->batch_flush_time = 0;
-				ret = conn->data_evt_cb((int)conn_index, data, wanted_size, conn->cb_param);
-			} else {
-				/* save current sample to tmp batch buffer */
-				ret = put_sensor_data_to_batch_buf(batch_data, data, wanted_size);
+				conn->batch_flush_time = EXEC_TIME_INIT;
+				flush = true;
 			}
+
 			/* read next sample header */
 			wanted_size = sizeof(*header);
+			LOG_INF("%s(%d), wanted_size:%d", __func__, __LINE__, wanted_size);
+
+
 			rd_size = 0;
 			uint64_t sample_time = ((struct senss_sensor_value_header *)(buf + sizeof(*header)))->base_timestamp;
 			uint16_t reading_count = ((struct senss_sensor_value_header *)(buf + sizeof(*header)))->reading_count;
@@ -289,6 +330,30 @@ static int fetch_data_and_dispatch(struct senss_mgmt_context *ctx)
 		LOG_ERR("%s, ret_size:%d, wanted_size:%d not expected:%d",
 			__func__, ret_size, wanted_size, sizeof(*header));
 		__ASSERT(wanted_size, "wanted_size:%d", wanted_size);
+	}
+	if (!flush)
+		return ret;
+
+	/* post all batched data to application */
+	for (i = 0; i < CONFIG_SENSS_MAX_BATCH_SENSOR_COUNT; i++) {
+		batch_buf = (struct sensor_batch_data *)ctx->batch_buf[i];
+		conn = ctx->conns[batch_buf->data_header.conn_index];
+		if (conn->latency == EXEC_TIME_INIT)
+			continue;
+		data_size = (batch_buf->data_header.data_size - sizeof(struct senss_sensor_value_header)) *
+				batch_buf->value_header.reading_count;
+		data_size += sizeof(struct senss_sensor_value_header);
+
+		LOG_INF("%s(%d), dispatch_batch_data, i:%d, size:%d, conn_index:%d, rd_cnt:%d, data_size:%d",
+				__func__, __LINE__, i, batch_buf->data_header.data_size,
+					batch_buf->data_header.conn_index,
+					batch_buf->value_header.reading_count,
+					data_size);
+
+		ret |= conn->data_evt_cb((int)conn_index,
+					 (uint8_t *)&batch_buf->value_header,
+					 data_size,
+					 conn->cb_param);
 	}
 
 	return ret;
