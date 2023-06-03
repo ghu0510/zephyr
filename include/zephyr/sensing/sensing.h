@@ -7,30 +7,38 @@
 #ifndef ZEPHYR_INCLUDE_SENSING_H_
 #define ZEPHYR_INCLUDE_SENSING_H_
 
-/**
- * @defgroup Sensing Subsystem APIs
- * @defgroup sensing_api API
- * @ingroup sensing
- * @defgroup sensing_sensor_types Sensor Types
- * @ingroup sensing
- * @defgroup sensing_datatypes Data Types
- * @ingroup sensing
- */
+
 
 #include <zephyr/sensing/sensing_datatypes.h>
 #include <zephyr/sensing/sensing_sensor_types.h>
 #include <zephyr/device.h>
 
-/**
- * @brief Sensing Subsystem API
- * @addtogroup sensing_api
- * @{
- */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * @brief Sensing Subsystem
+ * @defgroup sensing Sensing Subsystem
+ * @ingroup io_interfaces
+ * @{
+ * @}
+ */
+
+/**
+ * @brief Sensor Types Definition
+ * @defgroup sensing_sensor_types Sensor Types
+ * @ingroup sensing
+ * @{
+ */
+
+/**
+ * @brief Sensing Subsystem API
+ * @defgroup sensing_api Sensing Subsystem API
+ * @ingroup sensing
+ * @{
+ */
 
 /**
  * @struct sensing_sensor_version

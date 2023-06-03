@@ -447,7 +447,7 @@ struct rtio_iodev {
 	void *data;
 };
 
-/** An operation that does nothing and will complete immediately */
+/** An test operation that does nothing and will complete immediately */
 #define RTIO_OP_NOP 0
 
 /** An operation that receives (reads) */

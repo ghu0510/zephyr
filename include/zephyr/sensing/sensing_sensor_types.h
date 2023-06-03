@@ -7,21 +7,15 @@
 #ifndef ZEPHYR_INCLUDE_SENSING_SENSOR_TYPES_H_
 #define ZEPHYR_INCLUDE_SENSING_SENSOR_TYPES_H_
 
+
 /**
- * @brief Sensor Types Definition
- *
- * Sensor types definition followed HID standard.
- * https://usb.org/sites/default/files/hutrr39b_0.pdf
- *
- * TODO: will add more types
- *
- * @addtogroup sensing_sensor_types
+ * @brief sensor type
+ * @defgroup sensor_type SENSOR TYPE
+ * @ingroup sensing_sensor_types
  * @{
  */
 
-/**
- * sensor category light
- */
+/** sensor category light */
 #define SENSING_SENSOR_TYPE_LIGHT_AMBIENTLIGHT			0x41
 
 /**

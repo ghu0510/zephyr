@@ -84,18 +84,6 @@ Main Features
 
 * Configurable Via Device Tree
 
-API Design
-**********
-
-API Organization
-================
-
-* Sensing Subsystem
-    * Sensor Types (:zephyr_file:`include/zephyr/sensing/sensing_sensor_types.h`)
-    * Data Types (:zephyr_file:`include/zephyr/sensing/sensing_datatypes.h`)
-    * Sensing Subsystem API (:zephyr_file:`include/zephyr/sensing/sensing.h`)
-    * Sensing Sensor API (:zephyr_file:`include/zephyr/sensing/sensing_sensor.h`)
-
 Below diagram shows the API position and scope:
 
 .. image:: images/sensing_api_org.png
@@ -254,4 +242,10 @@ reporting relationships.
 
 See the example :zephyr_file:`samples/subsys/sensing/simple/boards/native_posix.overlay`
 
-.. doxygengroup:: sensing_api
+API Reference
+*************
+
+Sensor Types
+============
+
+.. doxygengroup:: sensing_sensor_types
